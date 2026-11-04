@@ -284,7 +284,8 @@ def main() -> None:
     data = build()
     text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     if args.check:
-        same = OUT.exists() and OUT.read_text(encoding="utf-8") == text
+        # 比較解析後的內容，不受 Windows 換行（CRLF）轉換影響
+        same = OUT.exists() and json.loads(OUT.read_text(encoding="utf-8")) == data
         print("✓ 與重新產生的結果一致" if same else "✗ 不一致（資料或腳本已變動）")
         sys.exit(0 if same else 1)
     OUT.parent.mkdir(parents=True, exist_ok=True)

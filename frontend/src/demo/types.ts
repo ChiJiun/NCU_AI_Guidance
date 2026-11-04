@@ -79,6 +79,8 @@ export interface DemoCase {
     input_tokens: number;
     output_tokens: number;
     recorder?: string;
+    /** input + turns 的 sha256，validate_demo_cases.py 會重算比對，防止 AI 回答被手動修改 */
+    content_sha256?: string;
   };
   review: {
     status: 'pending' | 'approved' | 'rejected';

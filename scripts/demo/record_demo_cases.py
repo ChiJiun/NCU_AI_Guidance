@@ -10,8 +10,9 @@ record_demo_cases.py — 依 data/demo/scenarios.json 對真實後端發問，�
   python scripts/demo/record_demo_cases.py --only course-01 --force   # 覆蓋已存在的案例
 
 錄完之後：
-  1. 人工逐一檢查回答（正確性、引用依據、匿名化），在檔案的 review 區塊填寫
+  1. 人工逐一檢查回答（正確性、引用依據、匿名化），只在檔案的 review 區塊填寫
      status="approved"、reviewer、reviewed_at、conclusion（一兩句結論，前端會顯示）。
+     不可修改 input／turns：meta.content_sha256 會在驗證時重算，內容有問題請修系統或情境後重錄。
   2. python scripts/demo/validate_demo_cases.py --require-approved
 已經人工檢查過（status=approved）的案例，沒有 --force 不會被覆蓋，避免檢查結果被洗掉。
 """
@@ -25,6 +26,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from assistant_runner import ROOT, AssistantRunner, git_commit, utc_now  # noqa: E402
+from validate_demo_cases import content_digest  # noqa: E402
 
 SCENARIOS = ROOT / "data" / "demo" / "scenarios.json"
 CASES_DIR = ROOT / "frontend" / "src" / "demo" / "cases"
@@ -52,7 +54,7 @@ def project_public_info(project: dict | None) -> dict | None:
 def build_case(scenario: dict, turns: list[dict], *, project: dict | None, commit: str, generated_at: str) -> dict:
     clean_turns = [{k: v for k, v in t.items() if k not in _INTERNAL_TURN_FIELDS} for t in turns]
     models = sorted({t.get("model") for t in turns if t.get("model")})
-    return {
+    case = {
         "id": scenario["id"],
         "assistant": scenario["assistant"],
         "category": scenario["category"],
@@ -76,6 +78,9 @@ def build_case(scenario: dict, turns: list[dict], *, project: dict | None, commi
         },
         "review": {"status": "pending", "reviewer": None, "reviewed_at": None, "notes": "", "conclusion": ""},
     }
+    # 防止人工檢查時改到 AI 回答：validate_demo_cases.py 會重算比對
+    case["meta"]["content_sha256"] = content_digest(case)
+    return case
 
 
 def should_skip(path: Path, force: bool) -> str | None:

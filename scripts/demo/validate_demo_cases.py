@@ -4,7 +4,10 @@ validate_demo_cases.py — 檢查 frontend/src/demo/cases/ 的 Demo 案例是否
 檢查項目：
   - 每個案例的必要欄位、助理類型、情境分類
   - 對話沒有錯誤、每輪都有回答
-  - 個資：回答中不可出現 email、手機、身分證字號格式；研究助理回答不可出現該計畫學生姓名
+  - 內容完整性：重新計算 input + turns 的 sha256，必須與錄製時寫入的 meta.content_sha256 相同
+    （人工檢查只能填 review 區塊，不能改 AI 回答；要修正請重錄）
+  - 個資：整輪紀錄（回答、分析步驟、引用課程、來源）不可出現 email、手機、身分證字號格式；
+    研究助理案例不可出現該計畫學生姓名
   - 數量與涵蓋：至少 13 組（課程 ≥10、研究 ≥3），六種情境分類都要出現
   - --require-approved：每個案例都必須已人工檢查（review.status == "approved" 且有 reviewer）
 
@@ -15,6 +18,7 @@ validate_demo_cases.py — 檢查 frontend/src/demo/cases/ 的 Demo 案例是否
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -34,6 +38,13 @@ PII_PATTERNS = {
 }
 
 
+def content_digest(case: dict) -> str:
+    """錄製內容（input + turns）的 sha256；review 與 meta 不納入，人工檢查可自由填寫。"""
+    payload = json.dumps({"input": case.get("input"), "turns": case.get("turns")},
+                         ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def check_case(case: dict, *, student_names: dict[str, str], require_approved: bool) -> list[str]:
     errors: list[str] = []
     cid = case.get("id", "?")
@@ -49,15 +60,22 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
     turns = case["turns"]
     if not turns:
         errors.append(f"{cid}: 沒有任何對話")
+    expected = (case.get("meta") or {}).get("content_sha256")
+    if not expected:
+        errors.append(f"{cid}: meta 缺少 content_sha256（請用 record_demo_cases.py 重錄）")
+    elif expected != content_digest(case):
+        errors.append(f"{cid}: 錄製內容與 content_sha256 不符，AI 回答或輸入可能被手動修改過，請重錄")
     for i, turn in enumerate(turns, 1):
         if turn.get("error"):
             errors.append(f"{cid}: 第 {i} 輪有錯誤：{turn['error']}")
         answer = (turn.get("assistant") or "").strip()
         if not answer:
             errors.append(f"{cid}: 第 {i} 輪沒有回答")
+        # 整輪紀錄都會顯示在案例頁（分析步驟、引用課程、來源），所以全部一起檢查
+        turn_text = json.dumps(turn, ensure_ascii=False)
         for label, pattern in PII_PATTERNS.items():
-            if pattern.search(answer):
-                errors.append(f"{cid}: 第 {i} 輪回答疑似含 {label}，請人工確認並移除")
+            if pattern.search(turn_text):
+                errors.append(f"{cid}: 第 {i} 輪紀錄疑似含 {label}，請人工確認")
     if case["assistant"] == "research":
         project = (case["input"] or {}).get("project") or {}
         if not project.get("id"):
@@ -65,8 +83,8 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
         if "studentName" in project:
             errors.append(f"{cid}: input.project 不可包含 studentName")
         name = student_names.get(project.get("id", ""), "").strip()
-        if len(name) >= 2 and any(name in (t.get("assistant") or "") for t in turns):
-            errors.append(f"{cid}: 回答中出現計畫學生姓名，請匿名化")
+        if len(name) >= 2 and any(name in json.dumps(t, ensure_ascii=False) for t in turns):
+            errors.append(f"{cid}: 對話紀錄中出現計畫學生姓名，請匿名化")
     review = case["review"] or {}
     if require_approved and (review.get("status") != "approved" or not review.get("reviewer")):
         errors.append(f"{cid}: 尚未人工檢查（review.status={review.get('status')}）")

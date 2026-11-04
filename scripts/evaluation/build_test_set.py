@@ -111,11 +111,14 @@ def graduation_items(depts: list, rng: random.Random, n: int) -> tuple[list[dict
     items = []
     for d in chosen:
         rules = [r.get("description") for r in d.get("graduation_rules", []) if r.get("description")]
+        # 規定裡已有「最低畢業學分」描述時就不再另外加一條，避免參考答案重複
+        has_min_rule = any(r.get("type") == "credit_minimum" for r in d.get("graduation_rules", []))
+        points = rules[:5] if has_min_rule else [f"最低畢業學分：{d['min_credits']}"] + rules[:4]
         items.append({
             "assistant": "course", "category": "graduation", "difficulty": "medium",
             "question": f"{d['name']}的最低畢業學分是多少？必修大概有多少學分？還有哪些畢業規定？",
             "reference": {
-                "answer_points": [f"最低畢業學分：{d['min_credits']}"] + rules[:4],
+                "answer_points": points,
                 "source": f"data/processed/curriculum_requirements_114.json#{d['id']}",
             },
             "expected_behavior": "最低畢業學分必須正確；其他規定只要列出的內容正確即可，查不到的要說明。",
@@ -179,8 +182,8 @@ def comparison_items(depts: list, n: int) -> list[dict]:
 
 CURATED_COURSE = [
     {"category": "insufficient_data", "difficulty": "medium",
-     "question": "我英文不太好，這樣適合讀中央大學嗎？",
-     "expected_behavior": "不可直接下結論；應說明需要更多資訊（想讀的系、英文授課比例等），或改提供可查證的資訊（如各系英文相關修業規定）。"},
+     "question": "我進中大之後想轉到資訊相關的系，轉系成功的機率大概有多少？",
+     "expected_behavior": "系統沒有轉系名額與錄取率資料，應明確說明無法估計機率，並建議查詢教務處轉系公告；不可編造數字。"},
     {"category": "insufficient_data", "difficulty": "medium",
      "question": "明年有哪些課會停開？",
      "expected_behavior": "系統沒有未來開課資料，應明確說明無法得知，並建議查詢官方課程查詢系統；不可猜測。"},

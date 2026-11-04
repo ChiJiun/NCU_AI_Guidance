@@ -53,6 +53,35 @@ def test_every_write_route_is_blocked_unless_allowlisted(client, monkeypatch):
     assert not leaked, f"展示模式下放行／阻擋不符預期：{leaked}"
 
 
+# 展示模式會放行所有 GET。這份快照列出目前已確認「不呼叫 Bedrock（chat / embeddings）」的 GET 路由；
+# 新增 GET 路由時這個測試會失敗——請先確認新路由整條呼叫鏈都不碰模型，再把它加進來。
+# 若新路由會呼叫模型，必須在 app/demo_mode.py 另外封鎖，不能只更新快照。
+REVIEWED_GET_ROUTES = {
+    "/", "/health", "/ready",
+    "/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc",
+    "/api/assessment/questions", "/api/assessment/admission-criteria",
+    "/api/auth/me",
+    "/api/courses", "/api/courses/{course_id}",
+    "/api/projects", "/api/projects/analytics", "/api/projects/recent-chats", "/api/projects/{project_id}",
+    "/api/projects/{project_id}/conversations", "/api/projects/{project_id}/conversations/{thread_id}/messages",
+    "/api/graph/search", "/api/graph/neighborhood", "/api/graph/stats",
+    "/api/chat/sessions", "/api/chat/session/{session_id}", "/api/chat/analytics", "/api/chat/tools",
+    "/api/curriculum/tree", "/api/curriculum/dept/{dept_id}", "/api/curriculum/notes",
+    "/api/curriculum/notes/by-id/{dept_id}", "/api/curriculum/pdf/{dept_id}",
+    "/api/monitor/db-stats", "/api/monitor/stats",
+    "/api/demo/status",
+}
+
+
+def test_get_routes_match_reviewed_snapshot():
+    current = {getattr(r, "path", "") for r in app.routes if "GET" in (getattr(r, "methods", None) or set())}
+    added = current - REVIEWED_GET_ROUTES
+    assert not added, (
+        f"新增了 GET 路由 {sorted(added)}：展示模式會放行所有 GET，請確認它不呼叫模型後再加入 REVIEWED_GET_ROUTES"
+    )
+    assert not REVIEWED_GET_ROUTES - current, f"快照中有已不存在的路由：{sorted(REVIEWED_GET_ROUTES - current)}"
+
+
 @pytest.mark.parametrize("method,path", [
     ("POST", "/api/chat"),
     ("POST", "/api/chat/stream"),

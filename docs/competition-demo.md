@@ -18,10 +18,11 @@
 | 位置 | 設定 | 作用 |
 |---|---|---|
 | 後端 | `DEMO_MODE=true`（CloudFormation 參數 `DemoMode`，預設就是 `true`） | 預設拒絕：所有 POST／PUT／PATCH／DELETE 一律回 403 `LIVE_AI_DISABLED`，只放行確定不呼叫模型的白名單（量表計分、學測篩選、關鍵字課程搜尋、課程詳情）。GET 照常。 |
-| 前端 | build 時設 `VITE_DEMO_MODE=true` | 首頁改為示範案例入口、隱藏登入、課程助理頁導向 `/demo`、研究計畫與課程詳情的提問框換成提示、全站顯示「比賽展示版」說明條。 |
+| 前端 | build 時設 `VITE_DEMO_MODE=true` | 首頁改為示範案例入口、隱藏登入、課程助理頁導向 `/demo`、研究計畫與課程詳情的提問框換成提示、課程資訊頁只提供一般文字搜尋（語意搜尋需要 embedding，後端會擋）、全站顯示「比賽展示版」說明條。 |
 
 - 後端白名單在 `backend/app/demo_mode.py`。新增白名單前必須確認那個 endpoint 的整條呼叫鏈都不碰 Bedrock。
-  `backend/tests/test_demo_mode.py` 會掃描所有路由，確保白名單以外的寫入型 endpoint 都被擋下。
+  `backend/tests/test_demo_mode.py` 會掃描所有路由，確保白名單以外的寫入型 endpoint 都被擋下；
+  另外把目前的 GET 路由列成快照，新增 GET 路由時測試會失敗，提醒先確認它不呼叫模型（展示模式會放行所有 GET）。
 - 後端狀態可用 `GET /api/demo/status` 確認：`{"demo_mode": true, "live_ai_enabled": false}`。
 - 模型金鑰只在後端（ECS task role 呼叫 Bedrock，不需要金鑰）。前端打包檔只含公開的 Firebase web config；
   可以在 build 後執行下列指令自行確認：
@@ -45,10 +46,16 @@
 
 - 錄製腳本是在同一個 process 內啟動真正的後端，並打真正的 SSE endpoint，所以案例內容就是系統的真實輸出。
   **不要手動修改 AI 回答**；回答有問題就修系統或調整情境後重錄（`--only <id> --force`）。
+  錄製時會把 `input` + `turns` 的 sha256 寫進 `meta.content_sha256`，驗證腳本會重算比對，內容被改過就不會通過。
+- 錄製會寫入對話紀錄（`user_id = demo-recorder:local`）。建議設定 `RECORDER_DATABASE_URL` 指向獨立資料庫
+  （例如 Neon 的 branch），避免影響正式站的監控與使用統計；若直接用正式資料庫，錄完後要依這個 user_id 清除紀錄。
+  評估腳本 `run_eval.py` 也一樣。
+- 研究助理如果錄到「已收到補充，將納入考量。」或空回答（同一 thread 仍有串流進行中，被 stream lock 處理），
+  該案例會被標記為錄製失敗、不寫入檔案。
 - 已標記 approved 的案例沒有 `--force` 不會被覆蓋。
 - 展示模式只顯示 approved 的案例；開發模式會顯示全部，未檢查的會加註「待人工檢查」。
-- 匿名化：案例不帶研究計畫的學生姓名；驗證腳本會檢查回答中有沒有 email、手機、身分證字號格式，
-  以及該計畫學生的姓名。
+- 匿名化：案例不帶研究計畫的學生姓名；驗證腳本會檢查整輪紀錄（回答、分析步驟、引用課程、來源）
+  有沒有 email、手機、身分證字號格式，以及該計畫學生的姓名。
 - 頁面：`/demo`（依助理與情境篩選）、`/demo/<id>`（使用情境、輸入資料、分析過程、AI 回答、引用依據、
   結論與人工檢查資訊）。
 

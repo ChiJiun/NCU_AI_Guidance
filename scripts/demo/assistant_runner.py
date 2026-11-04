@@ -9,6 +9,11 @@ assistant_runner.py — 在同一個 process 內啟動後端，對兩個 AI 助�
 
 需求：與正式後端相同的環境變數（Bedrock、Qdrant、Neon PostgreSQL…），且 **DEMO_MODE 必須關閉**
 （本模組會強制設為 false）。這會真的呼叫模型、產生費用。
+
+資料庫：錄製會寫入對話紀錄（chat_sessions、pdf_conversations、pdf_agent_messages 等，
+user_id 為 `demo-recorder:local`），會影響監控與使用統計。建議設定 `RECORDER_DATABASE_URL`
+指向獨立的資料庫（例如 Neon 的 branch），本模組會用它取代 `DATABASE_URL`；
+若直接用正式資料庫，錄完後請依 user_id 清除這些紀錄。
 """
 from __future__ import annotations
 
@@ -25,6 +30,10 @@ ROOT = Path(__file__).resolve().parents[2]
 BACKEND = ROOT / "backend"
 
 RECORDER_USER_ID = "demo-recorder:local"
+
+# 研究助理 stream lock／steering 分支的固定回覆（backend/app/routes/projects.py）：
+# 錄到這句代表請求被當成「補充訊息」而不是新的提問，不能當成回答
+STEERING_ACK = "已收到補充，將納入考量。"
 
 
 # ── SSE 解析（純函式，可單元測試）────────────────────────────────────────────
@@ -132,6 +141,11 @@ def build_research_turn(message: str, events: list[dict], latency_ms: int) -> di
             sources = ev.get("sources") or sources
             if ev.get("cancelled"):
                 error = error or "cancelled"
+    if not error and got_done:
+        if text.strip() == STEERING_ACK:
+            error = "收到 steering 確認訊息而非回答（同一 thread 仍有進行中的串流）"
+        elif not text.strip():
+            error = "沒有回答內容（請求可能被 stream lock 當成重複請求丟棄）"
     return {
         "user": message,
         "assistant": text,
@@ -170,6 +184,12 @@ class AssistantRunner:
 
         load_dotenv(ROOT / ".env")
         os.environ["DEMO_MODE"] = "false"  # 錄製時一定要能呼叫模型
+        recorder_db = os.getenv("RECORDER_DATABASE_URL", "").strip()
+        if recorder_db:
+            os.environ["DATABASE_URL"] = recorder_db
+            print("[runner] 使用 RECORDER_DATABASE_URL 作為資料庫")
+        else:
+            print(f"[runner] 注意：將寫入 DATABASE_URL 指向的資料庫（user_id={RECORDER_USER_ID}）")
 
         from fastapi.testclient import TestClient
 

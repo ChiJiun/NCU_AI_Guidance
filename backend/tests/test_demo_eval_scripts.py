@@ -83,6 +83,19 @@ def test_build_research_turn():
     assert turn["thread_id"] == "t1" and turn["error"] is None
 
 
+def test_build_research_turn_rejects_steering_ack_and_empty():
+    ack = runner.STEERING_ACK
+    # _ack 分支：token 與 done 同一個事件
+    turn = runner.build_research_turn("q", [{"token": ack, "done": True, "session_id": "t"}], 1)
+    assert "steering" in turn["error"]
+    # _steer 分支：先 token 再 done
+    turn = runner.build_research_turn("q", [{"token": ack}, {"done": True, "session_id": "t"}], 1)
+    assert "steering" in turn["error"]
+    # _drop 分支：只有 done
+    turn = runner.build_research_turn("q", [{"done": True, "session_id": "t"}], 1)
+    assert "沒有回答內容" in turn["error"]
+
+
 def test_build_research_turn_error_and_cancel():
     assert runner.build_research_turn("q", [{"error": "忙碌", "done": True}], 1)["error"] == "忙碌"
     assert runner.build_research_turn("q", [{"done": True, "cancelled": True}], 1)["error"] == "cancelled"
@@ -130,6 +143,26 @@ def test_validate_flags_pii_and_student_name():
     errs = validate.check_case(case, student_names={"p1": "王小明"}, require_approved=True)
     joined = " ".join(errs)
     assert "手機號碼" in joined and "email" in joined and "學生姓名" in joined
+
+
+def test_content_hash_detects_manual_edit_but_allows_review():
+    case = _approved_case()
+    assert case["meta"]["content_sha256"] == validate.content_digest(case)
+    case["review"].update(conclusion="人工填寫的結論", notes="ok")
+    assert validate.check_case(case, student_names={}, require_approved=True) == []
+    case["turns"][0]["assistant"] = "被手動改過的回答"
+    errs = validate.check_case(case, student_names={}, require_approved=True)
+    assert any("content_sha256" in e for e in errs)
+    del case["meta"]["content_sha256"]
+    assert any("缺少 content_sha256" in e for e in validate.check_case(case, student_names={}, require_approved=False))
+
+
+def test_pii_check_covers_whole_turn():
+    turn = _turn()
+    turn["course_cards"] = [{"name": "課", "teacher": "聯絡 teacher@example.com"}]
+    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
+    errs = validate.check_case(case, student_names={}, require_approved=False)
+    assert any("email" in e for e in errs)
 
 
 def test_validate_require_approved():

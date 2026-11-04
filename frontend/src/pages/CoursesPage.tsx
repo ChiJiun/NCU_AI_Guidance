@@ -24,6 +24,7 @@ import CourseCompareModal from '../components/CourseCompareModal';
 import CourseDetailPanel from '../components/CourseDetailPanel';
 import HighlightText from '../components/HighlightText';
 import type { Course } from '../types';
+import { DEMO_MODE } from '../demo/config';
 
 const COLLEGE_ORDER = ['文學院', '理學院', '工學院', '管理學院', '資訊電機學院', '地球科學學院', '客家學院', '生醫理工學院', '永續與綠能科技研究學院', '中心、處室'] as const;
 const FALLBACK_COLLEGE = '中心、處室';
@@ -47,6 +48,9 @@ const COLLEGE_CONFIG: Record<string, { icon: ComponentType<{ className?: string 
 type NavigationLevel = 'colleges' | 'departments' | 'courses';
 type ResultTab = 'course_name' | 'detail_info';
 type SearchMode = 'semantic' | 'keyword';
+
+// 展示模式下後端會擋掉語意搜尋（需要 embedding 呼叫），只提供一般文字搜尋
+const DEFAULT_SEARCH_MODE: SearchMode = DEMO_MODE ? 'keyword' : 'semantic';
 type SemanticSearchMode = 'idle' | 'semantic' | 'fallback';
 type GroupedCourses = Record<string, Record<string, Course[]>>;
 
@@ -119,12 +123,12 @@ export default function CoursesPage() {
   const [showSearchPanel, setShowSearchPanel] = useState(false);
   const [navigationLevel, setNavigationLevel] = useState<NavigationLevel>('colleges');
   const [resultTab, setResultTab] = useState<ResultTab>('course_name');
-  const [searchMode, setSearchMode] = useState<SearchMode>('semantic');
+  const [searchMode, setSearchMode] = useState<SearchMode>(DEFAULT_SEARCH_MODE);
   const [draftSearchQuery, setDraftSearchQuery] = useState('');
   const [draftSelectedTypes, setDraftSelectedTypes] = useState<string[]>([]);
   const [draftSelectedCredits, setDraftSelectedCredits] = useState<string[]>([]);
   const [draftSelectedSemesters, setDraftSelectedSemesters] = useState<string[]>([]);
-  const [draftSearchMode, setDraftSearchMode] = useState<SearchMode>('semantic');
+  const [draftSearchMode, setDraftSearchMode] = useState<SearchMode>(DEFAULT_SEARCH_MODE);
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>([]);
   const [semanticCourses, setSemanticCourses] = useState<Course[]>([]);
   const [semanticLoading, setSemanticLoading] = useState(false);
@@ -1048,6 +1052,7 @@ export default function CoursesPage() {
                 <HiX className="h-5 w-5" />
               </button>
             </div>
+            {!DEMO_MODE && (
             <div className="mt-5">
               <label className="mb-2 block text-sm font-medium text-slate-700">搜尋模式</label>
               <div className="flex w-full overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm">
@@ -1067,6 +1072,7 @@ export default function CoursesPage() {
                 </button>
               </div>
             </div>
+            )}
             <div className="mt-5">
               <label className="mb-2 block text-sm font-medium text-slate-700">{draftSearchMode === 'semantic' ? '搜尋關鍵字' : '搜尋文字'}</label>
               <div className="relative">

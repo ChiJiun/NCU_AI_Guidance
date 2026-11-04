@@ -2,7 +2,8 @@
 demo_mode.py — 比賽展示版的「訪客展示模式」
 
 設定 `DEMO_MODE=true` 後，後端進入預設拒絕（default deny）模式：
-- GET / HEAD / OPTIONS 照常放行（目前沒有任何 GET endpoint 會呼叫付費模型）。
+- GET / HEAD / OPTIONS 照常放行。目前沒有任何 GET endpoint 會呼叫付費模型；
+  tests/test_demo_mode.py 把現有 GET 路由列成快照，新增 GET 路由時測試會失敗，提醒確認它不呼叫模型。
 - 其他方法（POST / PUT / PATCH / DELETE）一律回 403 `LIVE_AI_DISABLED`，
   只有 `_ALLOWED_WRITE_ROUTES` 列出、確定不呼叫模型／embedding 的純計算 endpoint 例外。
 
@@ -18,9 +19,8 @@ import os
 import re
 
 from fastapi import APIRouter
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 LIVE_AI_DISABLED_CODE = "LIVE_AI_DISABLED"
 LIVE_AI_DISABLED_MESSAGE = "比賽展示版目前不提供即時提問，請瀏覽預先產生的示範案例。"
@@ -49,16 +49,25 @@ def is_request_allowed(method: str, path: str) -> bool:
     return any(m == method and pattern.match(path) for m, pattern in _ALLOWED_WRITE_ROUTES)
 
 
-class DemoModeMiddleware(BaseHTTPMiddleware):
-    """DEMO_MODE 開啟時擋下所有可能呼叫付費模型的請求。每次請求都重新讀環境變數，方便測試。"""
+class DemoModeMiddleware:
+    """DEMO_MODE 開啟時擋下所有可能呼叫付費模型的請求。
 
-    async def dispatch(self, request: Request, call_next):
-        if is_demo_mode() and not is_request_allowed(request.method, request.url.path):
-            return JSONResponse(
+    寫成純 ASGI middleware（不用 BaseHTTPMiddleware），放行的請求直接交給下一層，
+    不會額外包住 SSE 串流的 body 與 client disconnect。每次請求都重新讀環境變數，方便測試。
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] == "http" and is_demo_mode() and not is_request_allowed(scope["method"], scope["path"]):
+            response = JSONResponse(
                 status_code=403,
                 content={"detail": LIVE_AI_DISABLED_MESSAGE, "code": LIVE_AI_DISABLED_CODE},
             )
-        return await call_next(request)
+            await response(scope, receive, send)
+            return
+        await self.app(scope, receive, send)
 
 
 router = APIRouter()

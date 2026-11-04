@@ -165,6 +165,24 @@ def test_pii_check_covers_whole_turn():
     assert any("email" in e for e in errs)
 
 
+@pytest.mark.parametrize("text", [
+    "身分證：\nA123456789",   # 行首（前一個字元是換行）
+    "身分證：\tA123456789",   # 前面是 tab
+    "A123456789",            # 整段只有號碼
+])
+def test_pii_detects_id_at_line_start(text):
+    turn = _turn(text)
+    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
+    errs = validate.check_case(case, student_names={}, require_approved=False)
+    assert any("身分證字號" in e for e in errs), errs
+
+
+def test_steering_ack_matches_backend_source():
+    """STEERING_ACK 是複製自後端的字串；後端改字時這個測試會提醒同步更新。"""
+    source = (ROOT / "backend" / "app" / "routes" / "projects.py").read_text(encoding="utf-8")
+    assert source.count(runner.STEERING_ACK) >= 2
+
+
 def test_validate_require_approved():
     case = _approved_case()
     case["review"]["status"] = "pending"

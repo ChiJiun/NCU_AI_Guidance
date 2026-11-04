@@ -47,6 +47,8 @@
 - 錄製腳本是在同一個 process 內啟動真正的後端，並打真正的 SSE endpoint，所以案例內容就是系統的真實輸出。
   **不要手動修改 AI 回答**；回答有問題就修系統或調整情境後重錄（`--only <id> --force`）。
   錄製時會把 `input` + `turns` 的 sha256 寫進 `meta.content_sha256`，驗證腳本會重算比對，內容被改過就不會通過。
+  雜湊**不含** `meta`（模型、token、耗時、commit）與 `title`、`scenario`、`review`；這些欄位不受保護，請不要手動修改。
+  填寫 `review` 時用一般文字編輯器即可；不要用會把數字 `1.0` 改寫成 `1` 的工具重存整個 JSON，否則雜湊會不符。
 - 錄製會寫入對話紀錄（`user_id = demo-recorder:local`）。建議設定 `RECORDER_DATABASE_URL` 指向獨立資料庫
   （例如 Neon 的 branch），避免影響正式站的監控與使用統計；若直接用正式資料庫，錄完後要依這個 user_id 清除紀錄。
   評估腳本 `run_eval.py` 也一樣。

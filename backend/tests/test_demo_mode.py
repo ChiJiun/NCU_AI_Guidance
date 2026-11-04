@@ -82,6 +82,15 @@ def test_get_routes_match_reviewed_snapshot():
     assert not REVIEWED_GET_ROUTES - current, f"快照中有已不存在的路由：{sorted(REVIEWED_GET_ROUTES - current)}"
 
 
+def test_no_unreviewed_mounts_or_websockets():
+    """純 ASGI middleware 只檢查 http scope；Mount 與 websocket 路由不在上面兩個掃描範圍內，這裡另外鎖住。"""
+    from starlette.routing import Mount, WebSocketRoute
+
+    mounts = {getattr(r, "path", "") for r in app.routes if isinstance(r, Mount)}
+    assert mounts <= {"/pdfs"}, f"新增了 Mount {sorted(mounts - {'/pdfs'})}，請確認展示模式下不會呼叫模型"
+    assert not [r for r in app.routes if isinstance(r, WebSocketRoute)], "新增了 websocket 路由，展示模式不會檢查它"
+
+
 @pytest.mark.parametrize("method,path", [
     ("POST", "/api/chat"),
     ("POST", "/api/chat/stream"),

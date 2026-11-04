@@ -38,6 +38,25 @@ PII_PATTERNS = {
 }
 
 
+def _collect_strings(value) -> list[str]:
+    """遞迴取出所有字串值（不含 dict key），保留原本的換行。
+
+    不能直接對 json.dumps 的結果跑 regex：換行會變成反斜線加 n 兩個字元，
+    身分證字號 regex 的 lookbehind 會被前面的 `n` 擋住而漏判行首的號碼。
+    """
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [s for v in value.values() for s in _collect_strings(v)]
+    if isinstance(value, (list, tuple)):
+        return [s for v in value for s in _collect_strings(v)]
+    return []
+
+
+def turn_text(turn: dict) -> str:
+    return "\n".join(_collect_strings(turn))
+
+
 def content_digest(case: dict) -> str:
     """錄製內容（input + turns）的 sha256；review 與 meta 不納入，人工檢查可自由填寫。"""
     payload = json.dumps({"input": case.get("input"), "turns": case.get("turns")},
@@ -72,9 +91,9 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
         if not answer:
             errors.append(f"{cid}: 第 {i} 輪沒有回答")
         # 整輪紀錄都會顯示在案例頁（分析步驟、引用課程、來源），所以全部一起檢查
-        turn_text = json.dumps(turn, ensure_ascii=False)
+        text = turn_text(turn)
         for label, pattern in PII_PATTERNS.items():
-            if pattern.search(turn_text):
+            if pattern.search(text):
                 errors.append(f"{cid}: 第 {i} 輪紀錄疑似含 {label}，請人工確認")
     if case["assistant"] == "research":
         project = (case["input"] or {}).get("project") or {}
@@ -83,7 +102,7 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
         if "studentName" in project:
             errors.append(f"{cid}: input.project 不可包含 studentName")
         name = student_names.get(project.get("id", ""), "").strip()
-        if len(name) >= 2 and any(name in json.dumps(t, ensure_ascii=False) for t in turns):
+        if len(name) >= 2 and any(name in turn_text(t) for t in turns):
             errors.append(f"{cid}: 對話紀錄中出現計畫學生姓名，請匿名化")
     review = case["review"] or {}
     if require_approved and (review.get("status") != "approved" or not review.get("reviewer")):

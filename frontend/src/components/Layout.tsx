@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
+import DemoBanner from './DemoBanner';
 
 interface LayoutProps {
   fullHeight?: boolean;
@@ -44,6 +45,7 @@ export default function Layout({ fullHeight = false, noPad = false }: LayoutProp
       onClick={noPad ? undefined : handleBackgroundClick}
     >
       <Navbar />
+      <DemoBanner />
       <main
         className={fullHeight ? 'flex-1 overflow-hidden' : noPad ? '' : isHome ? '' : 'page-container py-8'}
         onClick={noPad ? undefined : handleBackgroundClick}

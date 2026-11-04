@@ -15,6 +15,8 @@ import {
   HiLockClosed,
 } from 'react-icons/hi';
 import { useAuth } from '../auth/AuthContext';
+import { DEMO_MODE } from '../demo/config';
+import DemoEntrySection from '../components/DemoEntrySection';
 
 // ── Google 圖示 ──────────────────────────────────────────────────────────────
 function GoogleMark() {
@@ -111,9 +113,11 @@ const highlights = [
   {
     icon: HiLightningBolt,
     title: 'AI 課程對話助理',
-    description: '用自然語言描述你想學的方向，AI 自動搜尋相關課程並即時回答問題，省去逐頁翻找的時間。',
-    path: '/course-search',
-    cta: '試試 AI 搜尋',
+    description: DEMO_MODE
+      ? '預先錄製的 AI 選課對話，完整呈現查詢過程、引用課程與人工檢查後的結論。'
+      : '用自然語言描述你想學的方向，AI 自動搜尋相關課程並即時回答問題，省去逐頁翻找的時間。',
+    path: DEMO_MODE ? '/demo?assistant=course' : '/course-search',
+    cta: DEMO_MODE ? '看 AI 示範案例' : '試試 AI 搜尋',
     border:    'border-primary-200',
     iconColor: 'text-primary-400',
     ctaColor:  'text-primary-700 hover:text-primary-900',
@@ -131,7 +135,9 @@ const highlights = [
   {
     icon: HiDocumentText,
     title: '研究計畫 AI 問答',
-    description: '瀏覽 459 份大專生研究計畫，遇到不懂的段落直接問 AI，快速掌握各系的研究方向與深度。',
+    description: DEMO_MODE
+      ? '瀏覽 459 份大專生研究計畫，並查看 AI 用白話解讀研究內容的示範案例。'
+      : '瀏覽 459 份大專生研究計畫，遇到不懂的段落直接問 AI，快速掌握各系的研究方向與深度。',
     path: '/projects',
     cta: '查看研究計畫',
     border:    'border-primary-200',
@@ -157,10 +163,12 @@ const features = [
   },
   {
     title: 'AI 課程助理',
-    description: '用 AI 對話描述想學的主題或方向，取得相關課程推薦與延伸查詢結果。',
+    description: DEMO_MODE
+      ? '查看 AI 對話如何從課程與修業資料推論出選課建議，並附上引用依據。'
+      : '用 AI 對話描述想學的主題或方向，取得相關課程推薦與延伸查詢結果。',
     icon: HiLightningBolt,
-    path: '/course-search',
-    tag: 'AI 對話',
+    path: DEMO_MODE ? '/demo?assistant=course' : '/course-search',
+    tag: DEMO_MODE ? 'AI 示範' : 'AI 對話',
   },
   {
     title: '研究計畫',
@@ -189,10 +197,13 @@ const paths = [
   {
     step: '01',
     title: '探索自己的興趣方向',
-    description: '從量表了解你的學習傾向，取得量身推薦的系所清單。完成後登入即可查看個人探索歷程、領域分佈雷達圖與課程偏好分析。',
+    description: DEMO_MODE
+      ? '從量表了解你的學習傾向，取得量身推薦的系所清單。'
+      : '從量表了解你的學習傾向，取得量身推薦的系所清單。完成後登入即可查看個人探索歷程、領域分佈雷達圖與課程偏好分析。',
     links: [
       { label: '興趣量表', path: '/assessment',  sub: '40+ 題目', locked: false },
-      { label: '個人分析', path: '/profile',     sub: '需登入',   locked: true  },
+      // 展示模式不提供登入，個人分析頁隱藏
+      ...(DEMO_MODE ? [] : [{ label: '個人分析', path: '/profile', sub: '需登入', locked: true }]),
     ],
   },
   {
@@ -201,7 +212,9 @@ const paths = [
     description: '三個工具各有側重：課程資訊讓你循學院瀏覽比較，AI 助理用自然語言找課，系所修課呈現各系的畢業學分架構與修課規定。',
     links: [
       { label: '課程資訊',    path: '/courses',      sub: '4,500+ 課程', locked: false },
-      { label: 'AI 課程助理', path: '/course-search', sub: 'AI 對話',     locked: false },
+      DEMO_MODE
+        ? { label: 'AI 課程助理', path: '/demo?assistant=course', sub: 'AI 示範', locked: false }
+        : { label: 'AI 課程助理', path: '/course-search', sub: 'AI 對話', locked: false },
       { label: '系所修課',    path: '/curriculum',    sub: '修課規劃',     locked: false },
     ],
   },
@@ -356,7 +369,9 @@ export default function HomePage() {
                   </span>
                 </h1>
                 <p className="h-anim-3 mt-6 max-w-xl text-base leading-7 text-slate-600">
-                  量表分析學習偏好、AI 即時解答課程問題、研究計畫讓你看見各系的真實深度。
+                  {DEMO_MODE
+                    ? '量表分析學習偏好、AI 助理示範如何從校內資料解答選課問題、研究計畫讓你看見各系的真實深度。'
+                    : '量表分析學習偏好、AI 即時解答課程問題、研究計畫讓你看見各系的真實深度。'}
                   選系不靠感覺，靠資料。
                 </p>
                 <div className="h-anim-4 mt-8 flex flex-wrap gap-3">
@@ -367,6 +382,11 @@ export default function HomePage() {
                   <button type="button" onClick={() => navigateWithAnimation('/courses')} className="btn-secondary">
                     瀏覽課程資料
                   </button>
+                  {DEMO_MODE && (
+                    <button type="button" onClick={() => navigateWithAnimation('/demo')} className="btn-secondary">
+                      查看 AI 示範案例
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -604,7 +624,7 @@ export default function HomePage() {
         {/* ══════════════════════════════════════════════════════════════════
             5. 登入提醒 / 已登入狀態
         ══════════════════════════════════════════════════════════════════ */}
-        {!loading && !user && (
+        {DEMO_MODE ? <DemoEntrySection onNavigate={navigateWithAnimation} /> : !loading && !user && (
           <section className="px-6 py-4 md:px-10">
             <Reveal>
               <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl bg-primary-900">

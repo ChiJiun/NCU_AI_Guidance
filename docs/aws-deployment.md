@@ -131,6 +131,7 @@ Console → CloudFormation → Create stack → Upload `deploy/aws/ecs-fargate.y
 | `BedrockChatModelId` / `BedrockMiniModelId` | 步驟 1 的 ID |
 | `PdfQdrantCollection` | 重建後的 PDF collection 名稱 |
 | `DesiredCount` | **第一次保持 0**（此時 ECR 還沒有映像） |
+| `DemoMode` | 預設 `true`（比賽展示版：後端拒絕所有可能呼叫模型的請求，見 `docs/competition-demo.md`）；要開放即時提問才改 `false` |
 
 建好後：
 

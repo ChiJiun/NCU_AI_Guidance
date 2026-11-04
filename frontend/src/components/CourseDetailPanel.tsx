@@ -22,6 +22,8 @@ import { courseAPI } from '../api/services';
 import type { Course } from '../types';
 import CoreAbilityTable from './CoreAbilityTable';
 import HighlightText from './HighlightText';
+import { DEMO_MODE } from '../demo/config';
+import LiveAiDisabledNotice from './LiveAiDisabledNotice';
 
 interface CourseDetailPanelProps {
   course: Course | null;
@@ -455,6 +457,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
             </>
           )}
         </div>
+        {DEMO_MODE ? <LiveAiDisabledNotice assistant="course" compact /> : (
         <form onSubmit={handleAskSubmit} className="border-t border-slate-200 p-3 shrink-0">
           <div className="flex gap-2">
             <textarea
@@ -484,6 +487,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
             </button>
           </div>
         </form>
+        )}
       </div>
       </>
     ) : null}
@@ -548,6 +552,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
             ) : null}
           </div>
 
+          {DEMO_MODE ? <LiveAiDisabledNotice assistant="course" /> : (
           <form onSubmit={handleAskSubmit} className="border-t border-slate-200 p-4">
             <label className="mb-2 block text-sm font-medium text-slate-700">輸入問題</label>
             <div className="flex flex-col gap-3 sm:flex-row">
@@ -569,6 +574,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
               </button>
             </div>
           </form>
+          )}
         </div>
       </div>
     ) : null}

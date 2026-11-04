@@ -13,6 +13,8 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.routes import assessment, auth, courses, projects, course_search, graph, chat, curriculum, monitor
 from app.logging_config import configure_logging
 from app import app_state
+from app import demo_mode
+from app.demo_mode import DemoModeMiddleware
 from app.services import latency_store as ls
 
 configure_logging()
@@ -139,6 +141,10 @@ app = FastAPI(
 
 app.add_middleware(LatencyMiddleware)
 
+# 訪客展示模式（DEMO_MODE=true）：預設拒絕所有可能呼叫付費模型的請求。
+# 加在 CORS 之前 → CORS 在外層，被擋下的 403 回應仍帶 CORS header，前端才讀得到錯誤訊息。
+app.add_middleware(DemoModeMiddleware)
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
@@ -158,6 +164,7 @@ app.include_router(graph.router, prefix="/api/graph", tags=["graph"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(curriculum.router, prefix="/api/curriculum", tags=["curriculum"])
 app.include_router(monitor.router, prefix="/api/monitor", tags=["monitor"])
+app.include_router(demo_mode.router, prefix="/api/demo", tags=["demo"])
 
 # 掛載 PDF 靜態文件服務
 pdf_directory = Path(__file__).parent.parent.parent / "data" / "raw" / "projects" / "104-114"

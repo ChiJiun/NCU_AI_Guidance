@@ -6,13 +6,15 @@ import logo from '../assets/NCULogo.png';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useAuth, type AuthUser } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
+import { DEMO_MODE } from '../demo/config';
 
 const navItems = [
   { path: '/', label: '首頁' },
   { path: '/assessment', label: '興趣量表' },
   { path: '/curriculum', label: '系所修課' },
   { path: '/courses', label: '課程資訊' },
-  { path: '/course-search', label: '課程助理' },
+  // 展示模式：課程助理不開放即時提問，改連到 AI 示範案例
+  DEMO_MODE ? { path: '/demo', label: 'AI 示範' } : { path: '/course-search', label: '課程助理' },
   { path: '/projects', label: '研究計畫' },
   { path: '/resources', label: '資源連結' },
 ];
@@ -76,8 +78,8 @@ function MobileMenuOverlay({
               </Link>
             ))}
 
-            {/* 使用者區塊 */}
-            {user ? (
+            {/* 使用者區塊（展示模式不提供登入） */}
+            {DEMO_MODE ? null : user ? (
               <>
                 <div className="mt-2 border-t border-slate-200 pt-4">
                   {/* 使用者資訊 */}
@@ -189,7 +191,7 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
-              <GoogleLoginButton />
+              {!DEMO_MODE && <GoogleLoginButton />}
             </div>
 
             {/* 手機版漢堡按鈕 */}

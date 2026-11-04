@@ -30,6 +30,8 @@ import {
 import PdfViewer from '../components/PdfViewer';
 import { useAuth } from '../auth/AuthContext';
 import type { Project } from '../types';
+import { DEMO_MODE } from '../demo/config';
+import LiveAiDisabledNotice from '../components/LiveAiDisabledNotice';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -196,7 +198,7 @@ export default function ProjectsPage() {
   };
 
   const doSendProjectMessage = (msg: string, fromIdx?: number) => {
-    if (!user || !selectedProject || chatLoading) return;
+    if (DEMO_MODE || !user || !selectedProject || chatLoading) return;
     setChatLoading(true);
     setStreamingText('');
     setChatMessages((prev) => {
@@ -1127,7 +1129,9 @@ function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {!isLoggedIn ? (
+      {DEMO_MODE ? (
+        <LiveAiDisabledNotice assistant="research" />
+      ) : !isLoggedIn ? (
         <div className="border-t border-gray-200 p-4">
           <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 px-4 py-5 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">

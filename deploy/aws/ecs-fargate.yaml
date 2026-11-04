@@ -47,6 +47,13 @@ Parameters:
     Type: String
     Default: reports
     Description: Qdrant collection for PDF chat (use the re-embedded collection name after migration).
+  DemoMode:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      true = 比賽展示版：後端預設拒絕所有可能呼叫 Bedrock 的請求（見 backend/app/demo_mode.py），
+      公開網址不會產生模型費用。要開放即時提問才改成 false。
   ImageTag:
     Type: String
     Default: latest
@@ -235,6 +242,7 @@ Resources:
             - { Name: BEDROCK_EMBEDDING_MODEL_ID, Value: !Ref BedrockEmbeddingModelId }
             - { Name: BEDROCK_EMBEDDING_DIM, Value: "1024" }
             - { Name: PDF_QDRANT_COLLECTION, Value: !Ref PdfQdrantCollection }
+            - { Name: DEMO_MODE, Value: !Ref DemoMode }
             - { Name: CLOUDINARY_PROJECT_FOLDER, Value: ncu-ai-guidance/data/raw/projects }
           Secrets:
             - { Name: DATABASE_URL, ValueFrom: !Sub "${SecretArn}:DATABASE_URL::" }

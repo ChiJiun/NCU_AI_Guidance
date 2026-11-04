@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { onAuthStateChanged } from 'firebase/auth';
 import { authAPI } from '../api/services';
 import { firebaseAuth, signInWithGoogle, signOutOfFirebase } from './firebase';
+import { DEMO_MODE } from '../demo/config';
 
 export interface AuthUser {
   id: string;
@@ -22,9 +23,11 @@ export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // 展示模式不提供登入：不監聽 Firebase 登入狀態，user 永遠是 null
+  const [loading, setLoading] = useState(!DEMO_MODE);
 
   useEffect(() => {
+    if (DEMO_MODE) return;
     return onAuthStateChanged(firebaseAuth, async (firebaseUser) => {
       if (!firebaseUser) {
         setUser(null);
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
+    if (DEMO_MODE) return;
     await signInWithGoogle();
   }, []);
 

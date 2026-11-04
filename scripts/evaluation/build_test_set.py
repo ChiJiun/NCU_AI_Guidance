@@ -110,9 +110,11 @@ def graduation_items(depts: list, rng: random.Random, n: int) -> tuple[list[dict
     chosen = pool[:n]
     items = []
     for d in chosen:
-        rules = [r.get("description") for r in d.get("graduation_rules", []) if r.get("description")]
-        # 規定裡已有「最低畢業學分」描述時就不再另外加一條，避免參考答案重複
-        has_min_rule = any(r.get("type") == "credit_minimum" for r in d.get("graduation_rules", []))
+        described = [r for r in d.get("graduation_rules", []) if r.get("description")]
+        rules = [r["description"] for r in described]
+        # 只有當「有描述的最低畢業學分規定」確實會出現在參考答案裡，才省略自動加的那一條，避免重複；
+        # 否則（規定沒描述或排在第 5 條之後）一律補上，確保最低畢業學分一定在參考答案中
+        has_min_rule = any(r.get("type") == "credit_minimum" for r in described[:5])
         points = rules[:5] if has_min_rule else [f"最低畢業學分：{d['min_credits']}"] + rules[:4]
         items.append({
             "assistant": "course", "category": "graduation", "difficulty": "medium",

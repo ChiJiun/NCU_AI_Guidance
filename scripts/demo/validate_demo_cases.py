@@ -38,23 +38,21 @@ PII_PATTERNS = {
 }
 
 
-def _collect_strings(value) -> list[str]:
-    """遞迴取出所有字串值（不含 dict key），保留原本的換行。
+def iter_strings(value, path: str = "") -> list[tuple[str, str]]:
+    """遞迴取出所有字串值（不含 dict key），回傳 (欄位路徑, 字串)。
 
-    不能直接對 json.dumps 的結果跑 regex：換行會變成反斜線加 n 兩個字元，
-    身分證字號 regex 的 lookbehind 會被前面的 `n` 擋住而漏判行首的號碼。
+    個資比對要逐個字串分開做：
+      - 不能對 json.dumps 的結果跑 regex：換行會變成反斜線加 n，身分證字號 regex 的
+        lookbehind 會被前面的 `n` 擋住而漏判行首號碼。
+      - 也不能把所有字串串接起來：手機 regex 允許中間有空白，會把兩個欄位接成一組號碼而誤判。
     """
     if isinstance(value, str):
-        return [value]
+        return [(path or "$", value)]
     if isinstance(value, dict):
-        return [s for v in value.values() for s in _collect_strings(v)]
+        return [item for k, v in value.items() for item in iter_strings(v, f"{path}.{k}" if path else str(k))]
     if isinstance(value, (list, tuple)):
-        return [s for v in value for s in _collect_strings(v)]
+        return [item for i, v in enumerate(value) for item in iter_strings(v, f"{path}[{i}]")]
     return []
-
-
-def turn_text(turn: dict) -> str:
-    return "\n".join(_collect_strings(turn))
 
 
 def content_digest(case: dict) -> str:
@@ -90,11 +88,11 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
         answer = (turn.get("assistant") or "").strip()
         if not answer:
             errors.append(f"{cid}: 第 {i} 輪沒有回答")
-        # 整輪紀錄都會顯示在案例頁（分析步驟、引用課程、來源），所以全部一起檢查
-        text = turn_text(turn)
-        for label, pattern in PII_PATTERNS.items():
-            if pattern.search(text):
-                errors.append(f"{cid}: 第 {i} 輪紀錄疑似含 {label}，請人工確認")
+        # 整輪紀錄都會顯示在案例頁（分析步驟、引用課程、來源），所以每個欄位都要檢查
+        for field, text in iter_strings(turn):
+            for label, pattern in PII_PATTERNS.items():
+                if pattern.search(text):
+                    errors.append(f"{cid}: 第 {i} 輪 {field} 疑似含 {label}，請人工確認")
     if case["assistant"] == "research":
         project = (case["input"] or {}).get("project") or {}
         if not project.get("id"):
@@ -102,7 +100,7 @@ def check_case(case: dict, *, student_names: dict[str, str], require_approved: b
         if "studentName" in project:
             errors.append(f"{cid}: input.project 不可包含 studentName")
         name = student_names.get(project.get("id", ""), "").strip()
-        if len(name) >= 2 and any(name in turn_text(t) for t in turns):
+        if len(name) >= 2 and any(name in text for t in turns for _, text in iter_strings(t)):
             errors.append(f"{cid}: 對話紀錄中出現計畫學生姓名，請匿名化")
     review = case["review"] or {}
     if require_approved and (review.get("status") != "approved" or not review.get("reviewer")):

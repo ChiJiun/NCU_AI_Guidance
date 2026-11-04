@@ -177,6 +177,41 @@ def test_pii_detects_id_at_line_start(text):
     assert any("身分證字號" in e for e in errs), errs
 
 
+def test_pii_no_cross_field_false_positive_and_reports_field():
+    turn = _turn("代碼 0912")
+    turn["steps"] = [{"kind": "tool", "tool": "x", "args": {"a": "345678"}}]
+    turn["course_cards"] = [{"code": "0912345", "name": "678"}]
+    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
+    assert validate.check_case(case, student_names={}, require_approved=False) == []
+
+    turn = _turn()
+    turn["steps"] = [{"kind": "tool", "tool": "x", "args": {"phone": "0912-345-678"}}]
+    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
+    errs = validate.check_case(case, student_names={}, require_approved=False)
+    assert any("steps[0].args.phone" in e and "手機號碼" in e for e in errs), errs
+
+
+def test_graduation_reference_always_contains_min_credits():
+    import random
+
+    def dept(rules):
+        return {"id": "d", "name": "某系", "min_credits": 128, "required_courses": [{}], "graduation_rules": rules}
+
+    # 有描述的 credit_minimum 在前 5 條 → 不重複補
+    pts = build_ts.graduation_items([dept([{"type": "credit_minimum", "description": "最低 128 學分"}])],
+                                    random.Random(0), 1)[0][0]["reference"]["answer_points"]
+    assert pts == ["最低 128 學分"]
+    # credit_minimum 沒有描述 → 要補上
+    pts = build_ts.graduation_items([dept([{"type": "credit_minimum"}, {"type": "x", "description": "其他"}])],
+                                    random.Random(0), 1)[0][0]["reference"]["answer_points"]
+    assert pts[0] == "最低畢業學分：128"
+    # credit_minimum 排在第 6 條之後 → 要補上
+    rules = [{"type": "x", "description": f"規定{i}"} for i in range(5)] + [
+        {"type": "credit_minimum", "description": "最低 128 學分"}]
+    pts = build_ts.graduation_items([dept(rules)], random.Random(0), 1)[0][0]["reference"]["answer_points"]
+    assert pts[0] == "最低畢業學分：128"
+
+
 def test_steering_ack_matches_backend_source():
     """STEERING_ACK 是複製自後端的字串；後端改字時這個測試會提醒同步更新。"""
     source = (ROOT / "backend" / "app" / "routes" / "projects.py").read_text(encoding="utf-8")

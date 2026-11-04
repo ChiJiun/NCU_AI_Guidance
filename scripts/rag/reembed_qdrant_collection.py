@@ -92,6 +92,8 @@ def reembed(
     limit: int = 0,
     recreate: bool = False,
 ) -> int:
+    if src is dst and dest == collection:
+        raise RuntimeError("目的 collection 不可與來源同名（同一個 Qdrant 內會覆蓋來源）。")
     existing = {c.name for c in dst.get_collections().collections}
     if dest in existing:
         if not recreate:

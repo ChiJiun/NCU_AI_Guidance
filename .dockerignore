@@ -1,8 +1,8 @@
 # 版本控制與本機環境（.env 含金鑰，絕不能進映像）
 .git
 .github
-.env
-.env.*
+**/.env
+**/.env.*
 !.env.example
 .firebase
 .claude

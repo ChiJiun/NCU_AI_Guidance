@@ -5,8 +5,9 @@ pydantic-settings>=2.0.0
 python-multipart>=0.0.9
 python-dotenv>=1.0.0
 # Amazon Bedrock（Claude 對話 + Titan Embeddings）
-boto3>=1.35.0
-langchain-aws>=0.2.0
+# 版本以實測為準：langchain-aws 會把 response_format 翻成 Converse 的 outputConfig，行為隨版本變動
+boto3>=1.43.123,<2
+langchain-aws==1.9.1
 langsmith>=0.1.0
 python-igraph>=0.11.0
 leidenalg>=0.10.0

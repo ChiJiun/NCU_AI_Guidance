@@ -88,3 +88,12 @@ def test_existing_destination_requires_recreate():
 def test_get_by_path_nested():
     assert reembed_mod.get_by_path({"a": {"b": "x"}}, "a.b") == "x"
     assert reembed_mod.get_by_path({"a": 1}, "a.b") is None
+
+
+def test_same_name_destination_is_rejected_even_with_recreate():
+    c = QdrantClient(":memory:")
+    make_hybrid(c)
+    with pytest.raises(RuntimeError, match="不可與來源同名"):
+        reembed_mod.reembed(c, c, "reports", "reports", text_field="page_content",
+                            embed=fake_embed, dim=DIM, recreate=True)
+    assert c.count("reports").count == 6  # 來源沒有被刪除

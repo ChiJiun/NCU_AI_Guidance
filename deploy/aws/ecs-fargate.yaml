@@ -223,7 +223,7 @@ Resources:
           PortMappings:
             - { ContainerPort: 8000, Protocol: tcp }
           # SSE streams need a clean shutdown window when a task is replaced
-          StopTimeout: 60
+          StopTimeout: 120   # Fargate 允許的最大值
           Environment:
             - { Name: APP_ENV, Value: production }
             - { Name: WEB_CONCURRENCY, Value: "1" }
@@ -287,3 +287,6 @@ Outputs:
     Value: !GetAtt Service.Name
   TaskRoleArn:
     Value: !GetAtt TaskRole.Arn
+  ExecutionRoleArn:
+    Description: Pass to github-oidc-deploy-role.yaml so iam:PassRole can be scoped to these two roles.
+    Value: !GetAtt ExecutionRole.Arn

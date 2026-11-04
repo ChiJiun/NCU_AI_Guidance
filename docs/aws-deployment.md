@@ -42,6 +42,14 @@
    - `BEDROCK_CHAT_MODEL_ID`：主要對話模型（課程助理、PDF 問答主 agent、研究 agent）
    - `BEDROCK_MINI_MODEL_ID`：輕量模型（router、單課問答、使用者側寫），留空則沿用主要模型
 
+> ⚠️ **模型必須支援 structured outputs 與 strict tool use。** PDF 問答大量使用結構化輸出
+> （`ProviderStrategy(..., strict=True)`、`with_structured_output(..., strict=True)`），`langchain-aws` 會把它們翻成
+> Converse 的 `outputConfig.textFormat` json_schema 與 `toolSpec.strict`。這兩項只有部分較新的 Claude 型號支援，
+> **主要模型與輕量模型（Haiku）都必須支援**，請在 Bedrock 文件確認所選型號；不支援時 PDF 問答與研究 agent 會失敗。
+> 另外，送進結構化輸出的 schema 不可含 `maxItems`、`minLength`、`minimum` 等約束；
+> `backend/tests/test_structured_output_and_store.py` 會檢查這點。
+> `langchain-aws` 與 `boto3` 已在 `requirements.txt` 鎖定實測版本，請勿隨意升級。
+
 ## 2. 重建向量索引（必要）
 
 Titan V2 最高 1024 維，原本的 text-embedding-3-large 是 3072 維，**所有 Qdrant collection 都必須重新向量化**，
@@ -65,6 +73,26 @@ Titan V2 最高 1024 維，原本的 text-embedding-3-large 是 3072 維，**所
   流程不在這個 repo 內。
 - 重新向量化後請抽樣檢查檢索品質（見驗證清單），Titan 與 text-embedding-3-large 的中文檢索表現不會完全相同。
 
+### 2.1 遷移 Postgres 的 LangGraph store（必要）
+
+PDF 問答的長期記憶與使用者側寫存在 Neon 的 `store_vectors` 表，欄位是 `vector(3072)`。
+`AsyncPostgresStore.setup()` 使用 `CREATE TABLE IF NOT EXISTS`，**不會**改既有表的維度，所以換成 1024 維後，
+寫入與搜尋會失敗，而相關呼叫的例外都被吞掉（只剩 warning），功能會「靜默失效」。後端啟動時會檢查維度，
+不一致就在日誌記一筆 `store_vectors.embedding 維度為 …` 的 error。
+
+這些記憶可以重建，直接清空即可（在 Neon SQL editor 執行）：
+
+```sql
+TRUNCATE store_vectors;
+DROP INDEX IF EXISTS store_vectors_embedding_idx;
+ALTER TABLE store_vectors ALTER COLUMN embedding TYPE vector(1024);
+```
+
+之後重新啟動服務，索引會重建。
+
+**不要讓 Render（舊 3072 維）與 AWS（新 1024 維）共用同一個資料庫**：兩邊對 `store_vectors` 的維度要求互相衝突。
+並行期請替 AWS 另建一個 Neon branch／資料庫（`DATABASE_URL` 指向它），或接受 Render 的記憶功能暫時失效。
+
 ## 3. 建立 Secrets Manager 密鑰
 
 Console → Secrets Manager → Store a new secret → **Other type of secret**，用 JSON 填入下列 key（區域同樣是東京）：
@@ -82,7 +110,7 @@ Console → Secrets Manager → Store a new secret → **Other type of secret**�
 }
 ```
 
-記下這個密鑰的 ARN。LangSmith 為選填，需要時自行在 task definition 追加 `LANGSMITH_API_KEY` 等 secret。
+記下這個密鑰的**完整 ARN**（結尾含 `-xxxxxx` 六碼隨機字尾；CloudFormation 的 `ValueFrom` 需要完整 ARN）。LangSmith 為選填，需要時自行在 task definition 追加 `LANGSMITH_API_KEY` 等 secret。
 
 ## 4. 準備網域與憑證
 
@@ -115,11 +143,15 @@ Console → CloudFormation → Create stack → Upload `deploy/aws/ecs-fargate.y
      docker push <RepositoryUri>:latest
      ```
    - 或先完成步驟 6 再用 GitHub Actions。
-3. 更新 stack，把 `DesiredCount` 改為 **1**。
+3. 更新 stack，把 `DesiredCount` 改為 **1**。之後每次更新 stack 都要保留這個值（Console 選 *Use existing value*），
+   否則預設的 0 會把服務縮成 0 個 task。
+4. GitHub Actions 部署會用 `register-task-definition` 建立新的 revision，與 CloudFormation 管理的 task definition
+   會產生 drift；之後若再更新 stack 且改到 task definition，請先確認使用的映像標籤。
 
 ## 6. 讓 GitHub Actions 部署（選用）
 
-1. 部署 `deploy/aws/github-oidc-deploy-role.yaml`（若帳號已有 GitHub OIDC provider，`CreateOidcProvider` 選 false 並填入其 ARN）。
+1. 部署 `deploy/aws/github-oidc-deploy-role.yaml`：`ExecutionRoleArn`、`TaskRoleArn` 填入 `ecs-fargate` stack 的 Outputs
+   （`iam:PassRole` 只會授權給這兩個角色）；若帳號已有 GitHub OIDC provider，`CreateOidcProvider` 選 false 並填入其 ARN。
 2. 把 Outputs 的 `DeployRoleArn` 設為 GitHub repo secret `AWS_DEPLOY_ROLE_ARN`。
 3. Actions → **Deploy backend to AWS ECS Fargate** → Run workflow。流程：建置映像、推到 ECR、以新映像註冊
    task definition、更新服務並等待穩定。只允許 `main` 分支且 repo 為 `ChiJiun/NCU_AI_Guidance`。
@@ -129,8 +161,8 @@ Console → CloudFormation → Create stack → Upload `deploy/aws/ecs-fargate.y
 1. 更新 GitHub secret `VITE_API_URL=https://api.example.com/api`，重新部署前端（push 到 `main` 會觸發 Firebase workflow）。
 2. Firebase Auth 不需要改程式碼（`signInWithPopup`，授權網域是前端網域，沒有變）。
 3. CORS：`AllowedOrigins` 參數需包含前端網域。
-4. 建議讓 Render 與 AWS 並行一段時間，確認穩定再停掉 Render；兩邊共用同一個 Neon 與 Qdrant，但要注意 Render 仍使用
-   舊的 3072 維 collection 與 Azure 設定。
+4. 建議讓 Render 與 AWS 並行一段時間，確認穩定再停掉 Render。並行時兩邊必須使用**不同的 Qdrant collection**
+   （Render：舊的 3072 維；AWS：新的 1024 維）與**不同的 Postgres 資料庫**（見 2.1），不能共用。
 
 ---
 
@@ -156,7 +188,15 @@ Console → CloudFormation → Create stack → Upload `deploy/aws/ecs-fargate.y
   LangChain 追蹤不受影響。
 - **費用估算**：監控頁的費用是估算，預設值沿用 Azure 時期的單價；請依實際模型價目設定
   `COURSE_PRICE_*` / `PDF_AGENT_PRICE_*` / `PDF_ROUTER_PRICE_*`。
-- **其他一次性腳本**：`scripts/nlp/`、`scripts/extraction/`、`scripts/graph/label_communities.py` 這些離線資料處理腳本
+- **其他一次性腳本**：`scripts/nlp/`、`scripts/extraction/`、`scripts/graph/label_communities.py`、
+  `scripts/test_course_agent/test_retrieval_layers.py` 這些離線資料處理／測試腳本
   仍使用 Azure／OpenAI，不影響線上服務；需要時再另行遷移。
+- **部署行為**：滾動更新（最小 100%／最大 200%）時，新舊兩個 task 會短暫並存，process 內的 stream lock／cancel 在這段時間
+  不一致；`StopTimeout` 已設為 Fargate 上限 120 秒，但進行中的長時間研究串流仍可能在換版時被中斷。要嚴格單 task，
+  可把 `MinimumHealthyPercent` 改 0／`MaximumPercent` 改 100，代價是換版期間短暫停機。
+- **冷啟動**：映像沒有預先下載 fastembed／flashrank 模型，每個新 task 啟動時會從網路下載，首次健康檢查可能較慢
+  （已設 `HealthCheckGracePeriodSeconds: 120`）。
+- **輸出長度**：LangChain 路徑沒有明確設定 `max_tokens`，長度取決於模型預設值；若回答被截斷再補設定。
+- **監控頁型號顯示**：`response_metadata["model_name"]` 在 Bedrock 下可能為空，監控頁的 agent 型號可能顯示空白。
 - **成本**：Fargate（2 vCPU / 8 GB）＋ ALB 是固定費用；觀察 CloudWatch 的 CPU／記憶體後可調降 `TaskCpu`／`TaskMemory`。
 - **回滾**：CloudFormation 啟用了 deployment circuit breaker；也可把 `PDF_QDRANT_COLLECTION`／Render 切回舊設定。

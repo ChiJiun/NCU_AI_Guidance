@@ -32,6 +32,12 @@ Parameters:
   ServiceName:
     Type: String
     Default: ncu-ai-guidance-backend
+  ExecutionRoleArn:
+    Type: String
+    Description: ecs-fargate.yaml output ExecutionRoleArn.
+  TaskRoleArn:
+    Type: String
+    Description: ecs-fargate.yaml output TaskRoleArn.
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
@@ -89,7 +95,9 @@ Resources:
                 Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${ClusterName}/${ServiceName}"
               - Effect: Allow
                 Action: iam:PassRole
-                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+                Resource:
+                  - !Ref ExecutionRoleArn
+                  - !Ref TaskRoleArn
                 Condition:
                   StringEquals:
                     "iam:PassedToService": ecs-tasks.amazonaws.com

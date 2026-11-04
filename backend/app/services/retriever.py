@@ -15,7 +15,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
-from openai import AzureOpenAI
+from app.services.bedrock_client import get_ai_client
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Filter, FieldCondition, MatchValue, MatchAny,
@@ -128,19 +128,10 @@ def _hybrid_search(client, collection, dense_vec, query_text, qdrant_filter, n_r
         return result.points
 
 
-@lru_cache(maxsize=1)
-def _get_oai() -> AzureOpenAI:
-    return AzureOpenAI(
-        api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-    )
-
-
 @lru_cache(maxsize=512)
 def _embed(text: str) -> list[float]:
-    deployment = os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
-    resp = _get_oai().embeddings.create(model=deployment, input=[text])
+    # Titan Text Embeddings V2（1024 維，已 normalize）；模型 ID 與維度見 bedrock_client
+    resp = get_ai_client().embeddings.create(input=[text])
     return resp.data[0].embedding
 
 

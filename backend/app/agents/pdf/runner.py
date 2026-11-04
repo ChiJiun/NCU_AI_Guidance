@@ -24,7 +24,6 @@ from langchain.agents.middleware import (
     ModelRequest,
 )
 from langchain.agents.structured_output import ProviderStrategy, StructuredOutputValidationError
-from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -40,6 +39,7 @@ warnings.filterwarnings(
 )
 
 from app.pdf_config import pdf_settings
+from app.services.bedrock_client import embedding_dim, make_chat_llm, make_embeddings
 from app.tools.rag_tool import (
     AgentContext,
     TOOLS,
@@ -133,24 +133,21 @@ SYSTEM_PROMPT = "You are an AI research assistant. Follow the request-specific s
 
 class AgentResponse(BaseModel):
     answer: str = Field(description="Complete answer to the user's question")
+    # 不設 max_length：此 schema 會送給 Bedrock 當結構化輸出（json_schema），而 Anthropic 的
+    # structured outputs 不支援 maxItems 等陣列約束。使用端本來就會截斷（見 sources[:10]）。
     sources: list[str] = Field(
         default_factory=list,
         description='Leave empty — sources are not displayed to the user.',
-        max_length=3,
     )
 
 
 def _get_llm():
     global _llm, _agent_llm
     if _llm is None:
-        _llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _agent_llm = _llm.bind(parallel_tool_calls=False)
+        _llm = make_chat_llm("chat", temperature=0.3)
+        # 原本以 .bind(parallel_tool_calls=False) 禁止平行工具呼叫（OpenAI 專屬參數）。
+        # Bedrock Converse 沒有對應參數，改由 agent 直接使用同一個 LLM。
+        _agent_llm = _llm
         set_query_expander_llm(_llm)
     return _llm
 
@@ -165,14 +162,8 @@ def _get_agent_llm():
 def _get_mini_llm():
     global _mini_llm, _mini_agent_llm
     if _mini_llm is None:
-        _mini_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_mini_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _mini_agent_llm = _mini_llm.bind(parallel_tool_calls=False)
+        _mini_llm = make_chat_llm("mini", temperature=0.3)
+        _mini_agent_llm = _mini_llm  # 同上：不再 bind(parallel_tool_calls=False)
     return _mini_llm
 
 
@@ -311,11 +302,42 @@ async def _memory_prompt(request: ModelRequest) -> str:
     return "\n\n".join(parts)
 
 
+async def check_store_vector_dims(pool, expected: int) -> int | None:
+    """檢查 LangGraph store 的 ``store_vectors.embedding`` 欄位維度是否等於目前的 embedding 維度。
+
+    ``AsyncPostgresStore.setup()`` 用 ``CREATE TABLE IF NOT EXISTS``，已存在的表不會被改維度。
+    從 3072 維（Azure）遷移到 1024 維（Titan）時，若沒有遷移，長期記憶與使用者側寫的寫入／搜尋
+    會失敗，而這些呼叫的例外都被吞掉，只會「靜默失效」。所以啟動時明確記錄 error。
+    回傳實際維度；查不到（表不存在或查詢失敗）回傳 None。
+    """
+    try:
+        async with pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT a.atttypmod FROM pg_attribute a "
+                "WHERE a.attrelid = to_regclass('store_vectors') AND a.attname = 'embedding'"
+            )
+            row = await cur.fetchone()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("無法檢查 store_vectors 向量維度：%s", exc)
+        return None
+    if not row:
+        return None
+    actual = next(iter(row.values())) if isinstance(row, dict) else row[0]
+    if actual != expected:
+        logger.error(
+            "store_vectors.embedding 維度為 %s，但目前 embedding 維度為 %s；長期記憶與使用者側寫將無法寫入／搜尋。"
+            "請遷移（記憶可重建，可直接清空）：TRUNCATE store_vectors; DROP INDEX IF EXISTS store_vectors_embedding_idx; "
+            "ALTER TABLE store_vectors ALTER COLUMN embedding TYPE vector(%s); 然後重新啟動服務讓索引重建。"
+            "詳見 docs/aws-deployment.md。",
+            actual, expected, expected,
+        )
+    return actual
+
+
 async def setup_checkpointer():
     """Initialize AsyncPostgresSaver, AsyncPostgresStore, and build the agent."""
     global _checkpointer, _store, _tool_agent, _tool_agent_mini, _pool
     from psycopg_pool import AsyncConnectionPool
-    from langchain_openai import AzureOpenAIEmbeddings
     pool = AsyncConnectionPool(
         conninfo=pdf_settings.database_url,
         kwargs={
@@ -348,17 +370,13 @@ async def setup_checkpointer():
         _store = AsyncPostgresStore(
             pool,
             index={
-                "embed": AzureOpenAIEmbeddings(
-                    azure_deployment=pdf_settings.azure_embedding_deployment,
-                    azure_endpoint=pdf_settings.azure_openai_endpoint,
-                    api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-                    api_version=pdf_settings.azure_openai_api_version,
-                ),
-                "dims": 3072,
+                "embed": make_embeddings(),
+                "dims": embedding_dim(),
                 "fields": ["$"],
             },
         )
         await _store.setup()
+        await check_store_vector_dims(pool, embedding_dim())
 
         def _make_agent(llm, tools, fallback_llm=None):
             middleware = [

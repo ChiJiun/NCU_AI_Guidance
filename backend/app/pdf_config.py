@@ -1,4 +1,4 @@
-"""PDF 問答功能設定（與目標系統共用 Azure OpenAI 和 Qdrant 環境變數）。"""
+"""PDF 問答功能設定（與目標系統共用 Qdrant 與資料庫環境變數；LLM 設定見 services/bedrock_client.py）。"""
 import pathlib
 
 from pydantic import SecretStr
@@ -9,14 +9,6 @@ _REPO_ROOT = pathlib.Path(__file__).parent.parent.parent
 
 
 class PdfChatSettings(BaseSettings):
-    # Azure OpenAI
-    azure_openai_api_key: SecretStr = SecretStr("")
-    azure_openai_endpoint: str = ""
-    azure_openai_api_version: str = "2024-12-01-preview"
-    azure_chat_deployment: str = "gpt-4o"
-    azure_mini_deployment: str = "gpt-4o-mini"
-    azure_embedding_deployment: str = "text-embedding-3-large"
-
     # Qdrant（與目標系統共用同一個 server）
     qdrant_url: str = ""
     qdrant_api_key: SecretStr = SecretStr("")

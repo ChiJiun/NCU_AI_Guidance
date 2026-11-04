@@ -1,0 +1,29 @@
+# 版本控制與本機環境（.env 含金鑰，絕不能進映像）
+.git
+.github
+**/.env
+**/.env.*
+!.env.example
+.firebase
+.claude
+
+# 前端、文件、圖片、腳本不屬於後端映像
+frontend
+docs
+png
+scripts
+**/node_modules
+
+# Python 暫存
+**/__pycache__
+**/*.pyc
+**/venv
+**/.venv
+backend/azuredicache
+backend/llamacache
+backend/pymupdfcache
+
+# 大型資料：本機 Qdrant 儲存（正式環境使用 Qdrant Cloud）與專題 PDF（由 Cloudinary 提供）
+data/processed/qdrant_data
+data/raw/projects
+data/raw/應修科目表

@@ -3,6 +3,9 @@
 本文件涵蓋環境變數設定、本地開發、雲端部署流程與資料部署原則。專案介紹請見根目錄
 [README.md](../README.md)。
 
+> 後端搬到 AWS（ECS Fargate）並改用 Amazon Bedrock 的做法，請見 [aws-deployment.md](aws-deployment.md)。
+> 以下環境變數與 Render 流程描述的是目前仍在運作的舊部署。
+
 ---
 
 ## 環境需求

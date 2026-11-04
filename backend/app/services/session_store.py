@@ -960,9 +960,18 @@ def get_pdf_analytics(user_id: str, doc_meta: dict | None = None) -> dict:
 
 
 # ── 定價常數 ──────────────────────────────────────────────────────────────────
-_COURSE_PRICE  = {"input": 0.75 / 1_000_000, "output": 4.50 / 1_000_000}
-_PDF_AGENT_PX  = {"input": 2.50 / 1_000_000, "output": 10.00 / 1_000_000}
-_PDF_ROUTER_PX = {"input": 0.15 / 1_000_000, "output": 0.60 / 1_000_000}
+# 單位：USD / 百萬 token。預設值沿用遷移前（Azure OpenAI）的估算，只用於監控頁的費用「估算」；
+# 改用 Bedrock 後請依實際模型的官方價目，透過下列環境變數覆寫。
+def _price_per_token(env_name: str, default_per_million: float) -> float:
+    return float(os.getenv(env_name) or default_per_million) / 1_000_000
+
+
+_COURSE_PRICE  = {"input": _price_per_token("COURSE_PRICE_INPUT_PER_M", 0.75),
+                  "output": _price_per_token("COURSE_PRICE_OUTPUT_PER_M", 4.50)}
+_PDF_AGENT_PX  = {"input": _price_per_token("PDF_AGENT_PRICE_INPUT_PER_M", 2.50),
+                  "output": _price_per_token("PDF_AGENT_PRICE_OUTPUT_PER_M", 10.00)}
+_PDF_ROUTER_PX = {"input": _price_per_token("PDF_ROUTER_PRICE_INPUT_PER_M", 0.15),
+                  "output": _price_per_token("PDF_ROUTER_PRICE_OUTPUT_PER_M", 0.60)}
 
 
 def _cost_course(inp: int, out: int) -> float:

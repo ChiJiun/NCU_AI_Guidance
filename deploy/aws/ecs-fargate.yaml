@@ -1,0 +1,292 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  NCU AI Discovery System backend on ECS Fargate behind an Application Load Balancer.
+  Single task only (the app keeps PDF-chat stream locks in process memory).
+  Models run on Amazon Bedrock through the task role (no API keys).
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: ncu-ai-guidance
+    Description: Prefix for resource names.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: >-
+      At least two public subnets in different AZs (ALB needs two). Tasks also run here with a
+      public IP so they can reach Neon / Qdrant Cloud / Cloudinary / Firebase without a NAT gateway.
+  CertificateArn:
+    Type: String
+    Description: >-
+      ACM certificate ARN (same region) for the HTTPS listener. HTTPS is mandatory because the
+      Firebase-hosted frontend is served over HTTPS (browsers block mixed content).
+  SecretArn:
+    Type: String
+    Description: >-
+      Secrets Manager secret (JSON) holding DATABASE_URL, QDRANT_URL, QDRANT_API_KEY,
+      CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET,
+      FIREBASE_SERVICE_ACCOUNT_JSON, DEVELOPER_EMAILS.
+  AllowedOrigins:
+    Type: String
+    Default: https://ncu-ai-guidance.web.app,https://ncu-ai-guidance.firebaseapp.com
+    Description: Comma-separated CORS origins.
+  FirebaseProjectId:
+    Type: String
+    Default: ncu-ai-guidance
+  BedrockChatModelId:
+    Type: String
+    Description: Main chat model ID or inference profile ID enabled in your Bedrock account (e.g. a Claude Sonnet APAC profile).
+  BedrockMiniModelId:
+    Type: String
+    Description: Lightweight model for routing / short tasks (e.g. a Claude Haiku APAC profile).
+  BedrockEmbeddingModelId:
+    Type: String
+    Default: amazon.titan-embed-text-v2:0
+  PdfQdrantCollection:
+    Type: String
+    Default: reports
+    Description: Qdrant collection for PDF chat (use the re-embedded collection name after migration).
+  ImageTag:
+    Type: String
+    Default: latest
+  DesiredCount:
+    Type: Number
+    Default: 0
+    AllowedValues: [0, 1]
+    Description: >-
+      Keep 0 on the first deployment (ECR is empty), push the image, then update the stack with 1.
+      Never above 1: stream lock / cancel / steering are process-local.
+  TaskCpu:
+    Type: String
+    Default: "2048"
+    AllowedValues: ["1024", "2048", "4096"]
+  TaskMemory:
+    Type: String
+    Default: "8192"
+    Description: MiB; must be a valid Fargate combination for the chosen CPU. Tune down after watching CloudWatch.
+  AlbIdleTimeoutSeconds:
+    Type: Number
+    Default: 900
+    MinValue: 60
+    MaxValue: 4000
+    Description: Research agent nodes may run up to 10 minutes; SSE heartbeats arrive every 15 s.
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+
+Resources:
+  Repository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub "${ProjectName}-backend"
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {"rules":[{"rulePriority":1,"description":"Keep last 20 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":20},"action":{"type":"expire"}}]}
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/${ProjectName}-backend"
+      RetentionInDays: !Ref LogRetentionDays
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "${ProjectName}"
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: read-app-secret
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref SecretArn
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ecs-tasks.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: invoke-bedrock
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  # Cross-region inference profiles route to foundation models in other regions,
+                  # so the foundation-model resource must allow any region.
+                  - "arn:aws:bedrock:*::foundation-model/*"
+                  - !Sub "arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/*"
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB - public HTTP/HTTPS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
+
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Fargate task - only reachable from the ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8000, ToPort: 8000, SourceSecurityGroupId: !Ref AlbSecurityGroup }
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internet-facing
+      Subnets: !Ref PublicSubnetIds
+      SecurityGroups: [!Ref AlbSecurityGroup]
+      LoadBalancerAttributes:
+        - { Key: idle_timeout.timeout_seconds, Value: !Ref AlbIdleTimeoutSeconds }
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8000
+      VpcId: !Ref VpcId
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: "30" }
+
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTPS
+      Port: 443
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - { Type: forward, TargetGroupArn: !Ref TargetGroup }
+
+  HttpRedirectListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig: { Protocol: HTTPS, Port: "443", StatusCode: HTTP_301 }
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "${ProjectName}-backend"
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: !Ref TaskCpu
+      Memory: !Ref TaskMemory
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      RuntimePlatform: { CpuArchitecture: X86_64, OperatingSystemFamily: LINUX }
+      ContainerDefinitions:
+        - Name: backend
+          Image: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${Repository}:${ImageTag}"
+          Essential: true
+          PortMappings:
+            - { ContainerPort: 8000, Protocol: tcp }
+          # SSE streams need a clean shutdown window when a task is replaced
+          StopTimeout: 120   # Fargate 允許的最大值
+          Environment:
+            - { Name: APP_ENV, Value: production }
+            - { Name: WEB_CONCURRENCY, Value: "1" }
+            - { Name: AWS_REGION, Value: !Ref "AWS::Region" }
+            - { Name: ALLOWED_ORIGINS, Value: !Ref AllowedOrigins }
+            - { Name: FIREBASE_PROJECT_ID, Value: !Ref FirebaseProjectId }
+            - { Name: BEDROCK_CHAT_MODEL_ID, Value: !Ref BedrockChatModelId }
+            - { Name: BEDROCK_MINI_MODEL_ID, Value: !Ref BedrockMiniModelId }
+            - { Name: BEDROCK_EMBEDDING_MODEL_ID, Value: !Ref BedrockEmbeddingModelId }
+            - { Name: BEDROCK_EMBEDDING_DIM, Value: "1024" }
+            - { Name: PDF_QDRANT_COLLECTION, Value: !Ref PdfQdrantCollection }
+            - { Name: CLOUDINARY_PROJECT_FOLDER, Value: ncu-ai-guidance/data/raw/projects }
+          Secrets:
+            - { Name: DATABASE_URL, ValueFrom: !Sub "${SecretArn}:DATABASE_URL::" }
+            - { Name: QDRANT_URL, ValueFrom: !Sub "${SecretArn}:QDRANT_URL::" }
+            - { Name: QDRANT_API_KEY, ValueFrom: !Sub "${SecretArn}:QDRANT_API_KEY::" }
+            - { Name: CLOUDINARY_CLOUD_NAME, ValueFrom: !Sub "${SecretArn}:CLOUDINARY_CLOUD_NAME::" }
+            - { Name: CLOUDINARY_API_KEY, ValueFrom: !Sub "${SecretArn}:CLOUDINARY_API_KEY::" }
+            - { Name: CLOUDINARY_API_SECRET, ValueFrom: !Sub "${SecretArn}:CLOUDINARY_API_SECRET::" }
+            - { Name: FIREBASE_SERVICE_ACCOUNT_JSON, ValueFrom: !Sub "${SecretArn}:FIREBASE_SERVICE_ACCOUNT_JSON::" }
+            - { Name: DEVELOPER_EMAILS, ValueFrom: !Sub "${SecretArn}:DEVELOPER_EMAILS::" }
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: backend
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: [HttpsListener, HttpRedirectListener]
+    Properties:
+      ServiceName: !Sub "${ProjectName}-backend"
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      DesiredCount: !Ref DesiredCount
+      # Never run two tasks side by side for long; a rolling deploy overlaps them only briefly.
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+        DeploymentCircuitBreaker: { Enable: true, Rollback: true }
+      HealthCheckGracePeriodSeconds: 120
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PublicSubnetIds
+          SecurityGroups: [!Ref TaskSecurityGroup]
+      LoadBalancers:
+        - { ContainerName: backend, ContainerPort: 8000, TargetGroupArn: !Ref TargetGroup }
+
+Outputs:
+  RepositoryUri:
+    Value: !GetAtt Repository.RepositoryUri
+  LoadBalancerDnsName:
+    Description: Create a DNS record (CNAME / alias) from your API domain to this name.
+    Value: !GetAtt LoadBalancer.DNSName
+  ClusterName:
+    Value: !Ref Cluster
+  ServiceName:
+    Value: !GetAtt Service.Name
+  TaskRoleArn:
+    Value: !GetAtt TaskRole.Arn
+  ExecutionRoleArn:
+    Description: Pass to github-oidc-deploy-role.yaml so iam:PassRole can be scoped to these two roles.
+    Value: !GetAtt ExecutionRole.Arn

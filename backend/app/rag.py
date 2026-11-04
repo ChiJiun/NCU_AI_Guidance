@@ -11,7 +11,7 @@ import threading
 from typing import TypedDict
 
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
-from langchain_openai import AzureOpenAIEmbeddings
+from langchain_aws import BedrockEmbeddings
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.models import (
@@ -27,6 +27,7 @@ from qdrant_client.models import (
 )
 
 from app.pdf_config import pdf_settings
+from app.services.bedrock_client import embedding_dim, make_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def to_page_num(val, fallback=None):
     except (TypeError, ValueError):
         return fallback
 
-VECTOR_SIZE = 3072
+VECTOR_SIZE = embedding_dim()  # Titan Text Embeddings V2：預設 1024（原 Azure text-embedding-3-large 為 3072）
 DENSE_NAME = "dense"
 SPARSE_NAME = "sparse"
 RETRIEVAL_K = 10
@@ -50,7 +51,7 @@ RERANK_CANDIDATE_MAX = RERANK_MAX * 3
 
 # ── Singletons ─────────────────────────────────────────────────────────────────
 
-_dense_embeddings: AzureOpenAIEmbeddings | None = None
+_dense_embeddings: BedrockEmbeddings | None = None
 _vectorstore: QdrantVectorStore | None = None
 _dense_vectorstore: QdrantVectorStore | None = None
 _reranker: FlashrankRerank | None = None
@@ -94,15 +95,10 @@ def get_async_qdrant_client() -> AsyncQdrantClient:
     return _async_qdrant_client
 
 
-def get_dense_embeddings() -> AzureOpenAIEmbeddings:
+def get_dense_embeddings() -> BedrockEmbeddings:
     global _dense_embeddings
     if _dense_embeddings is None:
-        _dense_embeddings = AzureOpenAIEmbeddings(
-            azure_deployment=pdf_settings.azure_embedding_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-        )
+        _dense_embeddings = make_embeddings()
     return _dense_embeddings
 
 

@@ -13,11 +13,10 @@ build_vector_index.py
   python scripts/rag/build_vector_index.py
   python scripts/rag/build_vector_index.py --reset   # 強制重建（清空舊資料）
 
-環境變數（.env）：
-  AZURE_OPENAI_API_KEY=...
-  AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
-  AZURE_OPENAI_API_VERSION=2024-02-01
-  AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
+Embedding 使用 Amazon Bedrock Titan Text Embeddings V2（1024 維）：
+  需要可呼叫 Bedrock 的 AWS 憑證（AWS CLI profile / SSO），以及
+  AWS_REGION（預設 ap-northeast-1）；可用 BEDROCK_EMBEDDING_MODEL_ID / BEDROCK_EMBEDDING_DIM 覆寫。
+  Qdrant 連線仍使用 QDRANT_URL / QDRANT_API_KEY。
 """
 
 import argparse
@@ -31,8 +30,14 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 from qdrant_client import QdrantClient
+
+import sys
+from pathlib import Path as _Path
+
+# 腳本使用與後端相同的 Bedrock 存取層（憑證來自 AWS CLI profile / SSO / 環境變數）
+sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "backend"))
+from app.services.bedrock_client import embedding_dim, embedding_model_id, get_ai_client  # noqa: E402
 from qdrant_client.models import (
     Distance, PointStruct, VectorParams,
     SparseVectorParams, SparseIndexParams, SparseVector,
@@ -58,7 +63,7 @@ SCHEDULE_DIR = DATA_PROC / "schedule_draft"
 CREDIT_PROGRAMS_DIR = DATA_PROC / "credit_programs"
 PROGRAM_DESC = DATA_PROC / "program_descriptions.json"
 
-VECTOR_DIM = 3072   # text-embedding-3-large
+VECTOR_DIM = embedding_dim()   # Titan Text Embeddings V2（原 text-embedding-3-large 為 3072）
 EMBED_BATCH = 50    # 每批送給 Azure OpenAI 的文件數
 
 
@@ -370,12 +375,12 @@ class BM25Embedder:
 
 
 class Embedder:
-    def __init__(self, client: AzureOpenAI, deployment: str):
+    def __init__(self, client, deployment: str):
         self.client = client
         self.deployment = deployment
 
     def embed_batch(self, texts: list[str]) -> list[list[float]]:
-        # text-embedding-3-large 最大 8192 tokens；中文約 2 token/字，保守截斷於 3500 字元
+        # Titan V2 最大 8192 tokens；中文約 2 token/字，保守截斷於 4000 字元
         MAX_CHARS = 4000
         texts = [t[:MAX_CHARS] if len(t) > MAX_CHARS else t for t in texts]
         results = []
@@ -1124,20 +1129,7 @@ def main():
         print("\n✓ payload 更新完成（含 exclude 欄位）")
         return
 
-    api_key = os.getenv("AZURE_OPENAI_API_KEY")
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01")
-    embed_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
-
-    if not api_key or not endpoint:
-        raise EnvironmentError("請在 .env 設定 AZURE_OPENAI_API_KEY 和 AZURE_OPENAI_ENDPOINT")
-
-    oai = AzureOpenAI(
-        api_key=api_key,
-        azure_endpoint=endpoint,
-        api_version=api_version,
-    )
-    embedder = Embedder(oai, embed_deployment)
+    embedder = Embedder(get_ai_client(), embedding_model_id())
     bm25 = BM25Embedder()
 
     nlp = load_nlp_data()

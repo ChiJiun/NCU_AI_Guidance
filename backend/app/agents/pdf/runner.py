@@ -24,7 +24,6 @@ from langchain.agents.middleware import (
     ModelRequest,
 )
 from langchain.agents.structured_output import ProviderStrategy, StructuredOutputValidationError
-from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -40,6 +39,7 @@ warnings.filterwarnings(
 )
 
 from app.pdf_config import pdf_settings
+from app.services.bedrock_client import embedding_dim, make_chat_llm, make_embeddings
 from app.tools.rag_tool import (
     AgentContext,
     TOOLS,
@@ -143,14 +143,10 @@ class AgentResponse(BaseModel):
 def _get_llm():
     global _llm, _agent_llm
     if _llm is None:
-        _llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _agent_llm = _llm.bind(parallel_tool_calls=False)
+        _llm = make_chat_llm("chat", temperature=0.3)
+        # 原本以 .bind(parallel_tool_calls=False) 禁止平行工具呼叫（OpenAI 專屬參數）。
+        # Bedrock Converse 沒有對應參數，改由 agent 直接使用同一個 LLM。
+        _agent_llm = _llm
         set_query_expander_llm(_llm)
     return _llm
 
@@ -165,14 +161,8 @@ def _get_agent_llm():
 def _get_mini_llm():
     global _mini_llm, _mini_agent_llm
     if _mini_llm is None:
-        _mini_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_mini_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _mini_agent_llm = _mini_llm.bind(parallel_tool_calls=False)
+        _mini_llm = make_chat_llm("mini", temperature=0.3)
+        _mini_agent_llm = _mini_llm  # 同上：不再 bind(parallel_tool_calls=False)
     return _mini_llm
 
 
@@ -315,7 +305,6 @@ async def setup_checkpointer():
     """Initialize AsyncPostgresSaver, AsyncPostgresStore, and build the agent."""
     global _checkpointer, _store, _tool_agent, _tool_agent_mini, _pool
     from psycopg_pool import AsyncConnectionPool
-    from langchain_openai import AzureOpenAIEmbeddings
     pool = AsyncConnectionPool(
         conninfo=pdf_settings.database_url,
         kwargs={
@@ -348,13 +337,8 @@ async def setup_checkpointer():
         _store = AsyncPostgresStore(
             pool,
             index={
-                "embed": AzureOpenAIEmbeddings(
-                    azure_deployment=pdf_settings.azure_embedding_deployment,
-                    azure_endpoint=pdf_settings.azure_openai_endpoint,
-                    api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-                    api_version=pdf_settings.azure_openai_api_version,
-                ),
-                "dims": 3072,
+                "embed": make_embeddings(),
+                "dims": embedding_dim(),
                 "fields": ["$"],
             },
         )

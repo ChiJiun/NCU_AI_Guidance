@@ -8,7 +8,13 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from openai import AzureOpenAI, OpenAI
+from app.services.bedrock_client import (
+    BedrockOpenAI,
+    embedding_dim,
+    embedding_model_id,
+    get_ai_client,
+    mini_model_id,
+)
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PayloadSchemaType, PointStruct, VectorParams
 
@@ -21,9 +27,7 @@ ELIGIBILITY_PATH = PROCESSED_DIR / "course_eligibility.json"
 
 COURSE_COLLECTIONS = ("ncu_courses_ug", "ncu_courses_grad")
 QUERY_CACHE_COLLECTION = "ncu_query_embedding_cache"
-VECTOR_DIM = 3072
-DEFAULT_EMBEDDING_MODEL = "text-embedding-3-large"
-DEFAULT_CHAT_MODEL = "gpt-4o-mini"
+VECTOR_DIM = embedding_dim()  # Titan Text Embeddings V2：預設 1024（原 Azure text-embedding-3-large 為 3072）
 DEFAULT_QUERY_CACHE_KEYWORDS = [
     "程式",
     "Python",
@@ -302,58 +306,18 @@ def _env(name: str) -> str:
     return os.getenv(name, "").strip()
 
 
-def _has_azure_openai_hint() -> bool:
-    return bool(
-        _env("AZURE_OPENAI_API_KEY")
-        or _env("AZURE_OPENAI_ENDPOINT")
-        or _env("AZURE_OPENAI_CHAT_DEPLOYMENT")
-        or _env("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
-    )
-
-
-def _get_ai_client() -> AzureOpenAI | OpenAI:
-    azure_api_key = _env("AZURE_OPENAI_API_KEY")
-    azure_endpoint = _env("AZURE_OPENAI_ENDPOINT")
-
-    if _has_azure_openai_hint():
-        if not azure_api_key or not azure_endpoint:
-            raise RuntimeError(
-                "AI_API_CONFIG_MISSING: 使用 Azure OpenAI 時，請同時設定 "
-                "AZURE_OPENAI_API_KEY 和 AZURE_OPENAI_ENDPOINT。"
-            )
-        return AzureOpenAI(
-            api_key=azure_api_key,
-            azure_endpoint=azure_endpoint,
-            api_version=_env("AZURE_OPENAI_API_VERSION") or "2024-12-01-preview",
-        )
-
-    openai_api_key = _env("OPENAI_API_KEY")
-    if openai_api_key:
-        return OpenAI(api_key=openai_api_key)
-
-    raise RuntimeError(
-        "AI_API_CONFIG_MISSING: 請設定 Azure OpenAI "
-        "(AZURE_OPENAI_API_KEY、AZURE_OPENAI_ENDPOINT、AZURE_OPENAI_CHAT_DEPLOYMENT、"
-        "AZURE_OPENAI_EMBEDDING_DEPLOYMENT)，或設定 OPENAI_API_KEY。"
-    )
+def _get_ai_client() -> BedrockOpenAI:
+    """Amazon Bedrock（憑證來自 ECS task role 或本機 AWS profile，不使用 API key）。"""
+    return get_ai_client()
 
 
 def _embedding_model_name() -> str:
-    if _has_azure_openai_hint():
-        deployment = _env("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
-        if not deployment:
-            raise RuntimeError("AI_API_CONFIG_MISSING: 請設定 AZURE_OPENAI_EMBEDDING_DEPLOYMENT。")
-        return deployment
-    return _env("OPENAI_EMBEDDING_MODEL") or DEFAULT_EMBEDDING_MODEL
+    return embedding_model_id()
 
 
 def _chat_model_name() -> str:
-    if _has_azure_openai_hint():
-        deployment = _env("AZURE_OPENAI_CHAT_DEPLOYMENT")
-        if not deployment:
-            raise RuntimeError("AI_API_CONFIG_MISSING: 請設定 AZURE_OPENAI_CHAT_DEPLOYMENT。")
-        return deployment
-    return _env("OPENAI_MODEL") or DEFAULT_CHAT_MODEL
+    # 單門課程問答屬於輕量任務，使用 mini 模型（未設定時沿用主要模型）
+    return mini_model_id()
 
 
 @lru_cache(maxsize=512)

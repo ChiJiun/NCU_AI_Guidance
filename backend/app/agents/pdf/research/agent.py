@@ -8,8 +8,8 @@ import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from langchain_openai import AzureChatOpenAI
-from app.pdf_config import pdf_settings
+from langchain_aws import ChatBedrockConverse
+from app.services.bedrock_client import make_chat_llm
 from app.tools.rag_tool import set_query_expander_llm
 
 from .research_graph import _hard_max_searches, _merge_stream_patch, _seed_keywords, final_rs_from_result, research_graph, get_or_build_research_graph  # noqa: F401
@@ -45,14 +45,8 @@ def request_all_drain(reason: str = "shutdown") -> None:
         except Exception:
             pass
 
-def _llm() -> AzureChatOpenAI:
-    return AzureChatOpenAI(
-        azure_deployment=pdf_settings.azure_chat_deployment,
-        azure_endpoint=pdf_settings.azure_openai_endpoint,
-        api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-        api_version=pdf_settings.azure_openai_api_version,
-        temperature=0,
-    )
+def _llm() -> ChatBedrockConverse:
+    return make_chat_llm("chat", temperature=0)
 
 
 def _utcnow() -> datetime:

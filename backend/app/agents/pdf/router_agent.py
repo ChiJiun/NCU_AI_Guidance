@@ -9,10 +9,9 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import AzureChatOpenAI
 from pydantic import BaseModel, Field
 
-from app.pdf_config import pdf_settings
+from app.services.bedrock_client import make_chat_llm
 from app.prompting.loader import load_stack
 from app.prompting.registry import get as get_prompt
 from app.prompting.registry import version as prompt_version
@@ -205,13 +204,7 @@ _router_llm = None
 def _get_router_llm():
     global _router_llm
     if _router_llm is None:
-        _router_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_mini_deployment or pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0,
-        )
+        _router_llm = make_chat_llm("mini", temperature=0)
     return _router_llm
 
 

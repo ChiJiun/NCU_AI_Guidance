@@ -105,15 +105,8 @@ def set_query_expander_llm(llm) -> None:
 def _get_query_expander_llm():
     global _query_expander_llm
     if _query_expander_llm is None:
-        from langchain_openai import AzureChatOpenAI
-        from app.pdf_config import pdf_settings
-        _query_expander_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
+        from app.services.bedrock_client import make_chat_llm
+        _query_expander_llm = make_chat_llm("chat", temperature=0.3)
     return _query_expander_llm
 
 

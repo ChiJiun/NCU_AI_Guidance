@@ -1,13 +1,11 @@
 """
 llm_service.py
 
-Azure OpenAI GPT-4o 呼叫 + LangSmith 監控。
+Amazon Bedrock（Claude，經 Converse API）呼叫 + LangSmith 監控。
 
 環境變數：
-  AZURE_OPENAI_API_KEY          — Azure OpenAI 金鑰
-  AZURE_OPENAI_ENDPOINT         — https://<resource>.openai.azure.com/
-  AZURE_OPENAI_API_VERSION      — 例如 2024-12-01-preview
-  AZURE_OPENAI_CHAT_DEPLOYMENT  — 對話模型的部署名稱（例如 gpt-4o）
+  BEDROCK_CHAT_MODEL_ID         — 對話模型 ID（見 app/services/bedrock_client.py）
+  AWS_REGION                    — Bedrock 區域（預設 ap-northeast-1）
   LANGSMITH_API_KEY             — LangSmith 金鑰（選填）
   LANGSMITH_PROJECT             — LangSmith 專案名稱（預設 "ncu-rag-system"）
 """
@@ -15,17 +13,13 @@ Azure OpenAI GPT-4o 呼叫 + LangSmith 監控。
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from typing import Optional
 
-from openai import AzureOpenAI
+from app.services.bedrock_client import BedrockOpenAI, chat_model_id, get_ai_client
 
 try:
     from langsmith import traceable
-    from langsmith.wrappers import wrap_openai
-    _LANGSMITH_AVAILABLE = True
 except ImportError:
-    _LANGSMITH_AVAILABLE = False
 
     def traceable(func=None, **kwargs):
         if func is not None:
@@ -312,27 +306,10 @@ SYSTEM_PROMPT = """你是「中央大學選課助理」，協助高中生、大�
 """
 
 
-@lru_cache(maxsize=1)
-def _get_client() -> AzureOpenAI:
-    api_key = os.environ.get("AZURE_OPENAI_API_KEY")
-    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
-    if not api_key or not endpoint:
-        raise EnvironmentError("請設定 AZURE_OPENAI_API_KEY 和 AZURE_OPENAI_ENDPOINT 環境變數")
-
-    client = AzureOpenAI(
-        api_key=api_key,
-        azure_endpoint=endpoint,
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
-    )
-
-    # LangSmith 包裝（若有設定 API key 才啟用）
-    if (
-        _LANGSMITH_AVAILABLE
-        and os.environ.get("LANGSMITH_API_KEY")
-        and os.environ.get("LANGSMITH_TRACING", "true").lower() == "true"
-    ):
-        return wrap_openai(client)
-    return client
+def _get_client() -> BedrockOpenAI:
+    # Bedrock 轉接層不是 openai.OpenAI 實例，無法套用 langsmith.wrappers.wrap_openai；
+    # 追蹤改由各函式上的 @traceable 提供（呼叫層級，而非每次 LLM 請求）。
+    return get_ai_client()
 
 
 def _build_context(
@@ -449,7 +426,7 @@ def generate_answer(
       {"answer": str, "model": str, "input_tokens": int, "output_tokens": int}
     """
     client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    deployment = chat_model_id()
 
     context = _build_context(vector_results or [], graph_results or {})
     if extra_context:
@@ -532,7 +509,7 @@ def _verify_course_list(question: str, answer: str, course_pool: dict) -> list[d
         return []
 
     client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    deployment = chat_model_id()
 
     pool_items = list(course_pool.items())[:60]
 
@@ -808,7 +785,7 @@ def generate_with_tools(
     from app.services.tools import TOOLS, execute_tool
 
     client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    deployment = chat_model_id()
 
     system = SYSTEM_PROMPT
     if context_hint:
@@ -960,7 +937,7 @@ def stream_with_tools(
     from app.services.tools import TOOLS, execute_tool
 
     client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    deployment = chat_model_id()
 
     system = SYSTEM_PROMPT
     if context_hint:

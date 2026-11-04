@@ -10,7 +10,7 @@ build_qdrant_index.py — 建立 ncu_graph_nodes Qdrant collection
 
 前置條件：
   - 已安裝 qdrant-client：pip install qdrant-client
-  - 已設定 AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT 環境變數
+  - 可呼叫 Amazon Bedrock 的 AWS 憑證（AWS CLI profile / SSO），預設區域 ap-northeast-1
   - 已存在 data/processed/graph/knowledge_graph.json
 """
 
@@ -23,10 +23,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
 
+import sys
+
+# 腳本使用與後端相同的 Bedrock 存取層（憑證來自 AWS CLI profile / SSO / 環境變數）
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
+from app.services.bedrock_client import embedding_dim, get_ai_client  # noqa: E402
+
 GRAPH_JSON  = ROOT / "data" / "processed" / "graph" / "knowledge_graph.json"
 QDRANT_DIR  = ROOT / "data" / "processed" / "qdrant_data"
 COLLECTION  = "ncu_graph_nodes"
-VECTOR_DIM  = 3072  # text-embedding-3-large
+VECTOR_DIM  = embedding_dim()  # Titan Text Embeddings V2（原 text-embedding-3-large 為 3072）
 
 # 豐富文字節點類型（名稱 + 相關課程）
 INDEXED_TYPES = {"Concept", "Technology", "Field", "Competency"}
@@ -77,20 +83,10 @@ def _create_qdrant_client(url: str, api_key: str | None):
     )
 
 
-def _get_oai():
-    from openai import AzureOpenAI
-    return AzureOpenAI(
-        api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-    )
-
-
 def _embed_batch(texts: list[str]) -> list[list[float]]:
-    deployment = os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
     for attempt in range(3):
         try:
-            resp = _get_oai().embeddings.create(model=deployment, input=texts)
+            resp = get_ai_client().embeddings.create(input=texts)
             return [item.embedding for item in resp.data]
         except Exception as ex:
             if attempt == 2:
@@ -458,12 +454,4 @@ if __name__ == "__main__":
             print(f"載入環境變數：{env_path}")
             break
 
-    # 提前驗證必要環境變數
-    missing = [k for k in ("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT") if not os.environ.get(k)]
-    if missing:
-        print(f"[錯誤] 缺少環境變數：{missing}")
-        print("請確認 .env 檔案存在且包含以下設定：")
-        print("  AZURE_OPENAI_API_KEY=...")
-        print("  AZURE_OPENAI_ENDPOINT=...")
-    else:
-        main()
+    main()

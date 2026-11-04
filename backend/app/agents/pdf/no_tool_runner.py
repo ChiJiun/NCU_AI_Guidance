@@ -9,39 +9,27 @@ import logging
 from collections.abc import AsyncIterator
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import AzureChatOpenAI
+from langchain_aws import ChatBedrockConverse
 
-from app.pdf_config import pdf_settings
+from app.services.bedrock_client import make_chat_llm
 from app.prompting.loader import load_stack
 
 from .request_context import get_user_id  # noqa: F401 — kept for callers that import get_user_id here
 
 logger = logging.getLogger(__name__)
 
-_chat_llm: AzureChatOpenAI | None = None
-_mini_llm_instance: AzureChatOpenAI | None = None
+_chat_llm: ChatBedrockConverse | None = None
+_mini_llm_instance: ChatBedrockConverse | None = None
 
 
-def _get_llm(use_mini: bool = False) -> AzureChatOpenAI:
+def _get_llm(use_mini: bool = False) -> ChatBedrockConverse:
     global _chat_llm, _mini_llm_instance
-    if use_mini and pdf_settings.azure_mini_deployment:
+    if use_mini:
         if _mini_llm_instance is None:
-            _mini_llm_instance = AzureChatOpenAI(
-                azure_deployment=pdf_settings.azure_mini_deployment,
-                azure_endpoint=pdf_settings.azure_openai_endpoint,
-                api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-                api_version=pdf_settings.azure_openai_api_version,
-                temperature=0.2,
-            )
+            _mini_llm_instance = make_chat_llm("mini", temperature=0.2)
         return _mini_llm_instance
     if _chat_llm is None:
-        _chat_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.2,
-        )
+        _chat_llm = make_chat_llm("chat", temperature=0.2)
     return _chat_llm
 
 

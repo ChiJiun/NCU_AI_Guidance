@@ -73,8 +73,9 @@ async def get_monitor_stats(
         "start": start_dt.strftime("%Y-%m-%d"),
         "end":   end_dt.strftime("%Y-%m-%d"),
     }
-    stats["model_name"] = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", "unknown")
-    stats["pdf_model_name"] = "gpt-4o"
-    stats["pdf_router_model_name"] = "gpt-4o-mini"
+    chat_model = os.getenv("BEDROCK_CHAT_MODEL_ID", "unknown")
+    stats["model_name"] = chat_model
+    stats["pdf_model_name"] = chat_model
+    stats["pdf_router_model_name"] = os.getenv("BEDROCK_MINI_MODEL_ID") or chat_model
     stats["server_uptime_seconds"] = ls.get_server_uptime_seconds()
     return stats

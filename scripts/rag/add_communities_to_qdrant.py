@@ -13,13 +13,18 @@ add_communities_to_qdrant.py — 將 Leiden 社群 label 嵌入進 ncu_graph_nod
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 
 ROOT           = Path(__file__).parent.parent.parent
+
+# 腳本使用與後端相同的 Bedrock 存取層（憑證來自 AWS CLI profile / SSO / 環境變數）
+sys.path.insert(0, str(ROOT / "backend"))
+from app.services.bedrock_client import embedding_dim, get_ai_client  # noqa: E402
 COMMUNITIES    = ROOT / "data" / "processed" / "graph" / "communities.json"
 QDRANT_DIR     = ROOT / "data" / "processed" / "qdrant_data"
 COLLECTION     = "ncu_graph_nodes"
-VECTOR_DIM     = 3072
+VECTOR_DIM     = embedding_dim()  # Titan Text Embeddings V2（原 text-embedding-3-large 為 3072）
 
 
 def _node_id_to_int(node_id: str) -> int:
@@ -34,16 +39,9 @@ def main():
             print(f"載入環境變數：{env_path}")
             break
 
-    missing = [k for k in ("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")
-               if not os.environ.get(k)]
-    if missing:
-        print(f"[錯誤] 缺少環境變數：{missing}")
-        return
-
     try:
         from qdrant_client import QdrantClient
         from qdrant_client.models import PointStruct
-        from openai import AzureOpenAI
     except ImportError as e:
         print(f"缺少套件：{e}")
         return
@@ -55,12 +53,7 @@ def main():
     communities: list[dict] = json.loads(COMMUNITIES.read_text(encoding="utf-8"))
     print(f"載入 {len(communities)} 個社群")
 
-    oai = AzureOpenAI(
-        api_key=os.environ["AZURE_OPENAI_API_KEY"],
-        azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-    )
-    deployment = os.environ.get("AZURE_OPENAI_EMBEDDING_DEPLOYMENT", "text-embedding-3-large")
+    oai = get_ai_client()
 
     qdrant_url = os.environ.get("QDRANT_URL", "")
     qdrant_api_key = os.environ.get("QDRANT_API_KEY")
@@ -97,7 +90,7 @@ def main():
         })
 
     # 一次 embed 全部 48 個（遠低於 rate limit）
-    resp = oai.embeddings.create(model=deployment, input=texts)
+    resp = oai.embeddings.create(input=texts)
     vectors = [item.embedding for item in resp.data]
 
     points = [

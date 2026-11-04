@@ -200,13 +200,10 @@ async def ask_course_question_endpoint(course_id: str, request: CourseAskRequest
         result = answer_course_question(course_id=course_id, question=request.question)
         return CourseAskResponse(**result)
     except RuntimeError as exc:
-        if "AI_API_CONFIG_MISSING" in str(exc) or "OPENAI_API_KEY" in str(exc):
+        if "AI_API_CONFIG_MISSING" in str(exc):
             raise HTTPException(
                 status_code=503,
-                detail=(
-                    "AI 課程助理目前無法使用，請確認後端 .env 已設定 Azure OpenAI "
-                    "或 OPENAI_API_KEY。"
-                ),
+                detail="AI 課程助理目前無法使用，請確認後端已設定 Amazon Bedrock 模型環境變數。",
             ) from exc
         raise HTTPException(status_code=503, detail=f"AI 課程助理暫時無法回答：{exc}") from exc
     except ValueError as exc:

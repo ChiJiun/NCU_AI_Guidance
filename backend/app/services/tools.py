@@ -609,6 +609,14 @@ def tool_get_dept_courses(dept_name: str, course_type: str = "required") -> dict
     }
 
 
+def tool_get_dept_overview(dept_name: str) -> dict:
+    """系所概覽：全部必修課＋課程領域／主題／技術／能力統計＋教師研究專長。
+
+    由 114 學年應修科目與課程綱要統計，不使用系所介紹文字、向量資料庫或教師個人資料。
+    """
+    return graph_service.get_dept_overview(dept_name)
+
+
 def tool_get_program_courses(program_name: str) -> dict:
     """圖查詢學分學程的必/選修課程。"""
     courses = graph_service.get_program_courses(program_name)
@@ -1368,6 +1376,7 @@ def tool_get_course_detail(
 _TOOL_MAP = {
     "search_courses":              tool_search_courses,
     "get_dept_courses":            tool_get_dept_courses,
+    "get_dept_overview":           tool_get_dept_overview,
     "get_program_info":            tool_get_program_info,
     "get_program_courses":         tool_get_program_courses,    # backward compat
     "get_program_description":     tool_get_program_description, # backward compat
@@ -1423,6 +1432,20 @@ TOOLS = [
                     "n":                 {"type": "integer", "description": "回傳筆數（預設 16）"},
                 },
                 "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_dept_overview",
+            "description": "系所概覽：列出該系全部必修課（含修習年級），以及畢業學分、114學年課程綱要的課程領域與核心能力統計、選修課領域分布與代表課。適合「XX系在學什麼」「比較A系和B系」「不知道這個系是做什麼的」。資料由課程統計而得，不是系所官方介紹。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dept_name": {"type": "string", "description": "系所名稱，如「資訊工程學系」或「資工系」"},
+                },
+                "required": ["dept_name"],
             },
         },
     },

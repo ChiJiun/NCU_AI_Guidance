@@ -66,6 +66,7 @@ GE_CATEGORY_MAP: dict[str, str] = {
 TOOL_LABELS: dict[str, str] = {
     "search_courses":              "課程語意搜尋",
     "get_dept_courses":            "系所課程查詢",
+    "get_dept_overview":           "系所概覽",
     "get_program_info":            "學分學程資訊",
     "get_program_courses":         "學分學程課程",
     "get_teacher_info":            "教師資訊查詢",

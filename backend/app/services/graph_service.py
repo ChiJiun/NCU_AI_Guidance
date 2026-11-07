@@ -17,6 +17,7 @@ Graph schema（實際邊 relation）：
 """
 
 import json
+import re
 import statistics
 from functools import lru_cache
 from pathlib import Path
@@ -340,6 +341,443 @@ def get_dept_elective_courses(dept_name: str) -> list[dict]:
                     seen.add(course["id"])
                     results.append(course)
     return results
+
+
+# ── 系所概覽（get_dept_overview）──────────────────────────────────────────────
+# 資料來源（回傳的 sources 欄位也會標示）：
+#   必修課、畢業學分、檢定 ← curriculum_requirements_114.json（與前端修課規定同源）
+#   課程領域、核心能力     ← 114 學年課程綱要（courses_deduped/undergrad.json），原始欄位，未經 LLM
+#   涵蓋主題、技術、代表主題 ← 圖譜的 NLP 標籤，屬系統分析的衍生內容
+# 不使用任何系所介紹文字、向量資料庫或教師個人資料。
+
+OVERVIEW_TOP_DOMAINS = 12
+OVERVIEW_TOP_FIELDS = 8
+OVERVIEW_TOP_TECHNOLOGIES = 8
+OVERVIEW_TOP_COMPETENCIES = 6
+OVERVIEW_TOP_ELECTIVE_GROUPS = 12
+OVERVIEW_ELECTIVE_EXAMPLES = 3    # 每個選修領域附幾門代表課
+OVERVIEW_COURSE_TOPICS = 3        # 每門必修課附帶的代表主題數
+OVERVIEW_MIN_SUPPORT = 2          # 技術／主題至少由幾門課支撐，濾掉單一課程的雜訊
+OVERVIEW_COMPETENCY_MIN_SUPPORT = 3
+OVERVIEW_COMPETENCY_MIN_LEVEL = 3.0   # 能力強度 1–5 的平均門檻
+OVERVIEW_MIN_COURSES_FOR_STATS = 10   # 統計課數低於此值時提醒資料有限
+OVERVIEW_CANDIDATE_LIMIT = 8
+OVERVIEW_ACADEMIC_YEAR = "114"
+OVERVIEW_PROGRAM = "學士班"
+
+# 圖譜中的系所名稱 → 課程資料「系所」欄位的名稱（僅列不一致者）
+_DEPT_UNIT_ALIASES = {"地科院學士班": "地球科學學院學士班"}
+
+# 課程領域標籤中屬於「共同基礎／其他」的泛稱，對區分系所沒有幫助
+_GENERIC_DOMAINS = frozenset({
+    "基礎學科", "基礎知識", "共同物理課程", "實驗操作", "其他", "其他選修課",
+    "化學通識", "通識", "共同必修",
+})
+_PARENT_EDGES = ("HAS_GROUP", "HAS_TRACK")
+_OUTLINE_PATH = ROOT / "data" / "processed" / "courses_deduped" / "undergrad.json"
+_CURRICULUM_PATH = ROOT / "data" / "processed" / "curriculum_requirements_114.json"
+_DEPT_COLLEGE_MAP_PATH = ROOT / "data" / "processed" / "dept_college_map.json"
+_TOP_LEVEL_DEPT_TYPES = ("Department", "CollegeBachelorProgram")
+
+
+@lru_cache(maxsize=1)
+def _load_dept_college_map() -> dict:
+    if _DEPT_COLLEGE_MAP_PATH.exists():
+        return json.loads(_DEPT_COLLEGE_MAP_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def _parse_outline_level(s: str) -> int:
+    """課程綱要的強度指數 '(4) 高' → 4；無法解析回傳 0。"""
+    m = re.search(r"\((\d)\)", s or "")
+    return int(m.group(1)) if m else 0
+
+
+@lru_cache(maxsize=1)
+def _outline_index() -> dict[str, dict]:
+    """114 學年課程綱要索引：課號（去班別）→ 開課單位、必選修、學制、課程領域、核心能力。
+
+    同一課號出現在上下學期或多個班別時取第一筆。
+    """
+    if not _OUTLINE_PATH.exists():
+        return {}
+    index: dict[str, dict] = {}
+    for r in json.loads(_OUTLINE_PATH.read_text(encoding="utf-8")):
+        if r.get("學年度") != OVERVIEW_ACADEMIC_YEAR:
+            continue
+        code = re.sub(r"-.*$", "", r.get("課號-班別", ""))
+        if not code or code in index:
+            continue
+        outline = r.get("課程綱要") or {}
+        domains = [d.strip() for d in re.split(r"[、,，]+", outline.get("課程領域") or "") if d.strip()]
+        competencies = []
+        for a in outline.get("核心能力") or []:
+            name = (a.get("能力名稱") or "").strip()
+            level = _parse_outline_level(a.get("強度指數", ""))
+            if name and level > 0:
+                competencies.append((name, level))
+        index[code] = {
+            "name": r.get("課程名稱(中文)", ""),
+            "unit": r.get("系所", ""),
+            "type": r.get("選修別", ""),
+            "program": outline.get("課程學制", ""),
+            "closed": "已停開" in r.get("課程名稱(中文)", ""),
+            "domains": domains,
+            "competencies": competencies,
+        }
+    return index
+
+
+@lru_cache(maxsize=1)
+def _curriculum_units() -> dict[str, dict]:
+    """curriculum_requirements_114.json 中的系所／組／專長軌節點，以 id 索引。"""
+    if not _CURRICULUM_PATH.exists():
+        return {}
+    units: dict[str, dict] = {}
+
+    def walk(n):
+        if isinstance(n, dict):
+            if n.get("id") and n.get("name"):
+                units[n["id"]] = n
+            for v in n.values():
+                walk(v)
+        elif isinstance(n, list):
+            for v in n:
+                walk(v)
+
+    walk(json.loads(_CURRICULUM_PATH.read_text(encoding="utf-8")))
+    return units
+
+
+def _clean_domain(label: str) -> str:
+    """去掉「(大氣組)」這類組別後綴與「研究群」，讓同一領域的標籤能合併。"""
+    label = re.sub(r"[（(][^）)]*[）)]\s*$", "", label.strip())
+    return re.sub(r"研究群$", "", label).strip()
+
+
+@lru_cache(maxsize=1)
+def _dept_parents() -> dict[str, str]:
+    """子組／專長軌 → 所屬系所節點 id。"""
+    parents: dict[str, str] = {}
+    for nid, edges in _g()["out"].items():
+        for tgt, rel in edges:
+            if rel in _PARENT_EDGES:
+                parents[tgt] = nid
+    return parents
+
+
+def _dept_unit(nid: str) -> str:
+    """回傳節點所屬的最上層系所 id（子組併入父系，避免重複計算）。"""
+    return _dept_parents().get(nid, nid)
+
+
+@lru_cache(maxsize=1)
+def _course_unit_counts() -> dict[str, int]:
+    """每門必修課被幾個系所（以最上層單位計）列為必修；共同基礎課會很高。"""
+    units: dict[str, set[str]] = {}
+    for d in list_all_departments():
+        nid = d["id"]
+        for plan_id in _node_plans(nid):
+            for c in _collect_courses_from_plan(plan_id, "必修"):
+                units.setdefault(c["id"], set()).add(_dept_unit(nid))
+    return {cid: len(s) for cid, s in units.items()}
+
+
+def _node_plans(nid: str) -> list[str]:
+    """只取該節點自己的課程計畫（不含子組），子組由 overview 另外處理。"""
+    return [tgt for tgt, rel in _g()["out"].get(nid, []) if rel == "HAS_CURRICULUM"]
+
+
+def _required_for_node(nid: str) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+    for plan_id in _node_plans(nid):
+        for c in _collect_courses_from_plan(plan_id, "必修"):
+            if c["id"] not in seen:
+                seen.add(c["id"])
+                out.append(c)
+    return out
+
+
+def _resolve_overview_node(dept_name: str) -> tuple[str | None, list[str]]:
+    """解析系所名稱：優先最上層系所；多個同級結果時回傳候選，不猜。"""
+    ids = _find_dept_like(dept_name)
+    if not ids:
+        return None, []
+    tops = [i for i in ids if _node(i).get("node_type") in _TOP_LEVEL_DEPT_TYPES]
+    pool = tops or ids
+    if len(pool) == 1:
+        return pool[0], []
+    names = sorted({_node(i).get("name", i) for i in pool})
+    return None, names[:OVERVIEW_CANDIDATE_LIMIT]
+
+
+def _merge_same_name(courses: list[dict]) -> list[dict]:
+    """同名課程（上下學期、分班）合併為一筆，保留課號、修習時間與總學分。"""
+    merged: dict[str, dict] = {}
+    for c in courses:
+        name = c.get("name", "")
+        m = merged.setdefault(name, {
+            "name": name, "course_ids": [], "terms": [], "credits": 0,
+        })
+        m["course_ids"].append(c["id"])
+        if c.get("when_raw"):
+            m["terms"].append(c["when_raw"])
+        m["credits"] += c.get("credits") or 0
+    return list(merged.values())
+
+
+def _decorate_required(merged: list[dict]) -> list[dict]:
+    """附上代表主題（系統分析）與課程綱要是否可用。"""
+    index = _outline_index()
+    for m in merged:
+        tags = get_course_tags(m["course_ids"][0])
+        m["topics"] = (tags["concepts"] or tags["field_tags"] or tags["technologies"])[:OVERVIEW_COURSE_TOPICS]
+        m["outline_available"] = all(i in index for i in m["course_ids"])
+    return merged
+
+
+def _rank(scores: dict[str, float], raw: dict[str, int], limit: int) -> list[str]:
+    """依加權分數排序，同分以實際支撐課數、再以名稱穩定排序。"""
+    return sorted(scores, key=lambda k: (-scores[k], -raw[k], k))[:limit]
+
+
+def _aggregate_profile(codes: list[str]) -> dict:
+    """統計一組課程的領域、能力（課程綱要）與主題、技術（系統分析）。
+
+    排名使用加權：一門課被越多系列為必修（如微積分），權重越低，
+    否則所有理工系都會被微積分的標籤拉向同一個樣子。
+    對外顯示的數字仍是實際課數。
+    """
+    index = _outline_index()
+    unit_counts = _course_unit_counts()
+    dom_w: dict[str, float] = {}; dom_n: dict[str, int] = {}
+    fld_w: dict[str, float] = {}; fld_n: dict[str, int] = {}
+    tech_w: dict[str, float] = {}; tech_n: dict[str, int] = {}; tech_label: dict[str, str] = {}
+    comp_w: dict[str, float] = {}; comp_n: dict[str, int] = {}; comp_lv: dict[str, list[int]] = {}
+
+    for code in codes:
+        w = 1.0 / max(unit_counts.get(code, 1), 1)
+        outline = index.get(code)
+        if outline:
+            for d in {_clean_domain(x) for x in outline["domains"]} - _GENERIC_DOMAINS - {""}:
+                dom_w[d] = dom_w.get(d, 0.0) + w; dom_n[d] = dom_n.get(d, 0) + 1
+            for name, level in outline["competencies"]:
+                comp_w[name] = comp_w.get(name, 0.0) + w * level
+                comp_n[name] = comp_n.get(name, 0) + 1
+                comp_lv.setdefault(name, []).append(level)
+        tags = get_course_tags(code)
+        for f in {t.replace("演演", "演") for t in tags["field_tags"]}:  # 資料中「演演算法」為重複字錯誤
+            fld_w[f] = fld_w.get(f, 0.0) + w; fld_n[f] = fld_n.get(f, 0) + 1
+        for t in set(tags["technologies"]):
+            key = _normalize_tech_name(t).lower()
+            tech_label.setdefault(key, t)
+            tech_w[key] = tech_w.get(key, 0.0) + w; tech_n[key] = tech_n.get(key, 0) + 1
+
+    fld_ok = {k: v for k, v in fld_w.items() if fld_n[k] >= OVERVIEW_MIN_SUPPORT}
+    tech_ok = {k: v for k, v in tech_w.items() if tech_n[k] >= OVERVIEW_MIN_SUPPORT}
+    comp_ok = {
+        k: v for k, v in comp_w.items()
+        if comp_n[k] >= OVERVIEW_COMPETENCY_MIN_SUPPORT
+        and sum(comp_lv[k]) / len(comp_lv[k]) >= OVERVIEW_COMPETENCY_MIN_LEVEL
+    }
+    return {
+        "course_domains": [
+            {"domain": d, "courses": dom_n[d]}
+            for d in _rank(dom_w, dom_n, OVERVIEW_TOP_DOMAINS)
+        ],
+        "core_competencies": [
+            {"name": k, "avg_level": round(sum(comp_lv[k]) / len(comp_lv[k]), 1),
+             "courses": comp_n[k]}
+            for k in _rank(comp_ok, comp_n, OVERVIEW_TOP_COMPETENCIES)
+        ],
+        "topic_fields": [
+            {"field": f, "courses": fld_n[f]}
+            for f in _rank(fld_ok, fld_n, OVERVIEW_TOP_FIELDS)
+        ],
+        "technologies": [
+            {"name": tech_label[t], "courses": tech_n[t]}
+            for t in _rank(tech_ok, tech_n, OVERVIEW_TOP_TECHNOLOGIES)
+        ],
+    }
+
+
+def _offered_codes(unit_name: str) -> list[str]:
+    """該系在 114 學年開設的學士班課程（課號去重）。共同課單位（通識、體育等）不會被誤算進來。"""
+    unit = _DEPT_UNIT_ALIASES.get(unit_name, unit_name)
+    return sorted(
+        c for c, v in _outline_index().items()
+        if v["unit"] == unit and v["program"] == OVERVIEW_PROGRAM and not v["closed"]
+    )
+
+
+def _elective_overview(offered: list[str], required: set[str]) -> dict:
+    """該系開設的選修課（不含必修）依課程領域分組，只回課數與少量代表課。
+
+    一門課有多個領域時每個領域都會計入，所以各組課數加總可能大於 elective_offered_count。
+    """
+    index = _outline_index()
+    groups: dict[str, list[str]] = {}
+    total = 0
+    for code in offered:
+        v = index[code]
+        if v["type"] != "選修" or code in required:
+            continue
+        total += 1
+        domains = {d for d in (_clean_domain(x) for x in v["domains"]) if d and d not in _GENERIC_DOMAINS}
+        for d in domains or {"未分類領域"}:
+            groups.setdefault(d, []).append(code)
+    ranked = sorted(groups, key=lambda k: (-len(groups[k]), k))[:OVERVIEW_TOP_ELECTIVE_GROUPS]
+    return {
+        "elective_offered_count": total,
+        "elective_by_domain": [
+            {
+                "domain": k,
+                "courses": len(groups[k]),
+                "examples": list(dict.fromkeys(index[c]["name"] for c in groups[k]))[:OVERVIEW_ELECTIVE_EXAMPLES],
+            }
+            for k in ranked
+        ],
+    }
+
+
+def _elective_rules(nid: str, track: str = "") -> list[dict]:
+    """選修多以「學分規則」記錄；列出規則與可選課數，不展開課程清單。"""
+    g = _g()
+    rules = []
+    for plan_id in _node_plans(nid):
+        for eg_id, rel in g["out"].get(plan_id, []):
+            if rel != "HAS_ELECTIVE_GROUP":
+                continue
+            options: set[str] = set()
+            for tgt, rel2 in g["out"].get(eg_id, []):
+                if rel2 == "OFFERS_ELECTIVE":
+                    options.add(tgt)
+                elif rel2 == "HAS_SLOT":
+                    options.update(t for t, r in g["out"].get(tgt, []) if r == "OFFERS_ELECTIVE")
+            n = _node(eg_id)
+            rules.append({
+                **({"track": track} if track else {}),
+                "group": n.get("name", ""),
+                "select_credits": n.get("select_credits"),
+                "listed_options": len(options),
+            })
+    return rules
+
+
+def _graduation_info(nid: str) -> dict:
+    """畢業學分與檢定要求，取自 curriculum_requirements_114.json。"""
+    u = _curriculum_units().get(nid, {})
+    info = {
+        "min_credits": u.get("min_credits"),
+        "required_credits_including_common": u.get("required_credits"),
+        "certifications": u.get("certifications"),
+    }
+    return {k: v for k, v in info.items() if v}
+
+
+def get_dept_overview(dept_name: str) -> dict:
+    """系所概覽：必修課完整清單＋114 學年課程綱要的領域／能力統計＋選修分布。
+
+    有子組（如機械系三組）時，共同必修與各組專屬必修分開列出。
+    """
+    nid, candidates = _resolve_overview_node(dept_name)
+    if nid is None:
+        return {"found": False, "dept_name": dept_name, "fallback_candidates": candidates}
+
+    node = _node(nid)
+    name = node.get("name", dept_name)
+    children = [t for t, r in _g()["out"].get(nid, []) if r in _PARENT_EDGES]
+    groups = [c for c in children if _node(c).get("node_type") == "DeptGroup"]
+    tracks = [_node(c).get("name", "") for c in children
+              if _node(c).get("node_type") == "SpecializationTrack"]
+
+    own = _required_for_node(nid)
+    group_reqs = {c: _required_for_node(c) for c in groups}
+    group_reqs = {c: v for c, v in group_reqs.items() if v}
+
+    result: dict = {"found": True, "dept_name": name}
+    college = _load_dept_college_map().get(name)
+    if college:
+        result["college"] = college
+
+    all_ids: list[str] = [c["id"] for c in own]
+    common_ids: set[str] = set()
+    if group_reqs:
+        id_sets = [{c["id"] for c in v} for v in group_reqs.values()]
+        common_ids = {c["id"] for c in own} | set.intersection(*id_sets)
+        by_id = {c["id"]: c for v in group_reqs.values() for c in v}
+        by_id.update({c["id"]: c for c in own})
+        all_ids = list(dict.fromkeys(
+            [c["id"] for c in own] + [c["id"] for v in group_reqs.values() for c in v]
+        ))
+        result["common_required_courses"] = _decorate_required(
+            _merge_same_name([by_id[i] for i in all_ids if i in common_ids]))
+        result["tracks"] = [
+            {"name": _node(c).get("name", ""),
+             "track_required_courses": _decorate_required(_merge_same_name(
+                 [x for x in v if x["id"] not in common_ids])),
+             "dept_required_credits": sum(
+                 _node(i).get("credits") or 0
+                 for i in common_ids | {x["id"] for x in v}),
+             **({"graduation": _graduation_info(c)} if _graduation_info(c) else {})}
+            for c, v in group_reqs.items()
+        ]
+    else:
+        result["required_courses"] = _decorate_required(_merge_same_name(own))
+        result["dept_required_credits"] = sum(_node(i).get("credits") or 0 for i in all_ids)
+
+    if tracks:
+        result["specialization_tracks"] = tracks
+    result["required_course_count"] = len({_node(i).get("name", i) for i in all_ids})
+
+    graduation = _graduation_info(nid)
+    if graduation:
+        result["graduation"] = graduation
+        if graduation.get("required_credits_including_common"):
+            result["required_credits_note"] = (
+                "必修課清單是系訂必修（含院必修）；共同必修（國文、英文、體育、服務學習等）不在清單內，"
+                "含共同必修的總必修學分見 graduation.required_credits_including_common。"
+            )
+
+    # 統計範圍 = 必修課 ∪ 該系 114 學年開設的學士班課程；只有 114 學年有課程綱要的課才會被統計
+    index = _outline_index()
+    unit_name = _node(_dept_unit(nid)).get("name", name)
+    offered = _offered_codes(unit_name)
+    counted = [c for c in dict.fromkeys(list(all_ids) + offered) if c in index]
+    without_outline = sorted({_node(i).get("name", i) for i in all_ids if i not in index})
+    result["stats_basis"] = {
+        "academic_year": OVERVIEW_ACADEMIC_YEAR,
+        "program": OVERVIEW_PROGRAM,
+        "required_courses_with_outline": sum(1 for i in all_ids if i in index),
+        "dept_offered_courses": len(offered),
+        "courses_counted": len(counted),
+        "required_without_outline": without_outline,
+    }
+    if len(counted) < OVERVIEW_MIN_COURSES_FOR_STATS:
+        result["stats_warning"] = "可統計的課程很少，領域與能力僅供參考，不宜據此歸納系所特色。"
+    result.update(_aggregate_profile(counted))
+    result.update(_elective_overview(offered, set(all_ids)))
+
+    rules = _elective_rules(nid)
+    for c in group_reqs:
+        rules += _elective_rules(c, _node(c).get("name", ""))
+    result["elective_rules"] = rules
+
+    result["sources"] = {
+        "required_courses": "114學年應修科目（curriculum_requirements_114）",
+        "course_domains": "114學年課程綱要（課程領域欄位原文）",
+        "core_competencies": "114學年課程綱要（核心能力與強度欄位原文）",
+        "topic_fields": "系統分析課程內容所得（衍生內容）",
+        "technologies": "系統分析課程內容所得（衍生內容）",
+        "topics": "系統分析課程內容所得（衍生內容）",
+    }
+    result["data_note"] = (
+        "依中央大學 114 學年課程與應修科目資料統計，不是系所官方介紹。"
+        "course_domains、core_competencies 為課程綱要原有欄位；topic_fields、technologies、topics 為系統分析，"
+        "回答時要分清楚。各清單的 courses 為實際涉及的課數，不是比例。"
+    )
+    return result
 
 
 def get_program_courses(program_name: str) -> list[dict]:

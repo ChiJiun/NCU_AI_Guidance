@@ -13,6 +13,7 @@ test_rag.py
   python scripts/test_rag.py --cats program,graduation     # 只跑指定類別
   python scripts/test_rag.py --nos 1,3,5                   # 只跑指定題號
   python scripts/test_rag.py --questions scripts/my.txt    # 自訂題目 txt
+  python scripts/test_rag.py --questions docs/10-retrieval-evaluation/eval-set-v1.json   # 評測集（結果以題號標示）
 
 輸出：
   data/test_results/<timestamp>.json  — 完整結果（含工具細節）
@@ -347,13 +348,17 @@ def save_markdown(results: list[dict], path: Path) -> None:
 def main():
     parser = argparse.ArgumentParser(description="NCU RAG 自動測試工具")
     parser.add_argument("--url",       default="http://localhost:8000", help="API base URL")
-    parser.add_argument("--questions", default=None, help="每行一題的 txt 檔（不填則用內建題目）")
+    parser.add_argument("--questions", default=None, help="每行一題的 txt 檔，或評測集 .json（不填則用內建題目）")
     parser.add_argument("--nos",  default=None, help="只跑指定題號，逗號分隔，例如 --nos 1,3,5")
     parser.add_argument("--cats", default=None, help="只跑指定類別，逗號分隔，例如 --cats program,graduation")
     args = parser.parse_args()
 
     questions = DEFAULT_QUESTIONS
-    if args.questions:
+    if args.questions and args.questions.endswith(".json"):
+        # 評測集 JSON：類別欄位放題號（如 D03），結果可依題號對回預期工具，也能用 --cats D03,D04 重跑
+        data = json.loads(Path(args.questions).read_text(encoding="utf-8"))
+        questions = [(q["id"], q["question"]) for q in data["questions"]]
+    elif args.questions:
         txt = Path(args.questions).read_text(encoding="utf-8")
         questions = [("custom", line.strip()) for line in txt.splitlines()
                      if line.strip() and not line.startswith("#")]

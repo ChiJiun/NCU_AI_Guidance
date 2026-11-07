@@ -154,10 +154,27 @@ SYSTEM_PROMPT = """你是「中央大學選課助理」，協助高中生、大�
   → 主題式查詢（「通識有沒有法律相關」「語言中心有沒有日文課」）：
       search_courses(query="法律", dept="通識教育中心") — 向量搜尋精準命中，勿回傳全部課程
 
-**兩系比較**（「A系和B系有什麼不同」「比較資工和電機」）：
-  → 分別以 `search_courses(query="核心課程與能力", dept="正式系名")` 查詢兩個系，可並行呼叫。
-  → 只能根據查到的課程、概念、技術與核心能力比較；目前不使用系所介紹向量資料庫，
-    不得自行補寫系所特色、生涯進路或適合人格。
+**認識／比較系所**（「XX系在學什麼」「A系和B系有什麼不同」「比較資工和電機」）：
+  → `get_dept_overview(dept_name="正式系名")`；比較時兩個系各呼叫一次，可並行。
+  → 回傳該系**全部必修課**（`required_courses`；有分組的系為 `common_required_courses` + `tracks`，
+    各組有自己的 `graduation` 學分）、畢業學分與檢定 `graduation`、
+    課程領域 `course_domains` 與核心能力 `core_competencies`（兩者是課程綱要原有欄位，可直接引用）、
+    涵蓋主題 `topic_fields`、技術 `technologies`、每門課的 `topics`（這三者是系統分析，語氣要保留，
+    例如「課程內容常涉及…」）、選修分布 `elective_by_domain`（領域＋課數＋代表課）與選修學分規則 `elective_rules`。
+  → 介紹時用「大一學什麼、大二學什麼」的學習順序說明，再用領域與代表課程說明側重點；
+    必修課要能完整列出，不要只挑幾門就說這是全部。
+  → 必修清單不含共同必修（國文、英文、體育等），講總必修學分時用 `graduation` 的數字並說明差異；
+    `outline_available` 為 false 的課沒有領域與能力資料，不要替它補寫。
+  → `stats_warning` 出現時，明說該系可統計的課程很少，不要據此歸納特色。
+  → 只能根據回傳資料說明，不得自行補寫系所特色、生涯進路、薪資或適合人格；
+    `courses` 數字是實際課數，不是比例；資料是課程統計，不是系所官方介紹，必要時提醒查看系網。
+  → 回傳 found=False 時依規則 4 只列 `fallback_candidates`。
+  → `get_dept_courses` 仍用於要「選修課清單」或單純要課表時。
+
+**資訊不足時先問再查**：學生只說「我不知道喜歡什麼」「喜歡動手做」這類沒有科系線索的描述時，
+  先問 1–2 個會改變建議的問題（例如偏實驗還是程式、喜歡理論還是應用），或提出 2–3 條可能方向
+  並請學生選擇；不要一次丟出大量課程。已有明確主題或作品想法時才直接查詢。
+  資料查不到的需求（例如藝術創作）要明說中大課程資料中沒有對應，再提供可查證的相近課程。
 
 **學程查詢**：
   → 不知道學程名稱時：search_programs(query="主題關鍵詞") 先發現
@@ -729,6 +746,22 @@ def _collect_course_pool(tool_name: str, result, course_pool: dict) -> None:
                     "type":    c.get("relation", ""),
                     "teacher": c.get("teacher", ""),
                 }
+    elif tool_name == "get_dept_overview" and isinstance(result, dict) and result.get("found"):
+        dept = result.get("dept_name", "")
+        listed = list(result.get("required_courses", [])) + list(result.get("common_required_courses", []))
+        for t in result.get("tracks", []):
+            listed += t.get("track_required_courses", [])
+        for c in listed:
+            name = c.get("name", "")
+            if name:
+                course_pool[name] = {
+                    "code":    (c.get("course_ids") or [""])[0],
+                    "name":    name,
+                    "dept":    dept,
+                    "credits": c.get("credits", 0),
+                    "type":    "必修",
+                    "teacher": "",
+                }
     elif tool_name in ("ppr_explore", "find_similar_courses",
                        "get_course_knowledge_map", "get_depts_by_tech") and isinstance(result, str):
         for c in _parse_courses_from_str(tool_name, result):
@@ -1089,7 +1122,13 @@ def stream_with_tools(
                 scores: list[float] = []
                 score_type: str | None = None
 
-                if tc["name"] in ("get_dept_courses", "get_program_courses", "get_program_info") and isinstance(result, dict):
+                if tc["name"] == "get_dept_overview" and isinstance(result, dict):
+                    courses_found = [
+                        c.get("name", "")
+                        for c in (result.get("required_courses", []) + result.get("common_required_courses", []))
+                    ]
+                    count = len(courses_found)
+                elif tc["name"] in ("get_dept_courses", "get_program_courses", "get_program_info") and isinstance(result, dict):
                     count = len(result.get("courses", []))
                     if count > 20:
                         has_large_result = True

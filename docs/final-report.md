@@ -85,7 +85,7 @@
 │  ┌────────────┐  ┌────────────┐  ┌──────────────────────┐  │
 │  │ 課程 RAG   │  │ PDF RAG    │  │  監控 / 分析 API      │  │
 │  │ ReAct 工具 │  │ 多 Agent   │  │  /api/monitor/*      │  │
-│  │ 13 個工具  │  │ LangGraph  │  │  /api/chat/analytics │  │
+│  │ 14 個工具  │  │ LangGraph  │  │  /api/chat/analytics │  │
 │  └────────────┘  └────────────┘  └──────────────────────┘  │
 └──┬───────────┬───────────┬───────────┬──────────────────────┘
    │           │           │           │
@@ -319,12 +319,13 @@ Phase 2（語意補入，各步驟獨立）
     │
     ├─ search_courses（多 Signal RRF）
     ├─ get_dept_courses（圖查詢）
+    ├─ get_dept_overview（系所概覽）
     ├─ get_course_detail（課綱+資格）
     ├─ ppr_explore（PPR 廣泛探索）
     ├─ get_depts_by_tech（技術→系所）
     ├─ get_graduation_requirements
     ├─ find_similar_courses（RRF）
-    └─ … 共 13 個啟用工具
+    └─ … 共 14 個啟用工具
          │
          ▼
   工具結果注入 messages
@@ -368,12 +369,13 @@ Layer 3：RRF 融合（K=60）
   排名 → exact_match 置頂 → 前 n 筆輸出
 ```
 
-### 7.3 暴露給 LLM 的 13 個工具
+### 7.3 暴露給 LLM 的 14 個工具
 
 | 工具名稱 | 資料來源 | 主要用途 |
 |---------|---------|---------|
 | `search_courses` | Qdrant + Graph | 多 Signal 語意搜尋 |
 | `get_dept_courses` | Graph | 系所必修/選修清單 |
+| `get_dept_overview` | JSON + 課程綱要 + Graph | 系所概覽：全部必修課、畢業學分、課程領域與核心能力統計、選修分布 |
 | `get_course_detail` | Qdrant | 課綱 + 修課資格 + 先修（三合一） |
 | `get_dept_info` | 暫停 | `ncu_departments` 內容與向量策略確認前不暴露給 LLM |
 | `get_graduation_requirements` | JSON + Graph | 畢業規定（二合一） |
@@ -386,6 +388,20 @@ Layer 3：RRF 融合（K=60）
 | `explore_concept_neighborhood` | Graph | N 跳 BFS 概念鄰域 |
 | `get_teacher_info` | Qdrant + Graph | 教師專長 + 開課 |
 | `search_teachers` | Qdrant | 教師語意搜尋 |
+
+#### `get_dept_overview` 的資料來源
+
+此工具取代暫停使用的 `get_dept_info` 的用途，**不讀系所介紹文字、向量資料庫或教師個人資料**，全部由課程資料即時計算：
+
+| 回傳內容 | 來源 | 是否經 LLM |
+|---|---|---|
+| 全部系訂必修課、畢業最低學分、含共同必修的總必修學分、檢定要求 | 114 學年應修科目 `curriculum_requirements_114.json` | 否 |
+| 課程領域、核心能力（含強度）、選修課領域分布 | 114 學年課程綱要 `courses_deduped/undergrad.json` | 否，課程綱要原欄位 |
+| 涵蓋主題、技術、每門課代表主題 | 圖譜 NLP 標籤 | 是，標示為衍生內容 |
+
+統計範圍為必修課加該系 114 學年開設的學士班課程；排除研究所課、已停開課程與通識、體育、語言中心等共同課單位。
+114 學年沒有課程綱要的必修課不納入統計，回傳中標示 `outline_available: false`。排名時一門課被越多系列為必修（如微積分）權重越低，
+避免理工系看起來相同；顯示的數字仍為實際課數。回傳的 `sources` 欄位逐項標明來源，回答時需區分「課程綱要原有」與「系統分析」。
 
 ### 7.4 SSE 串流事件
 
@@ -732,7 +748,7 @@ Tab 2 課程推薦
   ├─ Latency 統計網格（avg / P95 / P99 / min / max）
   ├─ Latency 趨勢圖
   ├─ Token 用量趨勢 + 每日費用 & 每輪 Token 圖
-  └─ 工具使用統計（目前 13 個啟用工具水平條形圖）
+  └─ 工具使用統計（目前 14 個啟用工具水平條形圖）
 
 Tab 3 大專生計畫
   ├─ 時段統計列（活躍用戶 / 輪次 / Token / 平均深度 / 趨勢 %）

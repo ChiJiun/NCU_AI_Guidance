@@ -10343,7 +10343,7 @@
       "relevance": "medium"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -10968,7 +10968,7 @@
   ],
   "ME5083": [
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -11414,7 +11414,7 @@
       "relevance": "medium"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -39596,7 +39596,7 @@
       "relevance": "high"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -39715,7 +39715,7 @@
       "relevance": "medium"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -40095,7 +40095,7 @@
   ],
   "ME4096": [
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -40293,13 +40293,7 @@
     {
       "field": "微機電系統",
       "professors": [
-        "曹嘉文"
-      ],
-      "relevance": "high"
-    },
-    {
-      "field": "微機電系統(MEMS)",
-      "professors": [
+        "曹嘉文",
         "陳世叡"
       ],
       "relevance": "high"
@@ -40386,7 +40380,7 @@
       "relevance": "high"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -40634,7 +40628,7 @@
       "relevance": "medium"
     },
     {
-      "field": "微機電系統(MEMS)",
+      "field": "微機電系統",
       "professors": [
         "陳世叡"
       ],
@@ -63681,7 +63675,7 @@
   ],
   "EN6041": [
     {
-      "field": "環境（地質）化學",
+      "field": "環境化學",
       "professors": [
         "林居慶"
       ],
@@ -63734,7 +63728,7 @@
       "relevance": "high"
     },
     {
-      "field": "環境（地質）化學",
+      "field": "環境化學",
       "professors": [
         "林居慶"
       ],
@@ -64215,7 +64209,7 @@
       "relevance": "medium"
     },
     {
-      "field": "環境（地質）化學",
+      "field": "環境化學",
       "professors": [
         "林居慶"
       ],
@@ -69098,7 +69092,7 @@
       "relevance": "high"
     },
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -69121,7 +69115,7 @@
       "relevance": "medium"
     },
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -69231,7 +69225,7 @@
   ],
   "IA7054": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -69240,7 +69234,7 @@
   ],
   "IA7059": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -69249,7 +69243,7 @@
   ],
   "IA7060": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -74213,7 +74207,7 @@
       "relevance": "high"
     },
     {
-      "field": "環境（地質）化學",
+      "field": "環境化學",
       "professors": [
         "林居慶"
       ],
@@ -74532,7 +74526,7 @@
       "relevance": "medium"
     },
     {
-      "field": "環境（地質）化學",
+      "field": "環境化學",
       "professors": [
         "林居慶"
       ],
@@ -78707,7 +78701,7 @@
       "relevance": "medium"
     },
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -78751,7 +78745,7 @@
       "relevance": "medium"
     },
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -78799,7 +78793,7 @@
       "relevance": "medium"
     },
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -78808,7 +78802,7 @@
   ],
   "IA7056": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -78824,7 +78818,7 @@
   ],
   "IA7057": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],
@@ -78867,7 +78861,7 @@
   ],
   "IAA027": [
     {
-      "field": "人工智慧 (Artificial Intelligence)",
+      "field": "人工智慧",
       "professors": [
         "胡中興"
       ],

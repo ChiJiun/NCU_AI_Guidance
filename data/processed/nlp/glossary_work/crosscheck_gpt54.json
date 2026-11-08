@@ -1,0 +1,1202 @@
+[
+ {
+  "term": "分批成本制",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "把成本依每一批訂單或產品分別累計的會計方法",
+  "hs_link": null
+ },
+ {
+  "term": "物流管理",
+  "verdict": "inaccurate",
+  "hs_ok": null,
+  "comment": "物流管理不只管出貨到送達，還包含採購、存貨、倉儲與配送等整體流動管理。",
+  "gloss": "規劃與控制貨物從出貨到送達過程的管理工作",
+  "hs_link": null
+ },
+ {
+  "term": "攝影測量",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "從多張照片推算物體位置、大小與形狀的測量技術",
+  "hs_link": "高中數學：三角函數"
+ },
+ {
+  "term": "微分",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "計算某一瞬間變化快慢的數學方法",
+  "hs_link": "高中數學：多項式函數的微分"
+ },
+ {
+  "term": "民族誌",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "長期融入某群體生活，觀察並詳細記錄其文化的研究方法",
+  "hs_link": null
+ },
+ {
+  "term": "電解",
+  "verdict": "inaccurate",
+  "hs_ok": true,
+  "comment": "電解是用電能驅動原本不易自發進行的氧化還原反應，不一定只是把化合物分解成其他物質。",
+  "gloss": "通入電流使化合物分解成其他物質的化學方法",
+  "hs_link": "高中化學：電化學"
+ },
+ {
+  "term": "描述性統計",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "用平均數、標準差與圖表等方式概括一組資料的特徵",
+  "hs_link": "高中數學：統計"
+ },
+ {
+  "term": "密度矩陣",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「量子系統」「各種狀態機率」「矩陣」這整句對高二生偏難，而且高中近代物理通常不教密度矩陣。",
+  "gloss": "用矩陣描述量子系統處於各種狀態機率的數學工具",
+  "hs_link": "高中物理：近代物理"
+ },
+ {
+  "term": "聚類分析",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "依相似程度把沒有標籤的資料自動分成幾群",
+  "hs_link": null
+ },
+ {
+  "term": "資料庫設計",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "事先規劃資料要怎麼分表、存放與彼此關聯的過程",
+  "hs_link": null
+ },
+ {
+  "term": "抽象資料型態",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「操作」「實作」對高二生可能太資訊專業，且未舉例說明會較難理解。",
+  "gloss": "只規定資料能做哪些操作，不管內部怎麼實作的資料類型",
+  "hs_link": null
+ },
+ {
+  "term": "向量分析",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "向量分析通常指較進階的微積分內容，高中向量課程不會涵蓋這個概念。",
+  "gloss": "研究兼具大小與方向的量如何變化與運算的數學工具",
+  "hs_link": "高中數學：向量"
+ },
+ {
+  "term": "參與觀察",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "研究者親身加入群體生活，邊參與邊記錄觀察的研究方法",
+  "hs_link": null
+ },
+ {
+  "term": "焦點團體",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "邀集一小群人針對主題討論，藉此蒐集想法與意見的研究方法",
+  "hs_link": null
+ },
+ {
+  "term": "模糊邏輯",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明本身可懂，但高中數學的邏輯與集合通常不會教到模糊邏輯。",
+  "gloss": "允許真假之間有程度之分的邏輯，而非只有是或否",
+  "hs_link": "高中數學：邏輯與集合"
+ },
+ {
+  "term": "對稱性",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "定義可懂，但把它連到高中三角函數過於勉強，對應不夠直接。",
+  "gloss": "物體或系統經過某種變換後，外觀或規律保持不變的性質",
+  "hs_link": "高中數學：三角函數"
+ },
+ {
+  "term": "特殊函數",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "在解物理與工程方程式時常出現、有固定名稱的函數",
+  "hs_link": null
+ },
+ {
+  "term": "對角化",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "不是所有方陣都能對角化，而且高中數學通常也不教對角化。",
+  "gloss": "把方陣化成只有對角線有數值的簡單形式",
+  "hs_link": "高中數學：矩陣"
+ },
+ {
+  "term": "水資源管理",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "規劃水的取得、分配與保護，讓人們長期有水可用",
+  "hs_link": "高中地球科學：水循環"
+ },
+ {
+  "term": "資料探勘",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用統計與演算法從大量資料中找出隱藏規律",
+  "hs_link": null
+ },
+ {
+  "term": "全球定位系統",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "利用多顆衛星的訊號計算出物體所在位置的系統",
+  "hs_link": null
+ },
+ {
+  "term": "文學批評",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "用不同角度分析、解讀並評價文學作品的方法",
+  "hs_link": "高中國文：文學賞析"
+ },
+ {
+  "term": "金氧半場效電晶體",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "MOSFET雖可當開關，也常作為放大元件；且高中物理電路通常不會教這個元件。",
+  "gloss": "用電壓控制電流通斷的微小開關，是晶片的基本元件",
+  "hs_link": "高中物理：電流與電路"
+ },
+ {
+  "term": "整流電路",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "把方向來回變換的交流電轉成單一方向直流電的電路",
+  "hs_link": "高中物理：電磁感應與交流電"
+ },
+ {
+  "term": "提示工程",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "設計給 AI 的指令來引導它產出理想回答的方法",
+  "hs_link": null
+ },
+ {
+  "term": "數位行銷",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "利用網路與社群平臺來宣傳與銷售商品的方式",
+  "hs_link": null
+ },
+ {
+  "term": "奈米材料",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "由極微小的顆粒或結構組成而性質特殊的材料",
+  "hs_link": null
+ },
+ {
+  "term": "字典",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用名稱對應內容，可快速查找資料的程式資料結構",
+  "hs_link": null
+ },
+ {
+  "term": "電路學",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "研究電流電壓如何在元件組成的電路中流動的學問",
+  "hs_link": "高中物理：電流與電路"
+ },
+ {
+  "term": "機率分配",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "列出隨機變數各種可能結果及其發生機率的對應關係",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "檔案結構",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "檔案在儲存裝置中被組織與排列的方式",
+  "hs_link": null
+ },
+ {
+  "term": "顯微鏡",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "利用透鏡把微小物體放大以便觀察的儀器",
+  "hs_link": "高中物理：光學"
+ },
+ {
+  "term": "GRU（門控循環單位）",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「閘門控制」「序列資料」「神經網路」都偏專業，對高二生來說缺少進一步解釋。",
+  "gloss": "用閘門控制記憶保留與遺忘、處理序列資料的神經網路",
+  "hs_link": null
+ },
+ {
+  "term": "例外處理",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "讓程式遇到錯誤時不當掉，並能妥善應對的寫法",
+  "hs_link": null
+ },
+ {
+  "term": "CSR（企業社會責任）",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "企業在賺錢之外，也對環境與社會負起責任的做法",
+  "hs_link": null
+ },
+ {
+  "term": "濾波器",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "讓特定頻率的訊號通過並擋掉其他頻率的裝置或演算法",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "傳輸層",
+  "verdict": "inaccurate",
+  "hs_ok": null,
+  "comment": "傳輸層是網路分層中的一層，未必都是「兩台電腦之間」且也不一定保證完整與順序，例如 UDP 就不保證。",
+  "gloss": "負責讓兩台電腦之間的資料完整又有順序地送達的網路層級",
+  "hs_link": null
+ },
+ {
+  "term": "市場定位",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "決定產品要在消費者心中留下什麼獨特形象與位置",
+  "hs_link": null
+ },
+ {
+  "term": "曲線擬合",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "概念本身可懂，但「高中數學：數據分析」通常不會正式講到曲線擬合這個主題。",
+  "gloss": "找出一條最貼近一組資料點的曲線或函數",
+  "hs_link": "高中數學：數據分析"
+ },
+ {
+  "term": "OpenCV",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "專門用來處理影像和影片的開源程式函式庫",
+  "hs_link": null
+ },
+ {
+  "term": "電磁學",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "研究電荷、電流與磁場如何互相作用的物理領域",
+  "hs_link": "高中物理：電與磁"
+ },
+ {
+  "term": "賽局理論",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "賽局理論一般不屬於高中數學機率單元的核心內容。",
+  "gloss": "研究多方在互相影響下如何做決策的數學理論",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "太陽電池",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "太陽電池與半導體、光伏效應較相關，不能直接對應成高中物理的「光電效應」課程內容。",
+  "gloss": "吸收光線並直接產生電流的半導體元件",
+  "hs_link": "高中物理：光電效應"
+ },
+ {
+  "term": "被動元件",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "不會放大訊號也不需外加電源就能運作的電路零件",
+  "hs_link": "高中物理：電流與電路"
+ },
+ {
+  "term": "電位",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "單位電荷在電場中某位置所具有的電位能",
+  "hs_link": "高中物理：電與磁"
+ },
+ {
+  "term": "泰勒級數",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "泰勒級數不是高中「多項式函數」內容，且它是無窮級數展開，不只是一般的高次方近似式。",
+  "gloss": "把複雜函數寫成一串由低到高次方項相加的近似式",
+  "hs_link": "高中數學：多項式函數"
+ },
+ {
+  "term": "元組",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "程式中一旦建立就不能修改的一組有序資料",
+  "hs_link": null
+ },
+ {
+  "term": "策略",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "為了達成目標而事先想好的做法與行動安排",
+  "hs_link": null
+ },
+ {
+  "term": "癌症生物學",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "與高中生物的細胞分裂有關，但「癌症生物學」不是高中課程中的對應單元名稱。",
+  "gloss": "研究細胞如何失控增生並形成腫瘤的學問",
+  "hs_link": "高中生物：細胞分裂"
+ },
+ {
+  "term": "字串",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "程式中用來儲存一串文字符號的資料型態",
+  "hs_link": null
+ },
+ {
+  "term": "OQPSK",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "OQPSK是QPSK中I、Q兩路錯開半個符號時間，不只是泛指兩路訊號錯開；且連到高中物理波動並不對應。",
+  "gloss": "把兩路訊號錯開半個符號傳送，使相位變化較平緩的調變方式",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "空間資料分析",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "分析帶有地理位置的資料，找出分布規律與關聯的方法",
+  "hs_link": "高中地理：地理資訊系統"
+ },
+ {
+  "term": "點估計",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "用一組樣本算出單一數值，當作總體未知數值的估計",
+  "hs_link": "高中數學：統計"
+ },
+ {
+  "term": "相變",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "物質在固態、液態、氣態等不同狀態之間轉換的現象",
+  "hs_link": "高中化學：物質的狀態與溶液"
+ },
+ {
+  "term": "個案研究",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "挑選一個特定對象，深入觀察並分析的研究方式",
+  "hs_link": null
+ },
+ {
+  "term": "PCM（脈衝編碼調變）",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "把連續的聲音或訊號定時取樣後轉成數位數字的編碼方法",
+  "hs_link": null
+ },
+ {
+  "term": "金屬氫化物",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "金屬與氫結合形成的化合物，常可用來儲存氫氣",
+  "hs_link": "高中化學：化學鍵結"
+ },
+ {
+  "term": "衛星氣象",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "利用人造衛星從太空觀測雲和大氣來了解天氣的方法",
+  "hs_link": "高中地球科學：大氣與天氣"
+ },
+ {
+  "term": "土石流",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "大量泥沙石塊混著水，沿著坡面快速往下沖的災害",
+  "hs_link": "高中地球科學：地表地質作用"
+ },
+ {
+  "term": "產品管理",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "規劃產品從設計、上市到退場整個過程的管理工作",
+  "hs_link": null
+ },
+ {
+  "term": "電流鏡",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "支路、複製電流等說法太像專業電路術語，且這不是高中電流與電路常見內容。",
+  "gloss": "讓一條支路的電流照樣複製到另一條支路的電路",
+  "hs_link": "高中物理：電流與電路"
+ },
+ {
+  "term": "熱力學第一定律",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "能量不會憑空產生或消失，只會轉換形式或轉移",
+  "hs_link": "高中物理：熱學"
+ },
+ {
+  "term": "資訊經濟學",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "研究雙方掌握的資訊不同時，會如何影響交易與決策",
+  "hs_link": null
+ },
+ {
+  "term": "計量經濟學",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明可懂，但計量經濟學本身不屬於高中數學數據分析課程內容。",
+  "gloss": "用統計方法檢驗經濟變數之間關係的學科",
+  "hs_link": "高中數學：數據分析"
+ },
+ {
+  "term": "國際人力資源管理",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "跨國公司如何在不同國家招募、培訓與管理員工",
+  "hs_link": null
+ },
+ {
+  "term": "環境變遷",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "自然或人類活動造成氣候與生態長期改變的現象",
+  "hs_link": "高中地球科學：全球氣候變遷"
+ },
+ {
+  "term": "虛擬記憶體",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "讓電腦把硬碟當成記憶體延伸，使程式可用更大空間",
+  "hs_link": null
+ },
+ {
+  "term": "比較法",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "對照多種語言的相似處，推斷它們共同祖先樣貌的方法",
+  "hs_link": null
+ },
+ {
+  "term": "機率",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "用0到1的數字表示某件事情發生可能性的大小",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "雷射",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "能發出方向集中、顏色單一的強光的裝置",
+  "hs_link": "高中物理：光學"
+ },
+ {
+  "term": "儲能",
+  "verdict": "vague",
+  "hs_ok": false,
+  "comment": "這比較像儲電的例子，不足以說明儲能可包含多種能量形式；且高中電與磁不一定直接對應此主題。",
+  "gloss": "把多餘的電能先存起來，需要時再取用的技術",
+  "hs_link": "高中物理：電與磁"
+ },
+ {
+  "term": "因果關係",
+  "verdict": "inaccurate",
+  "hs_ok": null,
+  "comment": "因果不只是『一件事發生後』另一件事就被導致，時間先後不等於因果。",
+  "gloss": "一件事發生後，直接導致另一件事發生的關係",
+  "hs_link": null
+ },
+ {
+  "term": "均勻分佈",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "範圍內每個結果出現的機會都完全一樣的機率分佈",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "訂價策略",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "企業依成本與市場需求決定商品賣多少錢的方法",
+  "hs_link": null
+ },
+ {
+  "term": "相關研究法",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明大致正確，但這是研究方法概念，不是高中數學數據分析的典型課程內容。",
+  "gloss": "透過數據檢驗兩個變數是否一起變動的研究方式",
+  "hs_link": "高中數學：數據分析"
+ },
+ {
+  "term": "半導體",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "導電能力介於導體與絕緣體之間，可用來做電子元件的材料",
+  "hs_link": "高中化學：物質的結構與性質"
+ },
+ {
+  "term": "拉普拉斯轉換",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「微分方程」對高二生通常偏難，且未進一步解釋這種轉換到底轉成什麼。",
+  "gloss": "把隨時間變化的函數轉成另一種形式以簡化微分方程求解",
+  "hs_link": null
+ },
+ {
+  "term": "資料儲存",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "把資料以數位形式保存在硬碟等裝置裡的方式",
+  "hs_link": "高中資訊科技：資料表示與儲存"
+ },
+ {
+  "term": "統計力學",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「機率方法」「粒子行為」都太抽象，且這不是高中熱學課程會正式處理的內容。",
+  "gloss": "用機率方法從粒子行為推出物質整體性質的理論",
+  "hs_link": "高中物理：熱學"
+ },
+ {
+  "term": "企業永續發展（環境、社會、治理）",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "企業在賺錢之外，也兼顧環境保護與社會責任的經營方向",
+  "hs_link": "高中公民與社會：經濟與企業"
+ },
+ {
+  "term": "邏輯回歸",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明基本可懂，但這屬資料分析／機器學習，不是高中機率課程的典型內容。",
+  "gloss": "用已知資料算出屬於某一類的機率，常用來做二選一的判斷",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "侵蝕",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "岩石與土壤被水、風、冰等力量磨損並帶走的過程",
+  "hs_link": "高中地理：地表作用"
+ },
+ {
+  "term": "生態工程",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "運用生態原理來設計工程，讓人造設施與自然共存的方法",
+  "hs_link": "高中生物：生態"
+ },
+ {
+  "term": "雲計算",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "透過網路租用遠端伺服器的運算與儲存資源",
+  "hs_link": null
+ },
+ {
+  "term": "感知機",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「人工神經元模型」「加權相加」對高二生偏難，而且和二元一次不等式的課程連結過於牽強。",
+  "gloss": "最簡單的人工神經元模型，用加權相加來做二分類判斷",
+  "hs_link": "高中數學：二元一次不等式與直線"
+ },
+ {
+  "term": "地質力學",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "定義可懂，但這是地科／工程地質的進階領域，不屬高中物理力與運動的課程內容。",
+  "gloss": "研究岩石與地層受力後如何變形、破裂的學問",
+  "hs_link": "高中物理：力與運動"
+ },
+ {
+  "term": "量子力學",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明可懂，但高中近代物理通常只接觸量子觀念，不會正式學到量子力學這門理論。",
+  "gloss": "描述原子與電子等微小粒子行為的物理理論",
+  "hs_link": "高中物理：近代物理"
+ },
+ {
+  "term": "社會資本",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "人與人之間的信任與關係網絡帶來的實際助益",
+  "hs_link": null
+ },
+ {
+  "term": "外匯市場",
+  "verdict": "inaccurate",
+  "hs_ok": null,
+  "comment": "外匯市場會影響匯率，但匯率不是單純由市場「決定」而已，還可能受央行干預與制度安排影響。",
+  "gloss": "各國貨幣互相買賣、兌換的市場，決定匯率高低",
+  "hs_link": null
+ },
+ {
+  "term": "貨幣政策",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "中央銀行調整利率和貨幣數量來影響經濟的措施",
+  "hs_link": "高中公民：經濟"
+ },
+ {
+  "term": "頻譜分析",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "定義清楚，但這通常超出高中波動課程的正式內容。",
+  "gloss": "找出訊號中含有哪些頻率以及各自強弱的方法",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "衛星光學影像",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明正確，但此主題更接近地理／地科的遙測，不是高中物理光學課程重點。",
+  "gloss": "衛星用可見光與近紅外線感測器拍下的地表影像",
+  "hs_link": "高中物理：光學"
+ },
+ {
+  "term": "資料庫",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "有系統地儲存、查詢與管理大量資料的軟體系統",
+  "hs_link": null
+ },
+ {
+  "term": "摩擦力",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "兩個接觸的物體相對運動或有運動趨勢時產生的阻礙力",
+  "hs_link": "高中物理：力與運動"
+ },
+ {
+  "term": "電晶體",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "能放大訊號或當作電子開關的半導體元件",
+  "hs_link": null
+ },
+ {
+  "term": "地震災害",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "地震造成的房屋倒塌、地層破壞與人員傷亡等損失",
+  "hs_link": "高中地球科學：板塊構造與地震"
+ },
+ {
+  "term": "神經系統",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "由腦、脊髓和神經組成，負責傳遞訊號並控制身體反應",
+  "hs_link": "高中生物：神經系統與動物行為"
+ },
+ {
+  "term": "數位影像處理",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「演算法」若不再解釋，對部分高二生仍偏抽象。",
+  "gloss": "用電腦演算法修改、增強或分析數位圖片的技術",
+  "hs_link": null
+ },
+ {
+  "term": "拉伸試驗",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明清楚，但拉伸試驗屬材料性質與實驗，不是高中物理力學的典型課程內容。",
+  "gloss": "把材料往兩端拉直到斷裂，測量它的強度與延展性",
+  "hs_link": "高中物理：力學"
+ },
+ {
+  "term": "企業併購",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "一家公司合併或買下另一家公司以擴大規模的行為",
+  "hs_link": null
+ },
+ {
+  "term": "詮釋學",
+  "verdict": "too_hard",
+  "hs_ok": true,
+  "comment": "「文本」可懂，但「詮釋學」作為一門學問不只限文本，且「意義」過於抽象，對高二生略顯吃力。",
+  "gloss": "研究如何理解與解讀文本及其意義的學問",
+  "hs_link": "高中國文：文本閱讀與賞析"
+ },
+ {
+  "term": "文化",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "一群人共同擁有的生活方式、信仰與價值觀",
+  "hs_link": "高中公民與社會：文化"
+ },
+ {
+  "term": "通訊系統",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明本身清楚，但較接近科技或資訊概念，不是高中物理「波動」課程的直接對應名詞。",
+  "gloss": "把聲音、文字或數據從一端傳到另一端的整套設備與方法",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "應用層",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "網路架構中最靠近使用者、直接提供網頁與郵件等服務的一層",
+  "hs_link": null
+ },
+ {
+  "term": "混頻器",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "混頻器不是單純把訊號「結合」，而是將訊號相乘以產生和頻、差頻等成分，這樣寫會誤導。",
+  "gloss": "把兩個不同頻率的訊號結合並產生新頻率的電路元件",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "通貨膨脹",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "市面上物價長期普遍上漲，同樣的錢買到的東西變少",
+  "hs_link": "高中公民：經濟"
+ },
+ {
+  "term": "染色體",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "細胞核內由DNA和蛋白質組成、攜帶遺傳資訊的線狀結構",
+  "hs_link": "高中生物：遺傳"
+ },
+ {
+  "term": "太陽光能",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "概念大致正確，但對應應較接近能源或地科內容，不是高中物理「光電效應」的直接課程名詞。",
+  "gloss": "來自太陽的光與熱輻射，可轉成電力等能源",
+  "hs_link": "高中物理：光電效應"
+ },
+ {
+  "term": "影像增強",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "調整對比與亮度，讓影像細節更容易看清楚的處理方式",
+  "hs_link": null
+ },
+ {
+  "term": "正義",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "討論什麼樣的分配與對待才算公平合理的觀念",
+  "hs_link": "高中公民與社會：公平正義"
+ },
+ {
+  "term": "現代性",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「理性、科技與制度上轉變的特徵」過於抽象，且現代性偏社會思想概念，不是高中歷史該單元的直接課程名詞。",
+  "gloss": "描述近代社會在理性、科技與制度上轉變的特徵",
+  "hs_link": "高中歷史：近代世界的形成"
+ },
+ {
+  "term": "全球化",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "各國在經濟、文化與資訊上日益緊密連結的趨勢",
+  "hs_link": "高中地理：全球化"
+ },
+ {
+  "term": "集成學習",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「預測模型」對高二生未必直觀，若不補充例子較難真正理解。",
+  "gloss": "把多個預測模型的結果合併，讓預測更準確的方法",
+  "hs_link": null
+ },
+ {
+  "term": "水泥混凝土",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用水泥、砂石和水拌合後硬化而成的常用建築材料",
+  "hs_link": null
+ },
+ {
+  "term": "波動方程",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "雖大方向沒錯，但「數學方程式」未說明內容，且通常超出高中物理波動課程深度。",
+  "gloss": "描述波如何隨時間與位置傳播的數學方程式",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "函數",
+  "verdict": "inaccurate",
+  "hs_ok": true,
+  "comment": "這是在解釋程式設計中的 function，不是高中數學的「函數」。",
+  "gloss": "把一段可重複使用的程式包起來，需要時直接呼叫",
+  "hs_link": "高中數學：函數"
+ },
+ {
+  "term": "蒙地卡羅模擬",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "解釋清楚，但此概念通常不屬於高中數學機率課程的直接內容。",
+  "gloss": "重複進行大量隨機試驗來觀察結果可能分布的方法",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "PCA（主成分分析）",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「特徵」「重要方向」都偏技術性，且主成分分析通常不在高中數學正式課程中。",
+  "gloss": "把很多特徵濃縮成少數幾個重要方向的資料簡化方法",
+  "hs_link": "高中數學：數據分析"
+ },
+ {
+  "term": "視覺文化",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「傳達意義」「觀看方式」較抽象，對高二生仍不夠白話。",
+  "gloss": "研究圖像與影像如何傳達意義並影響社會觀看方式的領域",
+  "hs_link": null
+ },
+ {
+  "term": "隨機漫步",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "說明可懂，但這通常不是高中數學機率課程的直接名詞。",
+  "gloss": "每一步方向都由機率決定、無法預測走向的路徑模型",
+  "hs_link": "高中數學：機率"
+ },
+ {
+  "term": "變異數分析",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "雖抓到用途，但「平均值是否有差異」背後統計意義未說清，且通常超出高中統計課程。",
+  "gloss": "同時比較三組以上平均值是否有差異的統計方法",
+  "hs_link": "高中數學：統計與推論"
+ },
+ {
+  "term": "水文循環",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "水在海洋、大氣與陸地之間不斷蒸發、降下又流動的過程",
+  "hs_link": "高中地球科學：水圈與水循環"
+ },
+ {
+  "term": "電能轉換",
+  "verdict": "vague",
+  "hs_ok": false,
+  "comment": "「一種電壓或形式變成另一種形式」太籠統，且高中物理「電與磁」不會直接以此作為核心課程名詞。",
+  "gloss": "把電力從一種電壓或形式變成另一種形式的技術",
+  "hs_link": "高中物理：電與磁"
+ },
+ {
+  "term": "導航",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "利用衛星或感測器判斷位置並規劃前進路線的技術",
+  "hs_link": null
+ },
+ {
+  "term": "克里金法",
+  "verdict": "too_hard",
+  "hs_ok": null,
+  "comment": "「推估未測位置數值」雖方向對，但缺少生活化例子，名詞本身對高二生仍偏難。",
+  "gloss": "利用已知位置的數值推估未測位置數值的統計方法",
+  "hs_link": null
+ },
+ {
+  "term": "動態系統",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "高中數學的「函數與極限」不太直接對應此概念。",
+  "gloss": "狀態會隨時間改變，並可用數學式描述其變化規則的系統",
+  "hs_link": "高中數學：函數與極限"
+ },
+ {
+  "term": "近似演算法",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "在合理時間內求出接近最佳解的方法，用於難以精確求解的問題",
+  "hs_link": null
+ },
+ {
+  "term": "濾波器設計",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "規劃只讓特定頻率訊號通過的電路或演算法",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "知識表示",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "把知識整理成電腦能儲存和推理的形式",
+  "hs_link": null
+ },
+ {
+  "term": "推廣策略",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "規劃如何讓更多人認識並購買產品的做法",
+  "hs_link": null
+ },
+ {
+  "term": "數位模擬",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用電腦建立模型來重現真實事物運作過程的方法",
+  "hs_link": null
+ },
+ {
+  "term": "數位素養",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "使用網路與科技工具，並判斷資訊真偽的基本能力",
+  "hs_link": null
+ },
+ {
+  "term": "損失函數",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "名詞本身可懂，但不是高中數學「函數」課程中的典型內容。",
+  "gloss": "用數值衡量模型預測與正確答案差距的函數",
+  "hs_link": "高中數學：函數"
+ },
+ {
+  "term": "火成岩",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "由地底熔融的岩漿冷卻凝固後形成的岩石",
+  "hs_link": "高中地球科學：岩石與礦物"
+ },
+ {
+  "term": "聖嬰現象",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "赤道太平洋海水異常變暖並影響全球氣候的現象",
+  "hs_link": "高中地球科學：大氣與海洋"
+ },
+ {
+  "term": "數據清洗",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "和高中統計僅有間接關聯，通常不是課程核心內容。",
+  "gloss": "修正或刪除資料中的錯誤、缺漏與重複，讓資料可以使用",
+  "hs_link": "高中數學：統計"
+ },
+ {
+  "term": "金融科技",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用軟體與數據技術改善支付、借貸、投資等金融服務",
+  "hs_link": null
+ },
+ {
+  "term": "內積空間",
+  "verdict": "too_hard",
+  "hs_ok": false,
+  "comment": "「內積空間」與「向量空間」對高二生太抽象，且不屬高中向量課程常見內容。",
+  "gloss": "定義了向量點積運算，可以量長度與夾角的向量空間",
+  "hs_link": "高中數學：向量"
+ },
+ {
+  "term": "公司法",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "規定公司如何成立、經營與保障股東權益的法律",
+  "hs_link": null
+ },
+ {
+  "term": "平面波",
+  "verdict": "too_hard",
+  "hs_ok": true,
+  "comment": "「波前」這個關鍵詞對高二生偏難，未進一步解釋。",
+  "gloss": "同一時刻波前是互相平行平面並朝固定方向前進的波",
+  "hs_link": "高中物理：波動"
+ },
+ {
+  "term": "現今地殼變形",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "目前正在發生的地殼彎曲、移動或斷裂等變化",
+  "hs_link": "高中地球科學：板塊運動"
+ },
+ {
+  "term": "行銷研究",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "蒐集並分析消費者與市場資料，協助商品決策的活動",
+  "hs_link": null
+ },
+ {
+  "term": "自動化光學檢測",
+  "verdict": "ok",
+  "hs_ok": null,
+  "comment": "",
+  "gloss": "用相機與光源讓機器自動找出產品瑕疵的檢查技術",
+  "hs_link": null
+ },
+ {
+  "term": "永續發展",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "滿足現在需求又不損害後代生存條件的發展理念",
+  "hs_link": "高中地理：環境與永續發展"
+ },
+ {
+  "term": "淨現值",
+  "verdict": "ok",
+  "hs_ok": false,
+  "comment": "淨現值通常不是高中數學「數列與級數」的課程內容。",
+  "gloss": "把未來收支折算成現在的價值來評估投資是否划算",
+  "hs_link": "高中數學：數列與級數"
+ },
+ {
+  "term": "熱力學",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "研究熱、溫度與能量如何轉換和傳遞的科學",
+  "hs_link": "高中物理：熱學"
+ },
+ {
+  "term": "電離層",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "地球高層大氣中含有大量帶電粒子的區域",
+  "hs_link": "高中地球科學：大氣"
+ },
+ {
+  "term": "波動光學",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "把光當成波來研究干涉與繞射等現象的學問",
+  "hs_link": "高中物理：光的波動性"
+ },
+ {
+  "term": "定積分",
+  "verdict": "inaccurate",
+  "hs_ok": false,
+  "comment": "定積分不只是在算曲線下面積；且台灣高中課程通常不以「函數與極限」名義直接教授此內容。",
+  "gloss": "計算函數在某段區間內曲線下面積的方法",
+  "hs_link": "高中數學：函數與極限"
+ },
+ {
+  "term": "循環經濟",
+  "verdict": "ok",
+  "hs_ok": true,
+  "comment": "",
+  "gloss": "讓資源反覆修復、再利用而減少廢棄物的經濟模式",
+  "hs_link": "高中地理：環境與永續發展"
+ }
+]

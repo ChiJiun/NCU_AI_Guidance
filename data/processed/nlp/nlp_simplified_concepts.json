@@ -26,7 +26,7 @@
         "display": "用數據預測規律"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模仿人腦的計算結構"
       },
       {
@@ -144,7 +144,7 @@
         "display": "將字轉換為數字向量"
       },
       {
-        "original": "RNN（循環神經網路）",
+        "original": "RNN",
         "display": "處理序列資料的神經網路"
       },
       {
@@ -291,7 +291,7 @@
         "display": "能生成文字的 AI 模型"
       },
       {
-        "original": "檢索增強生成（RAG）",
+        "original": "檢索增強生成",
         "display": "結合資料庫的 AI 生成技術"
       },
       {
@@ -304,10 +304,6 @@
       },
       {
         "original": "變分自編碼器",
-        "display": "壓縮與重構資料的 AI 模型"
-      },
-      {
-        "original": "變分自編碼器（VAE）",
         "display": "壓縮與重構資料的 AI 模型"
       }
     ],
@@ -920,7 +916,7 @@
         "display": "無人機操作的安全規則"
       },
       {
-        "original": "地理資訊系統（GIS）",
+        "original": "地理資訊系統",
         "display": "管理空間資料的軟體"
       },
       {
@@ -3139,7 +3135,7 @@
         "display": "預測機率的統計方法"
       },
       {
-        "original": "SVM（支援向量機）",
+        "original": "SVM",
         "display": "分類資料的機器學習方法"
       }
     ],
@@ -3213,15 +3209,15 @@
         "display": "轉換資料頻率特性的分析技術"
       },
       {
-        "original": "主成分分析（PCA）",
+        "original": "主成分分析",
         "display": "簡化資料維度的統計方法"
       },
       {
-        "original": "奇異值分解 (SVD)",
+        "original": "奇異值分解",
         "display": "壓縮資料結構的矩陣分析法"
       },
       {
-        "original": "經驗正交函數分析 (EOF)",
+        "original": "經驗正交函數分析",
         "display": "找出資料主要變化的統計方法"
       },
       {
@@ -7773,10 +7769,6 @@
         "display": "估算水文曲線數據"
       },
       {
-        "original": "洪水路徑分析",
-        "display": "分析洪水流動路徑"
-      },
-      {
         "original": "頻率分析",
         "display": "分析事件發生頻率"
       },
@@ -9449,11 +9441,11 @@
         "display": "建築的3D數位雙胞胎"
       },
       {
-        "original": "卷積神經網路（CNN）",
+        "original": "卷積神經網絡",
         "display": "用來識別圖片特徵的神經網絡"
       },
       {
-        "original": "遞歸神經網絡（RNN）",
+        "original": "遞歸神經網絡",
         "display": "處理序列資料的神經網絡"
       },
       {
@@ -9461,11 +9453,11 @@
         "display": "記憶長時間資料的神經網絡"
       },
       {
-        "original": "生成對抗網絡（GAN）",
+        "original": "生成對抗網絡",
         "display": "生成新資料的神經網絡對決系統"
       },
       {
-        "original": "大型語言模型（LLM）",
+        "original": "大型語言模型",
         "display": "處理大量文字的語言模型"
       },
       {
@@ -11426,7 +11418,7 @@
         "display": "研究流體混亂流動的理論"
       },
       {
-        "original": "計算流體力學（CFD）",
+        "original": "計算流體力學",
         "display": "用電腦模擬流體流動的技術"
       }
     ],
@@ -12271,7 +12263,7 @@
         "display": "用物聯網提升製造效率"
       },
       {
-        "original": "品質控制（QC）",
+        "original": "品質控制",
         "display": "用統計方法控制品質"
       },
       {
@@ -12304,11 +12296,11 @@
         "display": "判斷圖片內容的技術"
       },
       {
-        "original": "CNN（卷積神經網路）",
+        "original": "CNN",
         "display": "用來辨識圖片的神經網路"
       },
       {
-        "original": "RNN（循環神經網路）",
+        "original": "RNN",
         "display": "處理連續資料的神經網路"
       },
       {
@@ -12370,7 +12362,7 @@
         "display": "模擬人腦神經連接的計算結構"
       },
       {
-        "original": "卷積神經網路",
+        "original": "卷積神經網絡",
         "display": "處理圖像特徵的神經網絡"
       },
       {
@@ -13739,7 +13731,7 @@
         "display": "模仿人腦結構的計算模型"
       },
       {
-        "original": "卷積網路",
+        "original": "卷積網絡",
         "display": "影像處理的神經網絡"
       },
       {
@@ -15260,7 +15252,7 @@
   "CL8293": {
     "simplified_concepts": [
       {
-        "original": "判教（教相判釋）",
+        "original": "判教",
         "display": "佛教教義分類方法"
       },
       {
@@ -16219,10 +16211,6 @@
       {
         "original": "分詞與漸變式",
         "display": "分詞與進行時的用法"
-      },
-      {
-        "original": "條件式",
-        "display": "表達假設的語法時態"
       }
     ],
     "college": "liberal_arts"
@@ -16869,7 +16857,7 @@
         "display": "敘述角度"
       },
       {
-        "original": "時間(次序、延展、頻率)",
+        "original": "時間",
         "display": "時間安排"
       },
       {
@@ -17686,7 +17674,7 @@
         "display": "載流子存在時間長短"
       },
       {
-        "original": "pn結",
+        "original": "PN結",
         "display": "P型與N型半導體接合處"
       },
       {
@@ -22695,10 +22683,6 @@
         "display": "波動在介質中傳遞的過程"
       },
       {
-        "original": "定常波",
-        "display": "固定形狀的波動現象"
-      },
-      {
         "original": "干涉現象",
         "display": "波相遇產生強弱變化"
       },
@@ -25541,7 +25525,7 @@
         "display": "多角度X光組合成3D影像"
       },
       {
-        "original": "MRI（磁共振成像）",
+        "original": "MRI",
         "display": "利用磁場與電波生成體內影像"
       },
       {
@@ -25636,10 +25620,6 @@
       {
         "original": "表觀遺傳調控",
         "display": "不改變DNA的遺傳調控"
-      },
-      {
-        "original": "轉錄調控",
-        "display": "控制基因轉錄的機制"
       }
     ],
     "college": "life_sci"
@@ -25688,7 +25668,7 @@
         "display": "程式中儲存資料的容器"
       },
       {
-        "original": "for 迴圈",
+        "original": "FOR迴圈",
         "display": "重複執行指令的程式結構"
       },
       {
@@ -25761,7 +25741,7 @@
         "display": "影像識別的深度學習模型"
       },
       {
-        "original": "RNN（循環神經網路）",
+        "original": "RNN",
         "display": "處理序列資料的神經網路"
       }
     ],
@@ -25941,11 +25921,11 @@
         "display": "利用聲波生成體內影像"
       },
       {
-        "original": "X 光",
+        "original": "X光",
         "display": "利用X光拍攝體內結構"
       },
       {
-        "original": "電腦斷層（CT）",
+        "original": "電腦斷層",
         "display": "結合X光的電腦斷層影像"
       }
     ],
@@ -26742,7 +26722,7 @@
         "display": "偵測環境變化的裝置"
       },
       {
-        "original": "輸入輸出",
+        "original": "輸入/輸出",
         "display": "資料進出裝置的通道"
       },
       {
@@ -26878,11 +26858,11 @@
         "display": "控制基因何時表現的機制"
       },
       {
-        "original": "DNA 修復",
+        "original": "DNA修復",
         "display": "修復 DNA 錯誤的機制"
       },
       {
-        "original": "RNA 生物學",
+        "original": "RNA生物學",
         "display": "研究 RNA 功能與結構的科學"
       },
       {
@@ -27956,7 +27936,7 @@
         "display": "連結實體與網路的智慧系統"
       },
       {
-        "original": "物聯網（IoT）",
+        "original": "物聯網",
         "display": "讓物品聯網通訊的技術"
       },
       {
@@ -28173,11 +28153,11 @@
         "display": "神經網絡中所有節點都連接的結構"
       },
       {
-        "original": "卷積神經網路（CNNs）",
+        "original": "卷積神經網絡",
         "display": "處理圖像的神經網絡"
       },
       {
-        "original": "遞歸神經網絡（RNNs）",
+        "original": "遞歸神經網絡",
         "display": "處理連續資料的神經網絡"
       },
       {
@@ -30470,7 +30450,7 @@
         "display": "國際銀行風險管理規則"
       },
       {
-        "original": "風險價值（VaR）",
+        "original": "風險價值",
         "display": "衡量最大可能損失的指標"
       }
     ],
@@ -30632,7 +30612,7 @@
   "FM5006": {
     "simplified_concepts": [
       {
-        "original": "卷積神經網路（CNNs）",
+        "original": "卷積神經網絡",
         "display": "處理圖像的神經網絡結構"
       },
       {
@@ -30640,7 +30620,7 @@
         "display": "借用已有模型解決新問題的方法"
       },
       {
-        "original": "遞歸神經網絡（RNNs）",
+        "original": "遞歸神經網絡",
         "display": "處理序列資料的神經網絡"
       },
       {
@@ -30846,7 +30826,7 @@
         "display": "計算錢的時間價值"
       },
       {
-        "original": "淨現值（內部回報率）",
+        "original": "淨現值",
         "display": "計算投資價值的方法"
       },
       {
@@ -30858,7 +30838,7 @@
         "display": "分散投資降低風險的方法"
       },
       {
-        "original": "資本資產定價模型（CAPM）",
+        "original": "資本資產定價模型",
         "display": "計算資產預期報酬的模型"
       },
       {
@@ -31088,7 +31068,7 @@
         "display": "投資風險與回報關係"
       },
       {
-        "original": "資本資產定價模型（CAPM）",
+        "original": "資本資產定價模型",
         "display": "計算風險與報酬模型"
       },
       {
@@ -31834,10 +31814,6 @@
         "display": "情緒的表現與影響"
       },
       {
-        "original": "情緒",
-        "display": "情緒的表現與影響"
-      },
-      {
         "original": "人格",
         "display": "個人性格特徵"
       },
@@ -32503,7 +32479,7 @@
   "IM7082": {
     "simplified_concepts": [
       {
-        "original": "類神經網絡",
+        "original": "類神經網路",
         "display": "模仿人腦運算的模型"
       },
       {
@@ -32748,7 +32724,7 @@
         "display": "雲端資料處理"
       },
       {
-        "original": "網路模型",
+        "original": "網絡模型",
         "display": "網路層次架構"
       },
       {
@@ -33148,7 +33124,7 @@
         "display": "電腦硬體結構組成"
       },
       {
-        "original": "電腦網路",
+        "original": "電腦網絡",
         "display": "電腦之間連接通訊的技術"
       },
       {
@@ -34918,7 +34894,7 @@
         "display": "在資料來源附近處理資料的技術"
       },
       {
-        "original": "物聯網（IoT）",
+        "original": "物聯網",
         "display": "連接各種裝置的網路"
       }
     ],
@@ -36152,7 +36128,7 @@
         "display": "行動裝置邊緣資料處理技術"
       },
       {
-        "original": "工業物聯網（IIoT）",
+        "original": "工業物聯網",
         "display": "工業設備連網監控系統"
       },
       {
@@ -36270,7 +36246,7 @@
         "display": "多層神經網路模型"
       },
       {
-        "original": "卷積神經網路",
+        "original": "卷積神經網絡",
         "display": "辨識影像的AI模型"
       },
       {
@@ -36600,7 +36576,7 @@
         "display": "行動裝置邊緣資料處理"
       },
       {
-        "original": "工業物聯網（IIoT）",
+        "original": "工業物聯網",
         "display": "工業設備連網監控技術"
       },
       {
@@ -37597,7 +37573,7 @@
         "display": "設計過濾特定頻率的電路"
       },
       {
-        "original": "Ｚ-轉換",
+        "original": "Z轉換",
         "display": "離散訊號的數學轉換工具"
       },
       {
@@ -37810,7 +37786,7 @@
         "display": "產生測試訊號的技術"
       },
       {
-        "original": "可測試性設計（DFT）",
+        "original": "可測試性設計",
         "display": "讓電路更容易測試的設計方法"
       },
       {
@@ -38250,19 +38226,19 @@
         "display": "電力系統比例計算方法"
       },
       {
-        "original": "对称分量",
+        "original": "對稱分量",
         "display": "分析電力系統對稱性的方法"
       },
       {
-        "original": "序列网络",
+        "original": "序列網絡",
         "display": "電力系統故障分析模型"
       },
       {
-        "original": "多导体多电路架空线路",
+        "original": "多導體多電路架空線路",
         "display": "多線路電力傳輸結構"
       },
       {
-        "original": "多导体电缆",
+        "original": "多導體電纜",
         "display": "多線傳輸電力的電纜"
       },
       {
@@ -38278,7 +38254,7 @@
         "display": "調整電流相位的裝置"
       },
       {
-        "original": "反应器",
+        "original": "反應器",
         "display": "儲存電能的元件"
       },
       {
@@ -38286,23 +38262,23 @@
         "display": "儲存電荷的元件"
       },
       {
-        "original": "交流旋转机械",
+        "original": "交流旋轉機械",
         "display": "交流電驅動的旋轉設備"
       },
       {
-        "original": "风力涡轮发电机",
+        "original": "風力渦輪發電機",
         "display": "利用風力發電的裝置"
       },
       {
-        "original": "电脑计算",
+        "original": "電腦計算",
         "display": "使用電腦進行計算的方法"
       },
       {
-        "original": "电气参数",
+        "original": "電氣參數",
         "display": "電力系統基本特性"
       },
       {
-        "original": "交流与直流短路电流",
+        "original": "交流與直流短路電流",
         "display": "電路故障時的電流"
       },
       {
@@ -38609,7 +38585,7 @@
   "EE8094": {
     "simplified_concepts": [
       {
-        "original": "DNN（深度神經網絡）",
+        "original": "DNN",
         "display": "多層神經網絡模型"
       },
       {
@@ -38642,7 +38618,7 @@
   "EE8095": {
     "simplified_concepts": [
       {
-        "original": "能源系统",
+        "original": "能源系統",
         "display": "管理能源供應與使用的系統"
       },
       {
@@ -38816,12 +38792,8 @@
         "display": "雙極性晶體管，放大電流的元件"
       },
       {
-        "original": "pn接面",
+        "original": "p-n接面",
         "display": "半導體pn結"
-      },
-      {
-        "original": "金屬氧化物半導體場效電晶體",
-        "display": "MOSFET，控制電流的晶體管"
       },
       {
         "original": "雙極性接面電晶體",
@@ -39472,7 +39444,7 @@
   "GP3036": {
     "simplified_concepts": [
       {
-        "original": "第四纪地质",
+        "original": "第四紀地質",
         "display": "研究最近地質時期的巖層與環境變化"
       },
       {
@@ -39480,7 +39452,7 @@
         "display": "因人為活動導致氣溫上升的現象"
       },
       {
-        "original": "气候系统",
+        "original": "氣候系統",
         "display": "影響氣候的各個自然系統"
       },
       {
@@ -39488,7 +39460,7 @@
         "display": "地球吸收與釋放熱能的平衡"
       },
       {
-        "original": "古气候地質记录",
+        "original": "古氣候地質記錄",
         "display": "研究過去氣候的巖層與沉積物證據"
       },
       {
@@ -39500,7 +39472,7 @@
         "display": "岩石受風化分解的過程"
       },
       {
-        "original": "关键带",
+        "original": "關鍵帶",
         "display": "地表與大氣交互作用的關鍵區域"
       },
       {
@@ -39512,7 +39484,7 @@
         "display": "自然環境引發的災害事件"
       },
       {
-        "original": "海岸地形学",
+        "original": "海岸地形學",
         "display": "研究海岸地型形成的科學"
       },
       {
@@ -40095,10 +40067,6 @@
       {
         "original": "沉積物輸運",
         "display": "泥沙被水流搬運的過程"
-      },
-      {
-        "original": "海洋環流",
-        "display": "海水大規模循環流動"
       },
       {
         "original": "風生成的海洋波",
@@ -40966,7 +40934,7 @@
         "display": "預防、準備、應變、復原四階段"
       },
       {
-        "original": "物聯網（IoT）",
+        "original": "物聯網",
         "display": "連結設備的網路技術"
       },
       {
@@ -41838,7 +41806,7 @@
         "display": "用多層神經網絡學習數據特徵"
       },
       {
-        "original": "卷積神經網路",
+        "original": "卷積神經網絡",
         "display": "用濾波器分析圖像特徵的神經網絡"
       },
       {
@@ -41850,7 +41818,7 @@
         "display": "用電腦分析圖像的技術"
       },
       {
-        "original": "生成對抗網路",
+        "original": "生成對抗網絡",
         "display": "生成與判別網絡對抗學習的模型"
       }
     ],
@@ -41991,11 +41959,11 @@
         "display": "數據插值方法"
       },
       {
-        "original": "3D-Var",
+        "original": "3DVAR",
         "display": "三維數據同化"
       },
       {
-        "original": "4D-Var",
+        "original": "4DVAR",
         "display": "四維數據同化"
       },
       {
@@ -43485,7 +43453,7 @@
         "display": "接收電磁波的裝置"
       },
       {
-        "original": "合成孔徑雷達（SAR）",
+        "original": "合成孔徑雷達",
         "display": "合成影像提升解析度"
       },
       {
@@ -45011,7 +44979,7 @@
   "CH7009": {
     "simplified_concepts": [
       {
-        "original": "X射線衍射（XRD）",
+        "original": "X射線衍射",
         "display": "用X光分析材料晶體結構"
       },
       {
@@ -45035,7 +45003,7 @@
         "display": "測量導電與發光性質"
       },
       {
-        "original": "熱分析（差示掃描量熱法，熱重分析）",
+        "original": "熱分析",
         "display": "分析材料受熱變化"
       },
       {
@@ -46799,10 +46767,6 @@
       {
         "original": "變形理論",
         "display": "描述物體變形的基礎方法"
-      },
-      {
-        "original": "平衡方程",
-        "display": "力與力矩平衡計算"
       },
       {
         "original": "軸力之樑柱",
@@ -49080,16 +49044,8 @@
         "display": "具有導電性的堅硬物質"
       },
       {
-        "original": "陶瓷材料",
-        "display": "高溫燒製的堅硬材料"
-      },
-      {
         "original": "高分子材料",
         "display": "由重複單元組成的長鏈物質"
-      },
-      {
-        "original": "複合材料",
-        "display": "結合不同材料的強化結構"
       },
       {
         "original": "材料物理性質",
@@ -50077,7 +50033,7 @@
         "display": "在矽晶圓上加絕緣層的半導體材料"
       },
       {
-        "original": "矽光子（silicon photonics）",
+        "original": "矽光子",
         "display": "用矽製造光學元件的技術"
       },
       {
@@ -50183,7 +50139,7 @@
         "display": "建築的3D數位雙胞胎"
       },
       {
-        "original": "物聯網（IoT）",
+        "original": "物聯網",
         "display": "讓物品聯網傳輸資料的技術"
       },
       {
@@ -50197,10 +50153,6 @@
       {
         "original": "障礙避讓演算法",
         "display": "讓機器避開障礙物的計算方法"
-      },
-      {
-        "original": "數位孿生",
-        "display": "建築的3D數位雙胞胎"
       },
       {
         "original": "使用案例",
@@ -50342,7 +50294,7 @@
         "display": "用概率分類文本的模型"
       },
       {
-        "original": "SVM（支援向量機）",
+        "original": "SVM",
         "display": "用邊界分類資料的機器學習方法"
       },
       {
@@ -51589,7 +51541,7 @@
         "display": "壓縮資料維度保留主要特徵"
       },
       {
-        "original": "t檢定（t-Test）",
+        "original": "t檢定",
         "display": "比較兩組資料平均值差異的統計方法"
       },
       {
@@ -51613,7 +51565,7 @@
         "display": "分段驗證模型準確性的方法"
       },
       {
-        "original": "CNN（卷積神經網路）",
+        "original": "CNN",
         "display": "識別圖片特徵的神經網路"
       },
       {
@@ -53479,7 +53431,7 @@
         "display": "法語中最常用的兩個動詞"
       },
       {
-        "original": "il y a, c’est, ce sont 結構",
+        "original": "il y a, c’est, ce sont結構",
         "display": "表示存在或身份的句型結構"
       },
       {
@@ -55508,10 +55460,6 @@
         "display": "非此即彼的隨機實驗"
       },
       {
-        "original": "變異數分析(ANOVA)",
-        "display": "多組資料差異分析法"
-      },
-      {
         "original": "統計估計",
         "display": "推測母體特性的方法"
       }
@@ -56535,7 +56483,7 @@
         "display": "分析物質表面組成的技術"
       },
       {
-        "original": "Ｘ-光繞射圖譜",
+        "original": "X光繞射圖譜",
         "display": "分析晶體結構的技術"
       },
       {
@@ -56742,10 +56690,6 @@
       {
         "original": "吸附行為",
         "display": "物質附著電極表面"
-      },
-      {
-        "original": "電催化反應",
-        "display": "電能加速化學反應"
       },
       {
         "original": "界面電化學實驗方法",
@@ -57802,7 +57746,7 @@
         "display": "全為卷積層的神經網路"
       },
       {
-        "original": "CNN（卷積神經網路）",
+        "original": "CNN",
         "display": "處理影像的神經網路"
       },
       {
@@ -59697,7 +59641,7 @@
         "display": "材料中電子能量階梯"
       },
       {
-        "original": "k·p 理論",
+        "original": "K.p理論",
         "display": "近似計算能帶結構的方法"
       },
       {
@@ -62065,11 +62009,11 @@
         "display": "資料交換的關鍵方法"
       },
       {
-        "original": "CNN（卷積神經網路）",
+        "original": "CNN",
         "display": "用於影像識別的人工智慧模型"
       },
       {
-        "original": "RNN（循環神經網路）",
+        "original": "RNN",
         "display": "處理序列資料的人工智慧模型"
       },
       {
@@ -62669,10 +62613,6 @@
         "display": "分支狀資料結構"
       },
       {
-        "original": "堆疊",
-        "display": "後進先出的資料結構"
-      },
-      {
         "original": "計算複雜度",
         "display": "衡量算法運算時間"
       },
@@ -62709,7 +62649,7 @@
         "display": "分群資料的算法"
       },
       {
-        "original": "NP-完備性",
+        "original": "NP完備性",
         "display": "難以解決的問題類"
       },
       {
@@ -62770,11 +62710,11 @@
         "display": "簡化數據複雜度的技術"
       },
       {
-        "original": "主成分分析（PCA）",
+        "original": "主成分分析",
         "display": "壓縮數據維度的方法"
       },
       {
-        "original": "線性判別分析（LDA）",
+        "original": "線性判別分析",
         "display": "用直線分類數據的技術"
       },
       {
@@ -64409,11 +64349,11 @@
         "display": "設計指令讓AI生成更好回答的方法"
       },
       {
-        "original": "檢索增強生成（RAG）",
+        "original": "檢索增強生成",
         "display": "結合資料搜尋與生成內容的技術"
       },
       {
-        "original": "智能代理（Agents）",
+        "original": "智能代理",
         "display": "能自主執行任務的AI程序"
       },
       {
@@ -64421,7 +64361,7 @@
         "display": "在雲端平臺架設與測試應用的技術"
       },
       {
-        "original": "大型語言模型（LLMs）",
+        "original": "大型語言模型",
         "display": "能處理大量文字的AI模型"
       }
     ],
@@ -65359,7 +65299,7 @@
         "display": "人們需要多少錢的理論"
       },
       {
-        "original": "IS-LM 模型",
+        "original": "IS-LM模型",
         "display": "分析經濟活動的模型"
       },
       {
@@ -65689,7 +65629,7 @@
         "display": "利率與匯率的關係理論"
       },
       {
-        "original": "資本資產定價模型（CAPM）",
+        "original": "資本資產定價模型",
         "display": "評估投資風險與報酬模型"
       },
       {
@@ -65758,7 +65698,7 @@
         "display": "不同期限債券利率的變化圖"
       },
       {
-        "original": "存續期間 (Duration)",
+        "original": "存續期間",
         "display": "債券價格對利率變動的敏感度"
       },
       {
@@ -66400,10 +66340,6 @@
       {
         "original": "油價定價政策",
         "display": "政府制定油價的規則"
-      },
-      {
-        "original": "氣候政策",
-        "display": "應對氣候變遷的政府措施"
       }
     ],
     "college": "management"
@@ -66866,7 +66802,7 @@
         "display": "影響貨幣需求的因素"
       },
       {
-        "original": "IS/LM模型",
+        "original": "IS-LM模型",
         "display": "經濟分析模型"
       },
       {
@@ -68558,7 +68494,7 @@
         "display": "可程式化網路架構"
       },
       {
-        "original": "虛擬私人網路",
+        "original": "虛擬私人網絡",
         "display": "加密遠端連線技術"
       },
       {
@@ -68623,7 +68559,7 @@
         "display": "神經網絡調整權重的機制"
       },
       {
-        "original": "卷積神經網路",
+        "original": "卷積神經網絡",
         "display": "CNN，辨識影像的 AI 模型"
       },
       {
@@ -68647,7 +68583,7 @@
         "display": "結合策略與評估的學習方法"
       },
       {
-        "original": "生成對抗網絡（GAN）",
+        "original": "生成對抗網絡",
         "display": "生成與判別對抗的 AI 模型"
       }
     ],
@@ -68894,10 +68830,6 @@
       {
         "original": "品牌權益",
         "display": "品牌帶來的價值"
-      },
-      {
-        "original": "品牌共創",
-        "display": "消費者與品牌共同設計"
       }
     ],
     "college": "eecs"
@@ -68955,10 +68887,6 @@
       {
         "original": "人工智慧在軟體開發管理中的角色",
         "display": "AI在專案管理的應用"
-      },
-      {
-        "original": "知識管理",
-        "display": "管理知識的方法"
       }
     ],
     "college": "eecs"
@@ -69477,7 +69405,7 @@
         "display": "組裝電腦的技術"
       },
       {
-        "original": "電腦網路",
+        "original": "電腦網絡",
         "display": "連接電腦的技術"
       },
       {
@@ -70056,7 +69984,7 @@
         "display": "發現資料間關聯的技術"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模擬人腦運算的模型"
       }
     ],
@@ -70407,7 +70335,7 @@
         "display": "優化決策價值的算法"
       },
       {
-        "original": "卷積神經網路",
+        "original": "卷積神經網絡",
         "display": "辨識影像的AI模型"
       },
       {
@@ -70435,7 +70363,7 @@
         "display": "高效學習策略的AI方法"
       },
       {
-        "original": "深度神經網路",
+        "original": "深度神經網絡",
         "display": "多層結構的AI模型"
       }
     ],
@@ -70534,7 +70462,7 @@
         "display": "壓縮空間的輕量模組"
       },
       {
-        "original": "檢索增強生成（RAG）",
+        "original": "檢索增強生成",
         "display": "結合資料搜尋的生成技術"
       },
       {
@@ -70688,7 +70616,7 @@
         "display": "擴展記憶體空間的技術"
       },
       {
-        "original": "輸入輸出 (I/O)",
+        "original": "輸入/輸出",
         "display": "資料輸入輸出的機制"
       },
       {
@@ -70932,7 +70860,7 @@
         "display": "無答案資料找規律"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模仿人腦結構的計算模型"
       },
       {
@@ -71171,10 +71099,6 @@
         "display": "系統硬體與軟體的結構規劃"
       },
       {
-        "original": "離散事件建模",
-        "display": "模擬事件發生順序的技術"
-      },
-      {
         "original": "高階合成與軟硬體整合驗證",
         "display": "自動生成並驗證系統設計"
       },
@@ -71266,7 +71190,7 @@
         "display": "壓縮資料維度的統計方法"
       },
       {
-        "original": "t檢定（t-Test）",
+        "original": "t檢定",
         "display": "比較兩組資料平均值的統計方法"
       },
       {
@@ -71302,7 +71226,7 @@
         "display": "生成影像的AI模型"
       },
       {
-        "original": "CNN（卷積神經網路）",
+        "original": "CNN",
         "display": "辨識影像的AI模型"
       },
       {
@@ -71333,10 +71257,6 @@
       {
         "original": "低軌道衛星",
         "display": "近地軌道通訊衛星"
-      },
-      {
-        "original": "非地面網絡",
-        "display": "非地面的通訊網路"
       },
       {
         "original": "非地面網絡",
@@ -71488,7 +71408,7 @@
         "display": "發光的電子元件"
       },
       {
-        "original": "只讀記憶體（ROM）",
+        "original": "只讀記憶體",
         "display": "儲存固定資料的記憶體"
       },
       {
@@ -71540,7 +71460,7 @@
         "display": "儲存暫存資料的記憶體"
       },
       {
-        "original": "隨機存取記憶體 (RAM)",
+        "original": "隨機存取記憶體",
         "display": "可讀寫的記憶體"
       },
       {
@@ -71794,7 +71714,7 @@
   "CO3002": {
     "simplified_concepts": [
       {
-        "original": "PCM（脈衝編碼調變）",
+        "original": "PCM",
         "display": "數位化聲音的技術"
       },
       {
@@ -72118,10 +72038,6 @@
       {
         "original": "開關",
         "display": "控制電路通斷的元件"
-      },
-      {
-        "original": "路由器",
-        "display": "導向資料傳輸的設備"
       }
     ],
     "college": "eecs"
@@ -72137,7 +72053,7 @@
         "display": "CNN，辨識影像的AI模型"
       },
       {
-        "original": "RNN（循環神經網路）",
+        "original": "RNN",
         "display": "處理序列資料的神經網路"
       },
       {
@@ -72275,7 +72191,7 @@
         "display": "轉換離散訊號的頻率分析法"
       },
       {
-        "original": "z-變換",
+        "original": "Z變換",
         "display": "分析離散系統的數學工具"
       },
       {
@@ -72426,7 +72342,7 @@
         "display": "處理大量資料的技術"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模仿人腦運算的模型"
       },
       {
@@ -72516,7 +72432,7 @@
         "display": "無線連接設備的技術"
       },
       {
-        "original": "無線區域網路",
+        "original": "無線區域網絡",
         "display": "無線局域網"
       },
       {
@@ -73307,7 +73223,7 @@
         "display": "碳排放權交易機制"
       },
       {
-        "original": "HBM（高頻寬記憶體）",
+        "original": "HBM",
         "display": "高傳輸速度的記憶體技術"
       }
     ],
@@ -73948,7 +73864,7 @@
   "EE5022": {
     "simplified_concepts": [
       {
-        "original": "PN接面",
+        "original": "p-n接面",
         "display": "半導體導電的介面結構"
       },
       {
@@ -74255,11 +74171,11 @@
         "display": "邏輯門電路"
       },
       {
-        "original": "RRAM（電阻式隨機存取記憶體）",
+        "original": "RRAM",
         "display": "用電阻變化的記憶體"
       },
       {
-        "original": "PCM（脈衝編碼調變）",
+        "original": "PCM",
         "display": "聲音轉數字的技術"
       },
       {
@@ -74630,10 +74546,6 @@
         "display": "匹配電路阻抗的元件"
       },
       {
-        "original": "微帶線",
-        "display": "微波電路的導線結構"
-      },
-      {
         "original": "通孔",
         "display": "連接不同層電路的孔"
       },
@@ -74648,10 +74560,6 @@
       {
         "original": "傳輸線等效電感與電容",
         "display": "傳輸線的電感電容模型"
-      },
-      {
-        "original": "階梯式阻抗低通濾波器",
-        "display": "過濾低頻訊號的電路"
       },
       {
         "original": "威爾金森功率分配器",
@@ -74684,10 +74592,6 @@
       {
         "original": "共面波導-槽線過渡",
         "display": "導線結構的轉換方式"
-      },
-      {
-        "original": "耦合線帶通濾波器",
-        "display": "過濾特定頻段的電路"
       },
       {
         "original": "耦合線帶通濾波器",
@@ -74818,10 +74722,6 @@
       {
         "original": "流程整合工程",
         "display": "整合製造流程工程"
-      },
-      {
-        "original": "IC封裝",
-        "display": "芯片封裝技術"
       },
       {
         "original": "封裝類型",
@@ -76461,7 +76361,7 @@
   "AG7113": {
     "simplified_concepts": [
       {
-        "original": "增強型地熱系統（EGS）",
+        "original": "增強型地熱系統",
         "display": "人工增強地熱能提取技術"
       }
     ],
@@ -76923,7 +76823,7 @@
         "display": "反映浮游生物多寡的指標"
       },
       {
-        "original": "海面鹽度（SSS）",
+        "original": "海面鹽度",
         "display": "海洋表面鹽分濃度"
       },
       {
@@ -78600,7 +78500,7 @@
         "display": "法官決定刑罰的規則"
       },
       {
-        "original": "鑑定(專家證人)",
+        "original": "鑑定",
         "display": "專家提供專業意見"
       },
       {
@@ -79741,7 +79641,7 @@
         "display": "材料受力變形後不回復的性質"
       },
       {
-        "original": "缺陷(位錯)",
+        "original": "缺陷",
         "display": "材料內部影響強度的微小瑕疵"
       },
       {
@@ -79831,7 +79731,7 @@
         "display": "反應達到平衡狀態的化學"
       },
       {
-        "original": "酸/鹼化學",
+        "original": "酸鹼化學",
         "display": "研究酸鹼性質與反應的化學"
       },
       {
@@ -82577,7 +82477,7 @@
         "display": "利用地熱加熱或冷卻的設備"
       },
       {
-        "original": "增強型地熱系統（EGS）",
+        "original": "增強型地熱系統",
         "display": "人工增強地熱能的系統"
       }
     ],
@@ -83463,11 +83363,11 @@
         "display": "靠近用戶的計算技術"
       },
       {
-        "original": "工業物聯網（IIoT）",
+        "original": "工業物聯網",
         "display": "工業設備聯網技術"
       },
       {
-        "original": "家庭能源管理系統（HEMS）",
+        "original": "家庭能源管理系統 (HEMS)",
         "display": "家庭用電監控系統"
       },
       {
@@ -84155,10 +84055,6 @@
       {
         "original": "狀態方程",
         "display": "描述物質狀態的關係式"
-      },
-      {
-        "original": "吸收",
-        "display": "物質吸收輻射的現象"
       },
       {
         "original": "光譜線",
@@ -85252,7 +85148,7 @@
         "display": "生成假影像的技術"
       },
       {
-        "original": "生成對抗網絡（GAN）",
+        "original": "生成對抗網絡",
         "display": "生成器和判別器競爭的神經網絡"
       },
       {
@@ -86119,10 +86015,6 @@
         "display": "分解複雜訊號為簡單成分"
       },
       {
-        "original": "希爾伯特-黃變換",
-        "display": "分析訊號頻率變化的方法"
-      },
-      {
         "original": "EEMD",
         "display": "更精準的訊號分解技術"
       },
@@ -86168,19 +86060,19 @@
         "display": "分析變數間關係的統計方法"
       },
       {
-        "original": "奇異值分解(SVD)",
+        "original": "奇異值分解",
         "display": "分解矩陣簡化數據處理"
       },
       {
-        "original": "主成分分析（PCA）",
+        "original": "主成分分析",
         "display": "壓縮數據特徵的降維技術"
       },
       {
-        "original": "獨立成分分析（ICA）",
+        "original": "獨立成分分析",
         "display": "分離數據中獨立信號成分"
       },
       {
-        "original": "經驗模態分解(EMD)",
+        "original": "經驗模態分解",
         "display": "分解複雜信號為不同頻率"
       },
       {
@@ -86856,7 +86748,7 @@
   "HR7007": {
     "simplified_concepts": [
       {
-        "original": "結構方程模型（SEM）",
+        "original": "結構方程模型",
         "display": "分析多變量關係的統計模型"
       },
       {
@@ -87456,7 +87348,7 @@
         "display": "錢的時間價值計算"
       },
       {
-        "original": "淨現值（內部回報率）",
+        "original": "淨現值",
         "display": "計算投資價值的方法"
       },
       {
@@ -87468,7 +87360,7 @@
         "display": "分散投資降低風險"
       },
       {
-        "original": "資本資產定價模型（CAPM）",
+        "original": "資本資產定價模型",
         "display": "評估投資風險的公式"
       },
       {
@@ -88385,7 +88277,7 @@
         "display": "每一層神經元都連接的深度網絡"
       },
       {
-        "original": "卷積神經網路（CNNs）",
+        "original": "卷積神經網絡",
         "display": "處理圖片的神經網絡"
       },
       {
@@ -88401,7 +88293,7 @@
         "display": "將文字轉為數字向量表示"
       },
       {
-        "original": "長短期記憶網絡（LSTM）",
+        "original": "長短期記憶網絡",
         "display": "處理長序列資料的神經網絡"
       },
       {
@@ -88527,7 +88419,7 @@
         "display": "用機率預測分類結果"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模仿人腦的計算模型"
       },
       {
@@ -88593,11 +88485,11 @@
         "display": "減少庫存按需生產的管理方法"
       },
       {
-        "original": "物料需求規劃（MRP）",
+        "original": "物料需求規劃",
         "display": "計算生產所需物料的計畫"
       },
       {
-        "original": "企業資源規劃（ERP）",
+        "original": "企業資源規劃",
         "display": "整合企業資源的管理系統"
       },
       {
@@ -88621,7 +88513,7 @@
         "display": "控制庫存方法"
       },
       {
-        "original": "供應鏈管理（SCM）",
+        "original": "供應鏈管理",
         "display": "管理原料到產品的流程"
       },
       {
@@ -88760,7 +88652,7 @@
   "IAA020": {
     "simplified_concepts": [
       {
-        "original": "經濟訂購量模型(EOQ)",
+        "original": "經濟訂購量模型",
         "display": "計算最佳訂貨量的數學模型"
       },
       {
@@ -88820,7 +88712,7 @@
         "display": "設計採購流程的規則"
       },
       {
-        "original": "外包（外判）",
+        "original": "外包",
         "display": "委託其他公司處理業務"
       },
       {
@@ -89024,7 +88916,7 @@
   "ACA003": {
     "simplified_concepts": [
       {
-        "original": "國際財務報導準則（複數）",
+        "original": "國際財務報導準則",
         "display": "全球通用的會計標準"
       },
       {
@@ -89066,7 +88958,7 @@
   "ACA118": {
     "simplified_concepts": [
       {
-        "original": "MRP-II（物料需求計劃 II）",
+        "original": "MRP II（物料需求計劃 II）",
         "display": "進階物料需求規劃系統"
       },
       {
@@ -89534,7 +89426,7 @@
         "display": "神經網絡中所有節點相連的結構"
       },
       {
-        "original": "卷積神經網路（CNNs）",
+        "original": "卷積神經網絡",
         "display": "處理圖像的神經網絡結構"
       },
       {
@@ -89554,7 +89446,7 @@
         "display": "簡化版的記憶型神經網絡"
       },
       {
-        "original": "注意⼒",
+        "original": "注意力",
         "display": "聚焦重要資訊的機制"
       },
       {
@@ -89583,7 +89475,7 @@
         "display": "現實世界疊加虛擬資訊"
       },
       {
-        "original": "虛擬實境（VR）",
+        "original": "虛擬實境",
         "display": "沉浸式虛擬體驗裝置"
       },
       {
@@ -89865,7 +89757,7 @@
         "display": "現實疊加虛擬影像"
       },
       {
-        "original": "虛擬實境（VR）",
+        "original": "虛擬實境",
         "display": "全虛擬沉浸體驗"
       },
       {
@@ -90004,7 +89896,7 @@
         "display": "企業對社會負責的行為"
       },
       {
-        "original": "資本資產定價模型（CAPM）",
+        "original": "資本資產定價模型",
         "display": "計算投資風險與報酬的模型"
       },
       {
@@ -90552,11 +90444,11 @@
         "display": "觀察團隊成員互動模式"
       },
       {
-        "original": "結構方程模型（SEM）",
+        "original": "結構方程模型",
         "display": "用數學模型分析變數關係"
       },
       {
-        "original": "社交網絡分析（SDA）",
+        "original": "社交網絡分析",
         "display": "分析人際關係網絡結構"
       }
     ],
@@ -91044,7 +90936,7 @@
         "display": "海水上昇流動"
       },
       {
-        "original": "海洋-颱風交互作用",
+        "original": "海洋颱風交互作用",
         "display": "颱風與海水影響"
       },
       {
@@ -91954,7 +91846,7 @@
   "AG7116": {
     "simplified_concepts": [
       {
-        "original": "增強型地熱系統（EGS）",
+        "original": "增強型地熱系統",
         "display": "人工增強的地熱能開發技術"
       }
     ],
@@ -94516,7 +94408,7 @@
         "display": "加速化學反應的物質"
       },
       {
-        "original": "燃料電池（PEM、SOFC）",
+        "original": "燃料電池",
         "display": "將氫氣轉換為電能的裝置"
       },
       {
@@ -94524,7 +94416,7 @@
         "display": "尺寸極小的特殊材料"
       },
       {
-        "original": "金屬有機框架材料（MOFs）",
+        "original": "金屬有機框架材料",
         "display": "結構特殊的多孔材料"
       },
       {
@@ -95768,7 +95660,7 @@
         "display": "個人身份的建立"
       },
       {
-        "original": "性／別",
+        "original": "性別",
         "display": "性別差異與社會角色"
       },
       {
@@ -96706,12 +96598,8 @@
         "display": "研究現象本質的哲學方法"
       },
       {
-        "original": "身體（chair）",
+        "original": "身體",
         "display": "指物理存在的身體"
-      },
-      {
-        "original": "身體（corps）",
-        "display": "指整體存在的身體"
       },
       {
         "original": "交錯（chiasma）",
@@ -97634,7 +97522,7 @@
         "display": "分析文本主題的機器學習模型"
       },
       {
-        "original": "SVM（支援向量機）",
+        "original": "SVM",
         "display": "用來分類數據的機器學習方法"
       },
       {
@@ -97806,7 +97694,7 @@
         "display": "導電性介於導體與絕緣體的材料"
       },
       {
-        "original": "P-n接面",
+        "original": "p-n接面",
         "display": "半導體的PN結構"
       },
       {
@@ -97961,7 +97849,7 @@
   "SA5008": {
     "simplified_concepts": [
       {
-        "original": "碳捕捉與封存（CCS）",
+        "original": "碳捕捉與封存",
         "display": "捕捉並儲存二氧化碳的技術"
       },
       {
@@ -98771,7 +98659,7 @@
         "display": "物質附著在電極表面的過程"
       },
       {
-        "original": "線性掃描伏安法（LSV）",
+        "original": "線性掃描伏安法",
         "display": "測量電流隨電壓變化的方法"
       },
       {
@@ -98892,7 +98780,7 @@
         "display": "用電分解水製造氫氣"
       },
       {
-        "original": "蒸汽甲烷重整（SMR）",
+        "original": "蒸汽甲烷重整",
         "display": "用蒸汽和甲烷製造氫氣的方法"
       },
       {
@@ -99047,7 +98935,7 @@
         "display": "根據人工智慧技術調整教學內容"
       },
       {
-        "original": "雙語教學（EMI）",
+        "original": "雙語教學",
         "display": "用英語授課的教學方式"
       }
     ],
@@ -99403,7 +99291,7 @@
   "ST6023": {
     "simplified_concepts": [
       {
-        "original": "實驗設計（DoE）",
+        "original": "實驗設計",
         "display": "規劃實驗步驟的方法"
       },
       {
@@ -99829,7 +99717,7 @@
         "display": "檢驗分類資料差異的統計方法"
       },
       {
-        "original": "變異數分析（ANOVA）",
+        "original": "變異數分析",
         "display": "比較多組資料差異的統計方法"
       },
       {
@@ -101348,7 +101236,7 @@
         "display": "預測事件發生機率的統計模型"
       },
       {
-        "original": "SVM（支援向量機）",
+        "original": "SVM",
         "display": "用邊界區分不同類別的分類方法"
       },
       {
@@ -101983,7 +101871,7 @@
         "display": "將資料分群的演算法"
       },
       {
-        "original": "KNN（K近鄰算法）",
+        "original": "KNN",
         "display": "用相似資料預測結果的演算法"
       },
       {
@@ -102003,7 +101891,7 @@
         "display": "分析多變數關係的統計方法"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模仿人腦神經元的計算結構"
       },
       {
@@ -103479,7 +103367,7 @@
         "display": "管理庫存量以減低成本"
       },
       {
-        "original": "物料需求計畫（MRP）",
+        "original": "物料需求計畫",
         "display": "計算生產所需物料的系統"
       },
       {
@@ -103487,7 +103375,7 @@
         "display": "減少浪費的生產方式"
       },
       {
-        "original": "準時制（JIT）",
+        "original": "準時制",
         "display": "按需生產以減少庫存"
       },
       {
@@ -103503,7 +103391,7 @@
         "display": "整合電腦與生產流程的系統"
       },
       {
-        "original": "供應鏈管理（SCM）",
+        "original": "供應鏈管理",
         "display": "管理從原料到產品的流程"
       },
       {
@@ -103511,7 +103399,7 @@
         "display": "規劃運輸路徑以節省成本"
       },
       {
-        "original": "全面品質管理（TQM）",
+        "original": "全面品質管理",
         "display": "全員參與的品質管理方法"
       },
       {
@@ -103620,7 +103508,7 @@
         "display": "安排生產流程與管理的技術"
       },
       {
-        "original": "物料需求計畫（MRP）",
+        "original": "物料需求計畫",
         "display": "計算生產所需物料的系統"
       },
       {
@@ -103628,7 +103516,7 @@
         "display": "減少浪費的生產方式"
       },
       {
-        "original": "準時制（JIT）",
+        "original": "準時制",
         "display": "按需生產的管理方法"
       },
       {
@@ -103640,7 +103528,7 @@
         "display": "用機器自動完成工作的技術"
       },
       {
-        "original": "供應鏈管理（SCM）",
+        "original": "供應鏈管理",
         "display": "管理產品從原料到客戶的流程"
       },
       {
@@ -103648,7 +103536,7 @@
         "display": "規劃運輸路線的技術"
       },
       {
-        "original": "全面品質管理（TQM）",
+        "original": "全面品質管理",
         "display": "全面提升產品品質的管理方法"
       },
       {
@@ -103955,7 +103843,7 @@
         "display": "判斷是或否的預測模型"
       },
       {
-        "original": "神經網絡",
+        "original": "神經網路",
         "display": "模擬人腦處理資料的模型"
       },
       {
@@ -104252,7 +104140,7 @@
   "ACA108": {
     "simplified_concepts": [
       {
-        "original": "橫斷面資料（Cross-sectional Data）",
+        "original": "橫斷面資料",
         "display": "同一時間不同對象的資料"
       },
       {
@@ -104795,7 +104683,7 @@
         "display": "規範個人間法律關係的基礎法律"
       },
       {
-        "original": "公司法学",
+        "original": "公司法學",
         "display": "企業組織與股東權利的法律規範"
       },
       {

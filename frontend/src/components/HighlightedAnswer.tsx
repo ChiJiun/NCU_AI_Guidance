@@ -4,6 +4,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import type { CourseCard } from '../types';
+import glossaryData from '../data/glossary.json';
+import GlossaryTerm from './GlossaryTerm';
+import { createMatcher, injectGlossary } from './glossary';
+
+const GLOSSARY_MATCHER = createMatcher(glossaryData as Record<string, string>);
 
 interface HighlightedAnswerProps {
   text:          string;
@@ -49,10 +54,11 @@ export default function HighlightedAnswer({
     ? text.slice(0, text.indexOf('<course_list>')).trimEnd()
     : text;
 
-  const processedText = useMemo(
-    () => (courseCards.length ? injectCourseMarkers(clean, courseCards) : clean),
-    [clean, courseCards],
-  );
+  // 先標課名，再標術語（術語比對會略過課名按鈕、程式碼與連結）
+  const { text: processedText, hits: glossaryHits } = useMemo(() => {
+    const withCourses = courseCards.length ? injectCourseMarkers(clean, courseCards) : clean;
+    return injectGlossary(withCourses, GLOSSARY_MATCHER);
+  }, [clean, courseCards]);
 
   return (
     <div className="markdown-answer text-sm leading-relaxed">
@@ -75,6 +81,12 @@ export default function HighlightedAnswer({
                 {props.children}
               </button>
             );
+          },
+          // 名詞白話提示（詞庫術語）
+          dfn({ node: _n, ...props }) {
+            const hit = glossaryHits[parseInt((props as Record<string, unknown>)['data-gi'] as string ?? '-1', 10)];
+            if (!hit) return <>{props.children}</>;
+            return <GlossaryTerm term={hit.surface} gloss={hit.gloss}>{props.children}</GlossaryTerm>;
           },
           // Markdown 元素樣式
           p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,

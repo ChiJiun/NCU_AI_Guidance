@@ -6553,7 +6553,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       }
     ]
@@ -6979,7 +6979,7 @@
   "ME5083": {
     "domain_tags": [
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "high"
       },
       {
@@ -7010,7 +7010,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       }
     ]
@@ -7296,7 +7296,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       }
     ]
@@ -25805,7 +25805,7 @@
         "relevance": "high"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       },
       {
@@ -25929,7 +25929,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       }
     ]
@@ -26195,7 +26195,7 @@
   "ME4096": {
     "domain_tags": [
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "high"
       },
       {
@@ -26351,10 +26351,6 @@
         "relevance": "high"
       },
       {
-        "field": "微機電系統(MEMS)",
-        "relevance": "high"
-      },
-      {
         "field": "微結構加工",
         "relevance": "high"
       },
@@ -26411,7 +26407,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       }
     ]
@@ -26587,7 +26583,7 @@
         "relevance": "medium"
       },
       {
-        "field": "微機電系統(MEMS)",
+        "field": "微機電系統",
         "relevance": "medium"
       },
       {
@@ -40247,7 +40243,7 @@
         "relevance": "medium"
       },
       {
-        "field": "客家社會企業與社會網路分析",
+        "field": "客家社會企業與社會網絡分析",
         "relevance": "low"
       },
       {
@@ -40610,7 +40606,7 @@
         "relevance": "medium"
       },
       {
-        "field": "客家社會企業與社會網路分析",
+        "field": "客家社會企業與社會網絡分析",
         "relevance": "medium"
       },
       {
@@ -42057,7 +42053,7 @@
   "EN6041": {
     "domain_tags": [
       {
-        "field": "環境（地質）化學",
+        "field": "環境化學",
         "relevance": "high"
       },
       {
@@ -42089,7 +42085,7 @@
         "relevance": "high"
       },
       {
-        "field": "環境（地質）化學",
+        "field": "環境化學",
         "relevance": "high"
       },
       {
@@ -42428,7 +42424,7 @@
         "relevance": "medium"
       },
       {
-        "field": "環境（地質）化學",
+        "field": "環境化學",
         "relevance": "medium"
       },
       {
@@ -46215,7 +46211,7 @@
         "relevance": "high"
       },
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "medium"
       }
     ]
@@ -46231,7 +46227,7 @@
         "relevance": "medium"
       },
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "medium"
       }
     ]
@@ -46320,7 +46316,7 @@
   "IA7054": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       }
     ]
@@ -46328,7 +46324,7 @@
   "IA7059": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       }
     ]
@@ -46336,7 +46332,7 @@
   "IA7060": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       }
     ]
@@ -49017,7 +49013,7 @@
         "relevance": "medium"
       },
       {
-        "field": "客家社會企業與社會網路分析",
+        "field": "客家社會企業與社會網絡分析",
         "relevance": "low"
       }
     ]
@@ -49141,7 +49137,7 @@
   "HH6091": {
     "domain_tags": [
       {
-        "field": "客家社會企業與社會網路分析",
+        "field": "客家社會企業與社會網絡分析",
         "relevance": "high"
       },
       {
@@ -50136,7 +50132,7 @@
         "relevance": "high"
       },
       {
-        "field": "環境（地質）化學",
+        "field": "環境化學",
         "relevance": "high"
       },
       {
@@ -50380,7 +50376,7 @@
         "relevance": "medium"
       },
       {
-        "field": "環境（地質）化學",
+        "field": "環境化學",
         "relevance": "medium"
       },
       {
@@ -54017,7 +54013,7 @@
         "relevance": "medium"
       },
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "low"
       }
     ]
@@ -54045,7 +54041,7 @@
         "relevance": "medium"
       },
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "low"
       }
     ]
@@ -54084,7 +54080,7 @@
         "relevance": "medium"
       },
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "medium"
       }
     ]
@@ -54092,7 +54088,7 @@
   "IA7056": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       },
       {
@@ -54104,7 +54100,7 @@
   "IA7057": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       }
     ]
@@ -54143,7 +54139,7 @@
   "IAA027": {
     "domain_tags": [
       {
-        "field": "人工智慧 (Artificial Intelligence)",
+        "field": "人工智慧",
         "relevance": "high"
       },
       {

@@ -10,11 +10,11 @@
 執行還原：
   python scripts/qdrant/restore_to_docker.py
 """
-import sys, time, requests
+import os, sys, time, requests
 from pathlib import Path
 
 ROOT         = Path(__file__).parent.parent.parent
-SNAPSHOT_DIR = ROOT / "data" / "processed" / "qdrant_snapshots"
+SNAPSHOT_DIR = Path(os.environ.get("QDRANT_SNAPSHOT_DIR") or ROOT / "data" / "processed" / "qdrant_snapshots")
 LOCAL_URL    = "http://localhost:6333"
 
 # 若有指定 collection 名稱則只還原那幾個，否則還原全部

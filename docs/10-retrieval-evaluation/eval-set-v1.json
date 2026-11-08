@@ -3,7 +3,7 @@
     "name": "NCU AI Discovery System 評測集",
     "version": "v1",
     "date": "2026-11-07",
-    "total": 90,
+    "total": 100,
     "language": "高中生口吻；保留學生原句，不替學生改寫成專業詞彙",
     "tools_enabled": [
       "search_courses",
@@ -73,7 +73,7 @@
           "search_courses"
         ],
         "min_calls": {},
-        "allow_no_tool": false,
+        "allow_no_tool": true,
         "multi_tool": false
       },
       "checks": [
@@ -653,6 +653,36 @@
       ],
       "repeat3": false,
       "origin": "hs60:B10"
+    },
+    {
+      "id": "B11",
+      "group": "B",
+      "question": "我學過一點法文，也喜歡看歐洲的電影和文化，中央大學的法文系大學會學什麼？",
+      "intent": [
+        "認識系所",
+        "文組"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "get_dept_overview"
+        ],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "把語言訓練和文化文學的課分開說明",
+        "不編造留學、就業或出國交換的說法"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "hallucinated_department",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
     },
     {
       "id": "C01",
@@ -1560,6 +1590,39 @@
       "origin": "hs60:E10"
     },
     {
+      "id": "E11",
+      "group": "E",
+      "question": "我還沒決定要讀哪個系，聽說可以先進「學院學士班」，那是什麼？適合我這種還沒想好的人嗎？",
+      "intent": [
+        "學制",
+        "探索"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "get_dept_overview",
+          "search_courses"
+        ],
+        "min_calls": {},
+        "allow_no_tool": true,
+        "multi_tool": false
+      },
+      "checks": [
+        "資料有的才說明，沒有的不猜",
+        "不確定是哪個學院時用口語追問或列出有的學院",
+        "不承諾可以轉系或保證結果"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_department",
+        "missed_clarification",
+        "premature_single_recommendation",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
+    },
+    {
       "id": "F01",
       "group": "F",
       "question": "哪一個科系畢業後薪水一定最高？",
@@ -1864,6 +1927,38 @@
       "origin": "hs60:F10"
     },
     {
+      "id": "F11",
+      "group": "F",
+      "question": "我對會計和財務報表有興趣，中央有會計系嗎？沒有的話可以修到哪些相關的課？",
+      "intent": [
+        "查無系所",
+        "商管"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "search_courses",
+          "get_dept_overview"
+        ],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "明說中大沒有會計系",
+        "相關課要註明是企管、財金或資管等系開的",
+        "不斷言能不能考會計師或找到工作"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_department",
+        "hallucinated_course",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
+    },
+    {
       "id": "G01",
       "group": "G",
       "question": "我想讀資工系，要怎麼樣才能畢業？總共要修幾學分？",
@@ -2086,7 +2181,7 @@
     {
       "id": "G09",
       "group": "G",
-      "question": "我是外系的學生，可以修機率與統計嗎？要先修什麼？",
+      "question": "我不是那個系的學生，想去修機率與統計可以嗎？要先學什麼才跟得上？",
       "intent": [
         "查詢"
       ],
@@ -2263,6 +2358,36 @@
       ],
       "repeat3": false,
       "origin": "new"
+    },
+    {
+      "id": "H05",
+      "group": "H",
+      "question": "有沒有老師是做影像處理的？挑一位告訴我他在研究什麼、開了哪些課。",
+      "intent": [
+        "老師",
+        "研究"
+      ],
+      "tools": {
+        "all": [
+          "search_teachers",
+          "get_teacher_info"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": true
+      },
+      "checks": [
+        "老師姓名來自第一步回傳，不自己編",
+        "研究與課程有依據"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
     },
     {
       "id": "I01",
@@ -2496,6 +2621,181 @@
       "origin": "new"
     },
     {
+      "id": "I09",
+      "group": "I",
+      "question": "有沒有跟「資料結構」內容很像的課？我想知道不同系開的差在哪裡。",
+      "intent": [
+        "相似課",
+        "比較"
+      ],
+      "tools": {
+        "all": [
+          "find_similar_courses"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "只列工具回傳的相似課",
+        "不評價哪門比較簡單"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
+      "id": "I10",
+      "group": "I",
+      "question": "「演算法」這門課到底在學什麼？別的系有沒有教得很像的課？",
+      "intent": [
+        "課程內容",
+        "相似課"
+      ],
+      "tools": {
+        "all": [
+          "get_course_knowledge_map"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "說明課程涵蓋的概念與用到的工具，用白話解釋",
+        "相似課來自工具回傳，並註明是哪個系開的"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
+      "id": "I11",
+      "group": "I",
+      "question": "我想知道「自然語言處理」在中大要怎麼從基礎一路學到進階，有哪些課、哪些系？",
+      "intent": [
+        "學習路徑",
+        "探索"
+      ],
+      "tools": {
+        "all": [
+          "ppr_explore"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "分基礎與進階說明",
+        "課程與系所都來自工具回傳"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "hallucinated_department",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
+      "id": "I12",
+      "group": "I",
+      "question": "「演算法」除了資工系，還會跟哪些領域或概念有關？",
+      "intent": [
+        "概念延伸"
+      ],
+      "tools": {
+        "all": [
+          "explore_concept_neighborhood"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "只說工具回傳的相關概念",
+        "用白話解釋每個關聯"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
+      "id": "I13",
+      "group": "I",
+      "question": "我對「資料視覺化」有興趣，有哪些課和系所會碰到？它們還連到哪些概念？",
+      "intent": [
+        "探索",
+        "概念延伸"
+      ],
+      "tools": {
+        "all": [
+          "ppr_explore"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "課程與系所來自工具回傳",
+        "最後給一個可接續的方向"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "hallucinated_department",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
+      "id": "I14",
+      "group": "I",
+      "question": "「機器學習」前後還有哪些相關概念，是我可以先認識的？",
+      "intent": [
+        "概念延伸",
+        "先修"
+      ],
+      "tools": {
+        "all": [
+          "explore_concept_neighborhood"
+        ],
+        "any": [],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "概念來自工具回傳",
+        "新名詞有白話解釋"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "overwhelming_list"
+      ],
+      "repeat3": false,
+      "origin": "new:tool-coverage"
+    },
+    {
       "id": "J01",
       "group": "J",
       "question": "大氣系的必修課有哪些？同一門課有分好幾個班嗎？",
@@ -2525,7 +2825,7 @@
     {
       "id": "J02",
       "group": "J",
-      "question": "深度學習概論這門課有什麼先修條件？",
+      "question": "深度學習概論這門課，要先會什麼才能修？",
       "intent": [
         "查詢",
         "邊界"

@@ -206,11 +206,14 @@ def ask_stream(base_url: str, question: str) -> dict:
             elif t == "done":
                 done_data = data
 
-        answer = "".join(answer_parts)
+        streamed = "".join(answer_parts)
+        # 前端在 done 時會用 final_answer 取代串流文字，所以評測以使用者最後看到的為準
+        answer = done_data.get("final_answer") or streamed
         trace_calls = done_data.get("debug_trace", {}).get("toolCalls", [])
 
         return {
             "answer":            answer,
+            "answer_streamed":   streamed,
             "tools_used":        done_data.get("tools_used", []),
             "course_cards":      done_data.get("course_cards", []),
             "course_pool_count": done_data.get("course_pool_count", 0),
@@ -241,6 +244,7 @@ def run_tests(base_url: str, questions: list[tuple[str, str]]) -> list[dict]:
             "category":      category,
             "question":      q,
             "answer":        resp.get("answer", ""),
+            "answer_streamed": resp.get("answer_streamed", ""),
             "tools_used":    resp.get("tools_used", []),
             "tool_calls":    resp.get("tool_calls", []),
             "course_cards":  resp.get("course_cards", []),

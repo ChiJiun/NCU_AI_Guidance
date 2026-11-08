@@ -67,6 +67,7 @@ class SystemPromptTests(unittest.TestCase):
         # 回歸：模型曾把「二元搜尋樹」「C++」這類概念與技術也用 <course> 包起來
         self.assertIn("概念」與「技術」", self.prompt)
         self.assertIn("不是課程", self.prompt)
+        self.assertIn("老師姓名、系所名稱、學分學程名稱同樣不是課程", self.prompt)
 
     def test_explore_and_clarify_rules_do_not_overlap(self):
         # 「探索」與「先追問」兩條規則曾同時適用於「我不知道喜歡什麼」，導致模型把兩種回答都寫出來

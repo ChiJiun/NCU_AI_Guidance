@@ -14,6 +14,7 @@ Azure OpenAI GPT-4o 呼叫 + LangSmith 監控。
 
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from typing import Optional
@@ -76,6 +77,7 @@ SYSTEM_PROMPT = """你是「中央大學選課助理」，協助高中生、大�
    ⚠️ **`<course>` 標籤只能包住「課程名稱」，絕對不可用來包住系所名稱、學院名稱或其他非課程的詞**。
    課程裡涵蓋的「概念」與「技術」（例如二元搜尋樹、動態規劃、NP 完備性、Python、C++）不是課程，
    一律用純文字，不加標籤；只有課表上真的存在、且工具回傳過的課名才加。
+   老師姓名、系所名稱、學分學程名稱同樣不是課程，不加標籤。
       課名必須與工具回傳的原始名稱「逐字相同」，不得縮寫、改寫或翻譯。
       若不確定課名是否正確，**不要加標籤**，寧可不標也不要標錯。
       標籤只用於工具實際回傳過的課程，不得自行推測或補充工具未回傳的課程。
@@ -652,6 +654,22 @@ def _verify_course_list(question: str, answer: str, course_pool: dict) -> list[d
     return result
 
 
+def _collapse_repeated_answer(text: str) -> str:
+    """模型偶爾會把整篇回答原樣寫兩遍（評測 100 題中約 3–4 題）；若整篇是同一組段落重複 2 次以上，只留一份。
+
+    只處理「整篇重複」。同一門課在不同小節各列一次這類正常內容不受影響。
+    """
+    paras = [p for p in re.split(r"\n\s*\n", text.strip()) if p.strip()]
+    norm = [" ".join(p.split()) for p in paras]
+    n = len(norm)
+    if n < 2 or len(text.strip()) < 30:
+        return text
+    for size in range(1, n // 2 + 1):
+        if n % size == 0 and norm == norm[:size] * (n // size):
+            return "\n\n".join(paras[:size])
+    return text
+
+
 def _extract_courses_from_tags(answer: str, course_pool: dict) -> tuple[list[dict], str]:
     """從回答中的 <course>課名（系所）</course> 標籤提取課程，exact + fuzzy match pool。
 
@@ -663,7 +681,6 @@ def _extract_courses_from_tags(answer: str, course_pool: dict) -> tuple[list[dic
     fuzzy match 成功時，同步修正 answer text 裡的錯誤課名，確保 <course> tag 與 card 名稱一致。
     回傳 (course_cards, corrected_answer)。
     """
-    import re
     from difflib import SequenceMatcher
 
     # 支援 <course>課名</course> / <course>課名（系所）</course> / <course>課名（N學分）</course>
@@ -754,7 +771,7 @@ def _parse_courses_from_str(tool_name: str, text: str) -> list[dict]:
             if name:
                 courses.append({"name": name, "dept": dept, "credits": 0, "type": "", "code": "", "teacher": ""})
 
-    elif tool_name in ("find_similar_courses", "get_course_knowledge_map"):
+    elif tool_name in ("find_similar_courses", "get_course_knowledge_map", "explore_concept_neighborhood"):
         if tool_name == "get_course_knowledge_map":
             # 第一行是被查詢的課本身：【演算法】（生醫科學與工程學系，3學分）；不是清單行，要另外解析
             hm = re.match(r'\s*【(.+?)】（([^，）]+)(?:，(\d+)學分)?）', text)
@@ -774,11 +791,13 @@ def _parse_courses_from_str(tool_name: str, text: str) -> list[dict]:
                         "type": "", "code": "", "teacher": "",
                     })
         # - 深度學習程式設計（通訊工程學系，3學分） [共享概念：8 個]
-        for m in re.finditer(r'-\s*(.+?)（([^，）]+)(?:，(\d+)學分)?）', text):
+        # 學分前可能有空格（「3 學分」，概念鄰域工具的寫法）
+        for m in re.finditer(r'-\s*(.+?)（([^，）]+)(?:，\s*(\d+)\s*學分)?）', text):
             name = m.group(1).strip()
             dept = m.group(2).strip()
             credits = int(m.group(3)) if m.group(3) else 0
-            if name and not name.startswith('[') and len(name) >= 2:
+            # 已停開的課不放進卡片（工具回傳會在課名後加 [已停開]）
+            if name and not name.startswith('[') and '[已停開]' not in name and len(name) >= 2:
                 courses.append({"name": name, "dept": dept, "credits": credits, "type": "", "code": "", "teacher": ""})
 
     elif tool_name == "get_depts_by_tech":
@@ -837,7 +856,13 @@ def _collect_course_pool(tool_name: str, result, course_pool: dict) -> None:
                     "type":    "必修",
                     "teacher": "",
                 }
-    elif tool_name in ("ppr_explore", "find_similar_courses",
+        # 選修課範例（各領域最多 3 門）也會被回答點名，一併收進來
+        for dom in result.get("elective_by_domain", []):
+            for name in dom.get("examples", []):
+                if name and name not in course_pool:
+                    course_pool[name] = {"code": "", "name": name, "dept": dept,
+                                         "credits": 0, "type": "選修", "teacher": ""}
+    elif tool_name in ("ppr_explore", "find_similar_courses", "explore_concept_neighborhood",
                        "get_course_knowledge_map", "get_depts_by_tech") and isinstance(result, str):
         existing = {(v.get("name"), v.get("dept")) for v in course_pool.values()}
         for c in _parse_courses_from_str(tool_name, result):
@@ -950,7 +975,7 @@ def generate_with_tools(
         msg = response.choices[0].message
 
         if not msg.tool_calls:
-            answer = msg.content or ""
+            answer = _collapse_repeated_answer(msg.content or "")
             _enrich_course_cards(list(course_pool.values()))
             course_cards, answer = _extract_courses_from_tags(answer, course_pool)
             return {
@@ -1029,7 +1054,7 @@ def generate_with_tools(
     )
     total_input  += final.usage.prompt_tokens
     total_output += final.usage.completion_tokens
-    answer = final.choices[0].message.content or ""
+    answer = _collapse_repeated_answer(final.choices[0].message.content or "")
     _enrich_course_cards(list(course_pool.values()))
     course_cards, answer = _extract_courses_from_tags(answer, course_pool)
     return {
@@ -1144,7 +1169,7 @@ def stream_with_tools(
 
             # 沒有工具呼叫 → 最終回答完成
             if not tc_buffer:
-                final_answer = "".join(content_parts)
+                final_answer = _collapse_repeated_answer("".join(content_parts))
                 yield _evt({"type": "verify_start", "pool_size": len(course_pool)})
                 _enrich_course_cards(list(course_pool.values()))
                 course_cards, final_answer = _extract_courses_from_tags(final_answer, course_pool)
@@ -1313,7 +1338,7 @@ def stream_with_tools(
                 total_input  += chunk.usage.prompt_tokens or 0
                 total_output += chunk.usage.completion_tokens or 0
 
-        final_answer = "".join(content_parts)
+        final_answer = _collapse_repeated_answer("".join(content_parts))
         yield _evt({"type": "verify_start", "pool_size": len(course_pool)})
         _enrich_course_cards(list(course_pool.values()))
         course_cards, final_answer = _extract_courses_from_tags(final_answer, course_pool)

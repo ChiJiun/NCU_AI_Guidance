@@ -54,5 +54,52 @@ class KnowledgeMapPool(unittest.TestCase):
         self.assertEqual(names, ["應用數學"])
 
 
+class PoolCoverageForAllCourseTools(unittest.TestCase):
+    """回歸：評測 100 題中有 62 個真實課名被回答點名卻沒有卡片，來源是這幾個工具沒有被收進課程池。"""
+
+    def test_concept_neighborhood_output_enters_the_pool(self):
+        text = ("以「機率」為中心的概念鄰域（2 跳，共 3 門課）：\n"
+                "- 機率（通訊工程學系，3 學分）\n"
+                "- 機率論（數學系，3 學分）\n"
+                "- 隨機程序概論 [已停開]（通訊工程學系，3 學分）\n")
+        pool: dict = {}
+        llm._collect_course_pool("explore_concept_neighborhood", text, pool)
+        got = {(v["name"], v["dept"], v["credits"]) for v in pool.values()}
+        self.assertEqual(got, {("機率", "通訊工程學系", 3), ("機率論", "數學系", 3)})  # 已停開的不收
+
+    def test_credits_with_a_space_are_parsed(self):
+        got = llm._parse_courses_from_str("explore_concept_neighborhood", "- 統計學（管理學院，3 學分）")
+        self.assertEqual([(c["name"], c["credits"]) for c in got], [("統計學", 3)])
+
+    def test_dept_overview_elective_examples_enter_the_pool(self):
+        result = {"found": True, "dept_name": "中國文學系", "required_courses": [{"name": "文字學", "credits": 3}],
+                  "elective_by_domain": [{"domain": "古典文學", "courses": 9, "examples": ["詩三百選", "戲劇選"]}]}
+        pool: dict = {}
+        llm._collect_course_pool("get_dept_overview", result, pool)
+        by_name = {v["name"]: v for v in pool.values()}
+        self.assertEqual(set(by_name), {"文字學", "詩三百選", "戲劇選"})
+        self.assertEqual(by_name["戲劇選"]["type"], "選修")
+        self.assertEqual(by_name["文字學"]["type"], "必修")
+
+
+class CollapseRepeatedAnswer(unittest.TestCase):
+    def test_identical_answer_written_twice_is_collapsed(self):
+        one = "可以呀。\n\n你比較偏哪一種？\n- 做東西\n- 寫程式"
+        self.assertEqual(llm._collapse_repeated_answer(one + "\n\n" + one), one)
+
+    def test_repeat_with_only_whitespace_differences_is_collapsed(self):
+        a = "你這個方向很適合先分兩條看。\n\n1. 偏儀器\n2. 偏資料分析"
+        b = "你這個方向很適合先分兩條看。 \n\n1. 偏儀器  \n2. 偏資料分析"
+        self.assertEqual(llm._collapse_repeated_answer(a + "\n\n" + b), a)
+
+    def test_normal_answers_are_untouched(self):
+        # 同一門課在不同小節各列一次是正常內容，不能被誤刪
+        text = "基礎：\n- <course>自然語言處理</course>\n\n進階：\n- <course>自然語言處理</course>\n- 深度學習"
+        self.assertEqual(llm._collapse_repeated_answer(text), text)
+        self.assertEqual(llm._collapse_repeated_answer("好"), "好")
+        short = "短答\n\n短答"  # 少於 30 字不處理
+        self.assertEqual(llm._collapse_repeated_answer(short), short)
+
+
 if __name__ == "__main__":
     unittest.main()

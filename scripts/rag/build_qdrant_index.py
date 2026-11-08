@@ -131,6 +131,31 @@ def _course_text(n: dict, nodes_by_id: dict, in_adj: dict) -> str:
     return n.get("name", "") or n.get("node_name", "")
 
 
+def node_payload(n: dict, nodes_by_id: dict, in_adj: dict) -> dict:
+    """單一圖譜節點在 Qdrant 的 payload（建索引與差異同步共用，避免兩邊漂移）。"""
+    nid   = n["id"]
+    ntype = n.get("node_type", "")
+    name  = n.get("name", "") or n.get("node_name", "")
+    if ntype == "Course":
+        return {
+            "node_id":   nid,
+            "node_type": ntype,
+            "name":      name,
+            "dept":      n.get("dept", ""),
+            "college":   n.get("college", ""),
+            "level":     n.get("level", ""),   # "ugrad" / "grad"
+        }
+    connected    = build_connected_courses(nid, in_adj)
+    course_names = [nodes_by_id.get(c, {}).get("name", c) for c in connected]
+    return {
+        "node_id":           nid,
+        "node_type":         ntype,
+        "name":              name,
+        "source":            n.get("source", ""),
+        "connected_courses": course_names,
+    }
+
+
 def _upsert_nodes(client, nodes: list, nodes_by_id: dict, in_adj: dict,
                   text_fn, args) -> tuple[int, int]:
     """分批 embed 並 upsert，回傳 (uploaded, errors)。"""
@@ -153,29 +178,8 @@ def _upsert_nodes(client, nodes: list, nodes_by_id: dict, in_adj: dict,
 
         points = []
         for n, vec in zip(batch, vectors):
-            nid   = n["id"]
-            ntype = n.get("node_type", "")
-            name  = n.get("name", "") or n.get("node_name", "")
-            if ntype == "Course":
-                payload = {
-                    "node_id":   nid,
-                    "node_type": ntype,
-                    "name":      name,
-                    "dept":      n.get("dept", ""),
-                    "college":   n.get("college", ""),
-                    "level":     n.get("level", ""),   # "ugrad" / "grad"
-                }
-            else:
-                connected    = build_connected_courses(nid, in_adj)
-                course_names = [nodes_by_id.get(c, {}).get("name", c) for c in connected]
-                payload = {
-                    "node_id":          nid,
-                    "node_type":        ntype,
-                    "name":             name,
-                    "source":           n.get("source", ""),
-                    "connected_courses": course_names,
-                }
-            points.append(PointStruct(id=_node_id_to_int(nid), vector=vec, payload=payload))
+            points.append(PointStruct(id=_node_id_to_int(n["id"]), vector=vec,
+                                      payload=node_payload(n, nodes_by_id, in_adj)))
 
         _upsert_with_retry(client, COLLECTION, points)
         uploaded += len(points)

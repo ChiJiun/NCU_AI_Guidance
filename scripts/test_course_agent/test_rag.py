@@ -214,6 +214,7 @@ def ask_stream(base_url: str, question: str) -> dict:
         return {
             "answer":            answer,
             "answer_streamed":   streamed,
+            "model":             done_data.get("model", ""),
             "tools_used":        done_data.get("tools_used", []),
             "course_cards":      done_data.get("course_cards", []),
             "course_pool_count": done_data.get("course_pool_count", 0),
@@ -245,6 +246,7 @@ def run_tests(base_url: str, questions: list[tuple[str, str]]) -> list[dict]:
             "question":      q,
             "answer":        resp.get("answer", ""),
             "answer_streamed": resp.get("answer_streamed", ""),
+            "model":         resp.get("model", ""),
             "tools_used":    resp.get("tools_used", []),
             "tool_calls":    resp.get("tool_calls", []),
             "course_cards":  resp.get("course_cards", []),

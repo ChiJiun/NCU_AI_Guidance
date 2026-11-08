@@ -58,7 +58,7 @@ class SystemPromptTests(unittest.TestCase):
         self.assertNotIn("張家凱", self.prompt)
 
     def test_anti_hallucination_and_audience_sections_exist(self):
-        for heading in ("## 不確定性與禁止項（防止幻覺）", "## 對高中生的說明方式"):
+        for heading in ("## 一、不可違反的原則（防止幻覺）", "## 二、怎麼回答高中生"):
             self.assertIn(heading, self.prompt)
         for phrase in ("薪資", "錄取分數", "視為查無", "114 學年", "不編造網址"):
             self.assertIn(phrase, self.prompt)
@@ -71,12 +71,28 @@ class SystemPromptTests(unittest.TestCase):
 
     def test_explore_and_clarify_rules_do_not_overlap(self):
         # 「探索」與「先追問」兩條規則曾同時適用於「我不知道喜歡什麼」，導致模型把兩種回答都寫出來
-        self.assertIn("與第 3 條互斥", self.prompt)
-        self.assertIn("一次只給一份回答", self.prompt)
+        self.assertIn("不呼叫工具，也不要同時列出路徑與課程", self.prompt)
+        self.assertIn("同一則回答不要把相同內容換句話再寫一遍", self.prompt)
+
+    def test_hybrid_clarification_policy(self):
+        # 有線索先查再問、沒線索才只問、事實性問題一律查證（評測中純追問會讓學生拿不到任何系所或課程）
+        for phrase in ("有線索 → 先查再答，最後只問一個問題", "完全沒線索 → 只問不查", "事實性問題一律查證，不憑印象"):
+            self.assertIn(phrase, self.prompt)
+        self.assertIn("範例 B2 — 有線索，先查再問", self.prompt)
 
     def test_examples_cover_compare_clarify_and_missing_department(self):
-        for title in ("範例 13", "範例 14", "範例 15"):
+        for title in ("範例 A — 比較系所", "範例 B — 資訊太少，先問不查", "範例 C — 查無系所"):
             self.assertIn(title, self.prompt)
+
+    def test_length_limits_are_stated_as_numbers(self):
+        # 評測中 30% 的回答被評為一次列太多，規則要寫成可檢查的數字而不是「適中」
+        self.assertIn("約 500 字內", self.prompt)
+        self.assertIn("最多 3–4 條路徑", self.prompt)
+
+    def test_prompt_stays_slim(self):
+        # 規則過多會稀釋指令遵循；system prompt 超過 4500 tokens 就該重新審視
+        import tiktoken
+        self.assertLess(len(tiktoken.get_encoding("o200k_base").encode(self.prompt)), 4500)
 
 
 if __name__ == "__main__":

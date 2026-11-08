@@ -54,6 +54,32 @@ class JudgeChecks(unittest.TestCase):
         self.assertEqual(got["needs_human_check"], ["只是一句字串"])
         self.assertEqual(judge.parse_judgement(json.dumps({**j, "flags": "oops"}))["flags"], [])
 
+    def test_default_judge_model_is_a_pinned_version_not_an_alias(self):
+        # 別名（sonnet）會隨 Claude Code 更新而指向不同版本，會讓不同次的評分無法比較
+        self.assertEqual(judge.DEFAULT_JUDGE_MODEL, "claude-sonnet-5-5")
+
+    def _judged_row(self, model):
+        q = EVAL["questions"][0]
+        rec = _rec(q["id"], [], "回答")
+        scores = {k: 1 for k in judge.DIMENSIONS}
+        return {"key": q["id"], "group": q["group"], "question": q["question"], "error": "",
+                "signals": judge.signals(q, rec, BANNED),
+                "judgement": {"scores": scores, "reasons": {}, "flags": [], "needs_human_check": []},
+                "judge_model": model}
+
+    def test_report_names_the_judge_model_actually_used(self):
+        meta = {"run_id": "r", "results_file": "r.json", "model": judge.DEFAULT_JUDGE_MODEL}
+        text = judge.build_report([self._judged_row("claude-sonnet-5-5")], meta, EVAL["meta"]["groups"])
+        self.assertIn("實際使用的評審模型：`claude-sonnet-5-5` ×1", text)
+        self.assertNotIn("混用了多個評審模型", text)
+
+    def test_report_warns_when_models_are_mixed_or_unrecorded(self):
+        meta = {"run_id": "r", "results_file": "r.json", "model": judge.DEFAULT_JUDGE_MODEL}
+        rows = [self._judged_row("claude-sonnet-5-5"), self._judged_row("")]
+        text = judge.build_report(rows, meta, EVAL["meta"]["groups"])
+        self.assertIn("混用了多個評審模型", text)
+        self.assertIn("（未記錄）", text)
+
     def test_error_flags_match_eval_set(self):
         self.assertEqual(set(judge.ERROR_FLAGS), set(EVAL["meta"]["error_flags"]))
 

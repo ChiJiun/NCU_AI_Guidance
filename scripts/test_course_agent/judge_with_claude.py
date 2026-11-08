@@ -31,6 +31,7 @@ RESULTS_DIR = ROOT / "data" / "test_results"
 EVAL_PATH = ROOT / "docs" / "10-retrieval-evaluation" / "eval-set-v1.json"
 ENV_PATH = ROOT / ".env"
 TOKEN_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
+DEFAULT_JUDGE_MODEL = "claude-sonnet-5-5"
 
 DIMENSIONS = {
     "evidence": "證據正確性",
@@ -190,11 +191,11 @@ def build_prompt(q: dict, rec: dict, sig: dict) -> str:
     ])
 
 
-def run_claude(prompt: str, model: str, token: str, timeout: int) -> tuple[str | None, str]:
-    """回傳 (文字結果, 錯誤訊息)。"""
+def run_claude(prompt: str, model: str, token: str, timeout: int) -> tuple[str | None, str, str]:
+    """回傳 (文字結果, 錯誤訊息, 實際使用的模型)。實際模型取自 claude 回報的 modelUsage。"""
     exe = shutil.which("claude")
     if not exe:
-        return None, "找不到 claude 指令"
+        return None, "找不到 claude 指令", ""
     env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}  # 確保走訂閱而非 API 計費
     env[TOKEN_VAR] = token
     cmd = [exe, "-p", "--tools", "", "--system-prompt", JUDGE_SYSTEM,
@@ -203,18 +204,19 @@ def run_claude(prompt: str, model: str, token: str, timeout: int) -> tuple[str |
         proc = subprocess.run(cmd, input=prompt.encode("utf-8"), capture_output=True,
                               env=env, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return None, "timeout"
+        return None, "timeout", ""
     out = proc.stdout.decode("utf-8", errors="replace").strip()
     err = proc.stderr.decode("utf-8", errors="replace").strip()
     if proc.returncode != 0:
-        return None, (err or out)[:300]
+        return None, (err or out)[:300], ""
     try:
         payload = json.loads(out)
     except json.JSONDecodeError:
-        return None, f"輸出不是 JSON：{out[:200]}"
+        return None, f"輸出不是 JSON：{out[:200]}", ""
+    used = ",".join(sorted((payload.get("modelUsage") or {}).keys()))
     if payload.get("is_error"):
-        return None, str(payload.get("result", ""))[:300]
-    return payload.get("result", ""), ""
+        return None, str(payload.get("result", ""))[:300], used
+    return payload.get("result", ""), "", used
 
 
 def parse_judgement(text: str) -> dict | None:
@@ -251,10 +253,14 @@ def total(j: dict) -> int:
 
 def build_report(rows: list[dict], meta: dict, groups: dict) -> str:
     judged = [r for r in rows if r.get("judgement")]
+    used_models = Counter(r.get("judge_model") or "（未記錄）" for r in judged)
     lines = [f"# 評測結果 {meta['run_id']}", "",
-             f"- 結果檔：`{meta['results_file']}`　評審模型：`{meta['model']}`",
+             f"- 結果檔：`{meta['results_file']}`　指定評審模型：`{meta['model']}`",
+             "- 實際使用的評審模型：" + "、".join(f"`{m}` ×{n}" for m, n in used_models.most_common()),
              f"- 共 {len(rows)} 筆，已由 Claude 評審 {len(judged)} 筆", "",
              "> 評審看不到工具原始回傳，分數僅供篩選；標記為「需人工檢查」的題目請對照原始結果抽查。", ""]
+    if len(used_models) > 1:
+        lines += ["> ⚠️ 這份報告混用了多個評審模型（或有未記錄的舊紀錄），分數不宜直接和其他報告比較。", ""]
 
     tool_pass = sum(1 for r in rows if r["signals"]["tools"]["pass"])
     lines += ["## 一、程式檢查（不經 LLM）", "",
@@ -317,7 +323,8 @@ def main() -> int:
     ap.add_argument("--results", default=None, help="test_rag.py 的結果 json（預設最新一份）")
     ap.add_argument("--eval", default=str(EVAL_PATH), help="評測集 json")
     ap.add_argument("--ids", default=None, help="只評指定題號，逗號分隔，例如 A01,D03")
-    ap.add_argument("--model", default="sonnet", help="評審模型別名（預設 sonnet）")
+    ap.add_argument("--model", default=DEFAULT_JUDGE_MODEL,
+                    help=f"評審模型，預設鎖定完整型號 {DEFAULT_JUDGE_MODEL}（別名如 sonnet 會隨 Claude Code 更新而改變）")
     ap.add_argument("--timeout", type=int, default=180, help="每題逾時秒數")
     ap.add_argument("--no-judge", action="store_true", help="只做程式檢查，不呼叫 claude")
     args = ap.parse_args()
@@ -360,13 +367,14 @@ def main() -> int:
         row = {"key": key, "group": q["group"], "question": q["question"], "signals": sig,
                "error": rec.get("error", ""), "judgement": None}
         if not args.no_judge and not quota_hit and not sig["empty_answer"]:
-            text, err = run_claude(build_prompt(q, rec, sig), args.model, token, args.timeout)
+            text, err, used = run_claude(build_prompt(q, rec, sig), args.model, token, args.timeout)
             j = parse_judgement(text) if text else None
             if text and not j:  # 格式不對時重試一次
-                text, err = run_claude(build_prompt(q, rec, sig), args.model, token, args.timeout)
+                text, err, used = run_claude(build_prompt(q, rec, sig), args.model, token, args.timeout)
                 j = parse_judgement(text) if text else None
             if j:
                 row["judgement"] = j
+                row["judge_model"] = used
             else:
                 row["judge_error"] = err or "評審輸出格式不符"
                 if looks_like_quota(err):

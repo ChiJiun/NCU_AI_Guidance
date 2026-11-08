@@ -239,6 +239,43 @@ def assemble(clusters: dict, core_keys: list[str], generated: dict[str, dict]) -
     return terms, dict(stats)
 
 
+MANUAL_PATH = NLP_DIR / "glossary_manual.json"
+
+
+def apply_manual(terms: dict, manual: dict) -> dict:
+    """套用人工審查結果：rewrite 改寫說明並取消 skip；skip 不自動標註；其餘 needs_review 的詞視為說明可用。"""
+    stats = collections.Counter()
+    for term, gloss in (manual.get("rewrite") or {}).items():
+        entry = terms.get(term)
+        if entry is None:
+            stats["missing"] += 1
+            continue
+        problems = check_entry(term, {"gloss": gloss, "type": "概念", "hs_link": None})
+        if problems:
+            stats["rejected"] += 1
+            print(f"  人工改寫未通過檢查：{term} → {gloss}（{'、'.join(problems)}）")
+            continue
+        entry.update(gloss=gloss, skip=False, verified="claude-manual")
+        stats["rewritten"] += 1
+    for term in manual.get("skip") or []:
+        entry = terms.get(term)
+        if entry is None:
+            stats["missing"] += 1
+            continue
+        entry.update(skip=True, verified="claude-manual")
+        stats["skipped"] += 1
+    for entry in terms.values():
+        if entry.get("needs_review") and entry.get("verified") == "claude-manual":
+            entry.pop("needs_review", None)
+            entry.pop("review_reason", None)
+        elif entry.get("needs_review") and entry.get("gloss") and not entry.get("skip"):
+            entry.update(verified="claude-manual")
+            entry.pop("needs_review", None)
+            entry.pop("review_reason", None)
+            stats["approved"] += 1
+    return dict(stats)
+
+
 # ── Claude 呼叫 ───────────────────────────────────────────────────────────────
 
 def load_token() -> str | None:
@@ -601,6 +638,8 @@ def cmd_assemble(args) -> int:
         generated = apply_reviews(generated, review1, _load_generated(REFINED_PATH), _load_review(REVIEW2_PATH))
     core_keys = select_core(clusters, FORCED_TERMS)
     terms, stats = assemble(clusters, core_keys, generated)
+    if MANUAL_PATH.exists():
+        stats["manual"] = apply_manual(terms, json.loads(MANUAL_PATH.read_text(encoding="utf-8")))
     models = collections.Counter(v.get("_model") or "" for v in generated.values())
     out = {
         "meta": {

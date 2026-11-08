@@ -201,5 +201,42 @@ class ParsingClaudeOutput(unittest.TestCase):
         self.assertEqual(len(bg.parse_items(text, ["甲"])), 1)
 
 
+class ManualReview(unittest.TestCase):
+    def _terms(self):
+        return {
+            "量子糾纏": {"gloss": "粒子間的神秘連接", "skip": False, "needs_review": True, "review_reason": "x"},
+            "聲子": {"gloss": "聲波的量子", "skip": True, "needs_review": True},
+            "繼承": {"gloss": "死後財產轉移", "skip": True, "needs_review": True},
+            "傳輸層": {"gloss": "資料傳輸控制層", "skip": False, "needs_review": True},
+        }
+
+    def test_rewrite_replaces_the_gloss_and_clears_skip_and_review(self):
+        terms = self._terms()
+        stats = bg.apply_manual(terms, {"rewrite": {"聲子": "固體中原子集體振動的最小能量單位"}, "skip": ["繼承"]})
+        self.assertEqual(terms["聲子"]["gloss"], "固體中原子集體振動的最小能量單位")
+        self.assertFalse(terms["聲子"]["skip"])
+        self.assertNotIn("needs_review", terms["聲子"])
+        self.assertEqual(stats["rewritten"], 1)
+
+    def test_skip_list_keeps_the_term_out_of_annotation(self):
+        terms = self._terms()
+        bg.apply_manual(terms, {"skip": ["繼承"]})
+        self.assertTrue(terms["繼承"]["skip"])
+        self.assertNotIn("needs_review", terms["繼承"])
+
+    def test_untouched_review_terms_with_a_gloss_are_approved(self):
+        terms = self._terms()
+        stats = bg.apply_manual(terms, {})
+        self.assertNotIn("needs_review", terms["傳輸層"])
+        self.assertEqual(terms["傳輸層"]["verified"], "claude-manual")
+        self.assertEqual(stats["approved"], 2)   # 量子糾纏、傳輸層；聲子與繼承本來就是 skip
+
+    def test_a_rewrite_that_fails_the_checks_is_rejected(self):
+        terms = self._terms()
+        stats = bg.apply_manual(terms, {"rewrite": {"量子糾纏": "量子糾纏是兩個粒子的關係"}})   # 循環解釋
+        self.assertEqual(terms["量子糾纏"]["gloss"], "粒子間的神秘連接")
+        self.assertEqual(stats["rejected"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

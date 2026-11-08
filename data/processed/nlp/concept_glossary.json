@@ -10,6 +10,11 @@
    "fallback": 15666,
    "core_ok": 1035,
    "core_needs_review": 188,
+   "manual": {
+    "rewritten": 126,
+    "skipped": 27,
+    "approved": 48
+   },
    "total": 16889
   },
   "usage": "後端比對時以 term 與 aliases 對應；skip=true 的詞不標註；needs_review=true 的詞不要使用其說明。"
@@ -141102,15 +141107,14 @@
    "verified": "claude+gpt"
   },
   "傅立葉變換": {
-   "gloss": "訊號轉換的數學方法",
+   "gloss": "把訊號拆成不同頻率的波，看各頻率有多強",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 21,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「訊號」「頻率成分」未解釋，且傅立葉變換不是高中物理波動正式教學內容，建議改成較生活化並移除高中連結。"
+   "verified": "claude-manual"
   },
   "變異數分析": {
    "gloss": "比較多組平均數時，看組間差異是否大於組內自然波動",
@@ -141153,15 +141157,14 @@
    "verified": "claude+gpt"
   },
   "主成分分析": {
-   "gloss": "簡化數據維度的方法",
+   "gloss": "把很多變數濃縮成少數幾個最重要方向的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 19,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "公司治理": {
    "gloss": "規範公司如何被經營與監督以保護股東權益的制度",
@@ -141246,15 +141249,14 @@
    "verified": "claude+gpt"
   },
   "偏微分方程": {
-   "gloss": "描述多變量變化的方程",
+   "gloss": "描述一個量同時隨好幾個變數變化的方程",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 16,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「方程式」與『同時隨多個變數變化』太抽象，且偏微分方程不在高中微積分課程中，建議補例子並移除高中連結。"
+   "verified": "claude-manual"
   },
   "卷積神經網絡": {
    "gloss": "特別適合看圖，從小區塊找出邊緣、輪廓等圖案的電腦模型",
@@ -141328,15 +141330,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "常微分方程": {
-   "gloss": "描述變化率的方程",
+   "gloss": "描述一個量隨單一變數（如時間）變化的方程",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 14,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「變數函數」「導數」等詞對高二生偏硬，而且常微分方程通常不屬於高中正式課程，宜改成更白話並撤除高中連結。"
+   "verified": "claude-manual"
   },
   "擴散": {
    "gloss": "粒子因隨機運動，從濃度高處慢慢移向濃度低處的現象",
@@ -141410,15 +141411,14 @@
    "verified": "claude+gpt"
   },
   "訊號處理": {
-   "gloss": "分析電波與音訊的技術",
+   "gloss": "對聲音、電波等訊號做分析、過濾與轉換的技術",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 13,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「分析、過濾與轉換」過於抽象，且高中波動課程不會正式教訊號處理，宜加例子並取消高中連結。"
+   "verified": "claude-manual"
   },
   "資料視覺化": {
    "gloss": "把數據畫成圖表，讓人更容易看出其中規律的方法",
@@ -141512,15 +141512,14 @@
    "verified": "claude+gpt"
   },
   "迴歸分析": {
-   "gloss": "分析變數間關係的統計方法",
+   "gloss": "找出一個變數如何隨其他變數變化並用來預測的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 12,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把迴歸分析說成一般「找關係並預測」太泛，易和相關分析混淆；宜點出是用模型描述應變數與自變數關係，且不屬高中正式數學課程。"
+   "verified": "claude-manual"
   },
   "量子力學": {
    "gloss": "描述原子與電子等微小粒子行為的物理理論",
@@ -141781,8 +141780,7 @@
    "tier": "fallback",
    "n_courses": 10,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "變換器": {
    "gloss": "靠注意力機制理解整段文字前後關係的神經網路架構",
@@ -141846,15 +141844,14 @@
    "verified": "claude+gpt"
   },
   "向量分析": {
-   "gloss": "向量運算方法",
+   "gloss": "研究向量如何隨位置變化的微積分",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 9,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；這其實常指多變量微積分中的 grad、div、curl 等內容，不等於一般向量運算；高中向量不會教到，建議改名或改成『向量運算』。"
+   "verified": "claude-manual"
   },
   "工業4.0": {
    "gloss": "結合物聯網與自動化，讓工廠能自行監控與調整的生產模式",
@@ -141988,26 +141985,25 @@
    "verified": "claude+gpt"
   },
   "類別": {
-   "gloss": "程式中定義物件共同屬性與行為的藍圖",
+   "gloss": "物件導向中定義物件共同屬性與行為的藍圖",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 9,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「類別」在數學、統計、日常分類與程式設計都有不同意思，應標明是「物件導向程式設計中的類別」。"
   },
   "向量空間": {
-   "gloss": "向量存在的數學空間",
+   "gloss": "可以做加法與倍數運算的向量所組成的集合",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 8,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；這是大學線性代數概念，不是台灣高中「向量」課程正式內容；且「集合」與公理條件未說清，易讓學生以為任何向量堆成一組都算。"
+   "verified": "claude-manual"
   },
   "品質管制": {
    "gloss": "檢查並控制產品或流程，讓品質維持在標準內的做法",
@@ -142100,14 +142096,14 @@
    "verified": "claude+gpt"
   },
   "指標": {
-   "gloss": "儲存另一個資料所在記憶體位置的變數",
+   "gloss": "程式中儲存另一筆資料所在記憶體位置的變數",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 8,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「指標」在一般中文常指衡量標準，在程式設計才是 pointer，應明說是「程式設計中的指標」以免誤導。"
   },
   "提示工程": {
@@ -142142,15 +142138,14 @@
    "note": "尚未交叉審核"
   },
   "最佳化": {
-   "gloss": "尋找最優解",
+   "gloss": "在限制條件下找出最好結果（最大或最小）的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 8,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把「最佳化」說成只是在限制條件下找最好結果太窄，因為也有無限制條件的最佳化；且高中二次函數不等於正式教授最佳化。"
+   "verified": "claude-manual"
   },
   "模型評估": {
    "gloss": "用測試資料檢查預測模型表現好壞的步驟",
@@ -142384,15 +142379,14 @@
    "verified": "claude+gpt"
   },
   "金氧半場效電晶體": {
-   "gloss": "電晶體元件",
+   "gloss": "用電壓控制電流開關的電晶體，是晶片的基本元件",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 8,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把 MOSFET 說成一般的「用電壓控制電流通斷的微小開關」過度簡化且高中電流與電路通常不教此元件，宜改成「一種以閘極電壓控制源極與汲極間導電程度的半導體元件」並移除高中課程連結。"
+   "verified": "claude-manual"
   },
   "金融科技": {
    "gloss": "用軟體與數據技術改善支付、借貸、投資等金融服務",
@@ -142473,8 +142467,7 @@
    "tier": "fallback",
    "n_courses": 7,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；ESG 不只「環境保護與社會責任」，還包含公司治理，且高中公民通常不會直接教 ESG 這個概念，宜明確寫出環境、社會、治理三面向並移除課程連結。"
+   "verified": "claude-manual"
   },
   "偏振": {
    "gloss": "光的振動方向被限制在某個特定方向上的現象",
@@ -142537,15 +142530,14 @@
    "verified": "claude+gpt"
   },
   "動作控制": {
-   "gloss": "身體動作的神經控制機制",
+   "gloss": "大腦與神經系統如何指揮肢體做出動作",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 7,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "半導體": {
    "gloss": "導電能力介於導體與絕緣體之間，可用來做電子元件的材料",
@@ -142772,15 +142764,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "風險與報酬": {
-   "gloss": "風險與收益的關係",
+   "gloss": "投資風險越高，預期報酬通常也越高的關係",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 7,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 37 不在 6–28"
+   "verified": "claude-manual"
   },
   "DNA複製": {
    "gloss": "細胞分裂前把遺傳物質完整拷貝成兩份的過程",
@@ -142803,15 +142794,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "SVM": {
-   "gloss": "區分資料類別的模型",
+   "gloss": "在資料中畫出最佳分界線，把兩類資料分開的模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；SVM 不屬於高中「直線與圓」課程，且不一定是「一條直線」，高維時是超平面；建議移除高中連結並改成「找出能最好分開不同類別的分界面」。"
+   "verified": "claude-manual"
   },
   "二極體": {
    "gloss": "電流順著一個方向很容易通過、反方向幾乎不通的電子零件",
@@ -142864,15 +142854,14 @@
    "verified": "claude+gpt"
   },
   "倒晶格": {
-   "gloss": "晶體結構的數學表示",
+   "gloss": "把晶體的規則排列轉換到頻率空間的對應表示",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「數學空間」與「用波的角度描述」對高二生太抽象，且倒晶格不是高中波動課程內容，建議改用晶體繞射中的規則點陣來說明並移除高中連結。"
+   "verified": "claude-manual"
   },
   "全球化": {
    "gloss": "各國在經濟、文化與資訊上日益緊密連結的趨勢",
@@ -142905,15 +142894,14 @@
    "verified": "claude+gpt"
   },
   "前瞻半導體與光電材料": {
-   "gloss": "未來電子設備用的新材料",
+   "gloss": "新一代用於晶片與光電產品的材料",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "創新設計": {
    "gloss": null,
@@ -142937,15 +142925,14 @@
    "verified": "claude+gpt"
   },
   "區間估計": {
-   "gloss": "估算參數範圍",
+   "gloss": "用一個範圍而不是單一數字來估計未知數值",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "卡爾曼濾波": {
    "gloss": "結合預測與測量值，持續修正並估計真實狀態的演算法",
@@ -142988,15 +142975,14 @@
    "verified": "claude+gpt"
   },
   "回歸模型": {
-   "gloss": "預測數值的數學方法",
+   "gloss": "用一條式子描述變數關係並預測數值的模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把回歸說成只是在『用已知變數預測另一個數值』太窄，回歸更核心是描述變數間關係並估計影響；且台灣高中數學課程通常不教『回歸模型』這個正式概念。"
+   "verified": "claude-manual"
   },
   "因子分析": {
    "gloss": "從許多變數中找出背後少數共同影響因素的統計方法",
@@ -143119,15 +143105,14 @@
    "verified": "claude+gpt"
   },
   "拉普拉斯轉換": {
-   "gloss": "解微分方程的數學工具",
+   "gloss": "把微分方程轉成較容易處理的代數式的數學工具",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「函數」「微分方程」與「轉成另一種形式」過於抽象，建議用更白話方式說明是把複雜的時間變化問題改寫成較容易計算的形式。"
+   "verified": "claude-manual"
   },
   "控制": {
    "gloss": "調整系統運作的技術",
@@ -143137,8 +143122,7 @@
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "描述性統計": {
    "gloss": "用平均數、標準差與圖表等方式概括一組資料的特徵",
@@ -143151,15 +143135,14 @@
    "verified": "claude+gpt"
   },
   "支援向量機": {
-   "gloss": "用於分類的模型",
+   "gloss": "在資料中畫出最佳分界線，把兩類資料分開的模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「最大間隔」「邊界之分類模型」對高二生偏硬且不是高中直線平面課程內容，建議改成「找一條或一個面把不同類資料盡量分開的方法」。"
+   "verified": "claude-manual"
   },
   "數值分析": {
    "gloss": "用近似計算求解難以精確解的問題，並估計誤差大小",
@@ -143353,15 +143336,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "熱力學第二定律": {
-   "gloss": "熵增原理",
+   "gloss": "熱不會自動從冷處流向熱處，亂度只增不減",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把第二定律直接說成「亂度不會減少」太絕對，應限定在孤立系統，且高中物理通常不正式教到此定律。"
+   "verified": "claude-manual"
   },
   "熱處理": {
    "gloss": "用加熱與冷卻改變金屬內部結構和硬度的加工方法",
@@ -143435,15 +143417,14 @@
    "note": "一詞多義，不自動標註：「穩定性」在控制、數值分析、力學等領域意思不同，單一句易誤導，且高中力學通常不把它當成這樣的一般性術語正式教授。"
   },
   "穩定性分析": {
-   "gloss": "分析系統穩定性",
+   "gloss": "判斷系統受到干擾後會不會回到原本狀態",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；「失控」太口語且範圍過廣，建議明確說是分析系統受小擾動後會回復、維持還是偏離原狀。"
+   "verified": "claude-manual"
   },
   "組織工程": {
    "gloss": "結合細胞與支架材料培養人造組織以修復身體的技術",
@@ -143463,19 +143444,17 @@
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "結構方程模型": {
-   "gloss": "建立多變量關係的模型",
+   "gloss": "同時檢驗多個變數之間因果關係的統計模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；它不能直接「檢驗因果關係」，較正確是用資料檢驗假設的變數關係模型是否與觀察相符。"
+   "verified": "claude-manual"
   },
   "能量轉換": {
    "gloss": "能量從一種形式變成另一種形式的過程",
@@ -143636,8 +143615,7 @@
    "tier": "fallback",
    "n_courses": 6,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；音韻學主要研究語言聲音系統的組成與運作，『隨時間變化』較偏歷史音韻或音變研究，別把特定面向當成整體定義。"
+   "verified": "claude-manual"
   },
   "頻譜分析": {
    "gloss": "找出訊號中含有哪些頻率以及各自強弱的方法",
@@ -143660,26 +143638,24 @@
    "verified": "claude+gpt"
   },
   "GRU（門控循環單位）": {
-   "gloss": "簡化版的記憶型神經網絡",
+   "gloss": "能記住前後文順序的簡化版循環神經網路",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『閘門』『序列資料』『神經網路』未解釋，對高二生仍太抽象，建議先說成會挑重要資訊記住的AI模型。"
+   "verified": "claude-manual"
   },
   "p-n接面": {
-   "gloss": "半導體pn結",
+   "gloss": "p 型與 n 型半導體相接處，電流只能單向通過",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；p-n接面本身不是『形成單向導電的界面』，單向導電是二極體等元件在特定條件下呈現的特性；且這也非高中電路課正式內容。"
+   "verified": "claude-manual"
   },
   "SDGs（永續發展目標）": {
    "gloss": "聯合國提出、希望在期限內共同達成的十七項全球發展目標",
@@ -143712,15 +143688,14 @@
    "verified": "claude+gpt"
   },
   "企業治理": {
-   "gloss": "公司管理架構",
+   "gloss": "規範公司如何被管理與監督的制度",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "估計": {
    "gloss": "用手上的樣本資料，推算整體未知數值大約是多少的方法",
@@ -143855,15 +143830,14 @@
    "note": "尚未交叉審核"
   },
   "動量守恆": {
-   "gloss": "動量總量不變",
+   "gloss": "沒有外力時，碰撞前後的總動量不變",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "匯率": {
    "gloss": "一種貨幣換成另一種貨幣時的兌換比例",
@@ -143937,15 +143911,14 @@
    "verified": "claude+gpt"
   },
   "地體構造": {
-   "gloss": "地殼岩石層移動變形",
+   "gloss": "地殼板塊如何移動與變形所形成的構造",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；『地體構造』通常指地質構造／構造地質相關概念，不是單純『地殼分塊移動』，這樣寫太像板塊構造，建議改成研究岩層受力變形與斷層、褶皺等構造的形成。"
+   "verified": "claude-manual"
   },
   "增強型地熱系統": {
    "gloss": "在高溫岩層中製造或擴大裂隙、注入流體取出地熱來發電的技術",
@@ -143998,25 +143971,24 @@
    "verified": "claude+gpt"
   },
   "太陽能電池": {
-   "gloss": "光能轉電能",
+   "gloss": "把太陽光直接轉成電的裝置",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；太陽能電池主要是把光能直接轉成電能，說『直接產生電流』不夠準確，因輸出常表現為電壓與電流，建議改成『受光後可把光能轉成電能的半導體元件』。"
+   "verified": "claude-manual"
   },
   "字典": {
-   "gloss": "用名稱對應內容，可快速查找資料的程式資料結構",
+   "gloss": "程式中用名稱對應內容、可快速查找的資料結構",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 5,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：『字典』在日常語言是辭典，在資訊中才是資料結構，建議明寫成『程式中的字典（dictionary）』或『映射／雜湊表類型資料結構』。"
   },
   "學習歷程檔案": {
@@ -144102,15 +144074,14 @@
    "note": "一詞多義，不自動標註：『性別』可能指生理性別、社會性別或法律登記性別，這裡其實是在講社會文化中的性別概念，建議明確寫成『社會性別』或區分不同用法。"
   },
   "情緒與社會認知": {
-   "gloss": "情緒與人際理解的腦機制",
+   "gloss": "研究大腦如何處理情緒並理解他人",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "應用層": {
    "gloss": "網路架構中最靠近使用者、直接提供網頁與郵件等服務的一層",
@@ -144321,8 +144292,7 @@
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「執行功能」是心理學/神經科學概念，不宜直接說成是大腦單一『負責』的能力；若要白話可改成『幫助人規劃、抑制衝動、切換注意與完成目標的一組認知功能』。"
+   "verified": "claude-manual"
   },
   "沉積巖": {
    "gloss": "泥沙或生物遺骸堆積後經壓緊膠結而成的岩石",
@@ -144355,26 +144325,24 @@
    "verified": "claude+gpt"
   },
   "深度強化學習": {
-   "gloss": "透過試錯學最佳策略",
+   "gloss": "結合深度學習，讓程式在反覆試錯中學會最佳做法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "深度神經網絡": {
-   "gloss": "多層神經網絡結構",
+   "gloss": "有很多層的神經網路，能學習複雜的規律",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "溝通": {
    "gloss": "人與人之間傳遞並理解想法與訊息的過程",
@@ -144398,15 +144366,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "物件導向設計": {
-   "gloss": "軟體設計方法",
+   "gloss": "把程式拆成一個個有資料與功能的物件來設計",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；這句依賴未解釋的『物件』概念，建議改成『把系統拆成不同事物單位，並規劃它們怎麼合作的設計方法』。"
+   "verified": "claude-manual"
   },
   "物流管理": {
    "gloss": "規劃與控制貨物流動、儲存與配送的管理工作",
@@ -144419,15 +144386,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "現代性": {
-   "gloss": "現代社會特徵",
+   "gloss": "現代社會在制度、思想與生活上的整體特徵",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；把現代性只說成『近代社會轉變的特徵』太空泛，且高中歷史通常不以此理論概念為明確教學名詞；可補出如工業化、世俗化、官僚化等核心內涵。"
+   "verified": "claude-manual"
   },
   "現金流量分析": {
    "gloss": "檢視一段時間內資金流入與流出以評估財務狀況",
@@ -144460,15 +144426,14 @@
    "verified": "claude+gpt"
   },
   "生物神經基礎": {
-   "gloss": "神經元運作原理",
+   "gloss": "神經元如何傳遞訊號的生物原理",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；這不像高中課程中的固定名詞，範圍也太籠統；若要用在高中生物，建議直接改成『神經系統』或『神經傳導』。"
+   "verified": "claude-manual"
   },
   "產品設計": {
    "gloss": "規劃產品的功能、外型與使用方式的工作",
@@ -144582,15 +144547,14 @@
    "note": "尚未交叉審核"
   },
   "聲子": {
-   "gloss": "聲波的量子",
+   "gloss": "固體中原子集體振動的最小能量單位",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把聲子說成「原子振動的能量」易誤導；應改為「晶體中集體振動的量子（準粒子）」，且這不是高中波動課程內容。"
+   "verified": "claude-manual"
   },
   "聲母": {
    "gloss": "漢語音節開頭的子音，位於韻母之前",
@@ -144765,15 +144729,14 @@
    "note": "一詞多義，不自動標註：可指人類語言處理、電腦自然語言處理，甚至語音處理，需先限定範圍。"
   },
   "變分法": {
-   "gloss": "求極值的數學方法",
+   "gloss": "找出能讓某個量（如路徑長度）最小或最大的函數",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「在所有可能的函數中」對高二生太抽象，且變分法不屬於高中數學函數與極限正式課程。"
+   "verified": "claude-manual"
   },
   "變質巖": {
    "gloss": "原有岩石受高溫高壓影響而改變性質形成的岩石",
@@ -144874,8 +144837,7 @@
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把酸鹼只說成看氫離子多寡容易誤導，應改成酸鹼有多種定義，高中常用的是酸產生H+、鹼產生OH-或接受/提供質子的觀點。"
+   "verified": "claude-manual"
   },
   "量子計算": {
    "gloss": "用微小粒子的特殊性質，讓電腦更快解決某些難題",
@@ -144918,14 +144880,14 @@
    "verified": "claude+gpt"
   },
   "隨機程序": {
-   "gloss": "描述數值如何隨時間不確定地變化的數學模型",
+   "gloss": "描述數值隨時間隨機變化的數學模型",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 5,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：此詞常是『隨機過程』的另一譯法，但『程序』也可能讓人想到演算法流程；若指數學名詞，應統一寫成『隨機過程』，且非高中正式課程內容。"
   },
   "隨機過程": {
@@ -145016,8 +144978,7 @@
    "tier": "fallback",
    "n_courses": 5,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；這是在說一般動作，不像明確名詞概念；若要作術語，應限定成統計預測或模型預測，且高中統計不以此為正式名詞。"
+   "verified": "claude-manual"
   },
   "馬可夫鏈": {
    "gloss": "下一步只看現在狀態、和更早經歷無關的機率模型",
@@ -145040,15 +145001,14 @@
    "verified": "claude+gpt"
   },
   "AI演算法": {
-   "gloss": "AI運作的計算方法",
+   "gloss": "讓電腦完成類似人類智慧工作的計算步驟",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；範圍太大，幾乎把整個機器學習都包進去；宜說成『讓電腦依規則或從資料學到的方法來分類、預測或決策的演算法』。"
+   "verified": "claude-manual"
   },
   "CSR（企業社會責任）": {
    "gloss": "企業在賺錢之外，也對環境與社會負起責任的做法",
@@ -145071,15 +145031,14 @@
    "verified": "claude+gpt"
   },
   "DQN": {
-   "gloss": "結合深度學習的Q學習",
+   "gloss": "用深度神經網路學習最佳行動的強化學習方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『估計各行動好壞』其實牽涉強化學習中的價值函數，高二生未必能直接懂，宜補上『透過嘗試與回饋學習』等白話背景。"
+   "verified": "claude-manual"
   },
   "PCA（主成分分析）": {
    "gloss": "把許多彼此相關的資料壓縮成少數綜合指標的方法",
@@ -145129,8 +145088,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『離散數值』『複數函數』『分析系統』都超出高中常見範圍，且此內容不屬台灣高中數學課程。"
+   "verified": "claude-manual"
   },
   "Z轉換": {
    "gloss": "分析離散訊號的數學工具",
@@ -145140,8 +145098,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『離散數值』『複數函數』『分析系統』都超出高中常見範圍，且此內容不屬台灣高中數學課程。"
+   "verified": "claude-manual"
   },
   "中央極限定理": {
    "gloss": "樣本夠大時，樣本平均值的分布會趨近常態分布的定理",
@@ -145195,26 +145152,24 @@
    "verified": "claude+gpt"
   },
   "信賴區間": {
-   "gloss": "估計值的可信範圍",
+   "gloss": "有一定把握會包含真實值的估計範圍",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；『可能範圍』太模糊，易誤解成母體值落在區間內的機率，宜補出它是依樣本建立、在固定信心水準下用來估計母體參數的區間，且高中通常不教。"
+   "verified": "claude-manual"
   },
   "傳輸層": {
-   "gloss": "資料傳輸控制層",
+   "gloss": "網路分層中負責把資料穩定送到對方程式的一層",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；傳輸層不一定都能保證『完整又有順序』送達，這只適用於部分協定如 TCP，宜改成負責端到端傳輸與連線管理等功能。"
+   "verified": "claude-manual"
   },
   "債券評價": {
    "gloss": "把債券未來的利息和本金折算成現在價值的計算方法",
@@ -145267,15 +145222,14 @@
    "verified": "claude+gpt"
   },
   "內積空間": {
-   "gloss": "向量的點積運算",
+   "gloss": "可以計算向量長度與夾角的向量空間",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『內積空間』『向量空間』對高二生太抽象，且這不是高中向量課程正式內容，宜改成先說是把點積觀念推廣到更一般對象的數學結構。"
+   "verified": "claude-manual"
   },
   "內線交易": {
    "gloss": "利用還沒公開的重要消息買賣股票而獲利的違法行為",
@@ -145328,14 +145282,14 @@
    "verified": "claude+gpt"
   },
   "分群": {
-   "gloss": "依相似程度把資料自動分成幾個群組的分析方法",
+   "gloss": "機器學習中依相似程度把資料自動分成群組的方法",
    "hs_link": null,
    "type": "技術或工具",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 4,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：『分群』在統計、機器學習、社會分組等脈絡意思不同，建議明說是『資料分析中依相似性自動分組的方法』。"
   },
   "創新": {
@@ -145370,15 +145324,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "參數設計": {
-   "gloss": "設計電路參數的方法",
+   "gloss": "調整電路或系統的參數，使表現達到要求",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "反射": {
    "gloss": "波或粒子碰到物體表面後改變方向折返的現象",
@@ -145542,14 +145495,14 @@
    "verified": "claude+gpt"
   },
   "堆疊": {
-   "gloss": "資料只能從頂端放入和取出，後放的先被取出",
+   "gloss": "資料結構的一種，後放進去的資料先被取出",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 4,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：『堆疊』在資訊、地質、影像等領域都有不同意思，若此處指資料結構應明說是『資料結構中的堆疊』。"
   },
   "多元回歸": {
@@ -145651,8 +145604,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "宗教": {
    "gloss": null,
@@ -145723,8 +145675,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；經濟學中的彈性是看某變數變動百分比引起另一變數變動百分比，不是籠統的「跟著變多少」；應點出百分比變動的概念。"
+   "verified": "claude-manual"
   },
   "彈性預算": {
    "gloss": "依實際業務量高低隨時調整數字的預算編列方式",
@@ -145886,8 +145837,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "推論統計": {
    "gloss": "用一部分樣本的結果去推測整個群體特性的統計方法",
@@ -146081,15 +146031,14 @@
    "verified": "claude+gpt"
   },
   "最大似然": {
-   "gloss": "估計參數的方法",
+   "gloss": "挑選最能解釋所觀察到資料的參數值的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「模型或參數」對高二生偏抽象，且最大似然通常不在高中機率課程中；可改成『選使已觀察資料最可能出現的參數想法』並取消高中數學連結。"
+   "verified": "claude-manual"
   },
   "最大概似估計": {
    "gloss": "用手上的資料，反推最可能的數值的方法",
@@ -146152,15 +146101,14 @@
    "verified": "claude+gpt"
   },
   "機率與統計": {
-   "gloss": "分析數據與風險",
+   "gloss": "用數學描述不確定性，並從資料中歸納結論",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；這是在說一整個學科領域，不是在界定單一名詞，太籠統；可改成『研究事件發生可能性與如何用資料描述、推論現象的數學領域』。"
+   "verified": "claude-manual"
   },
   "正交性": {
    "gloss": "描述兩個向量互相垂直、內積為零的關係",
@@ -146225,15 +146173,14 @@
    "verified": "claude+gpt"
   },
   "波函數": {
-   "gloss": "描述波動現象的數學表達",
+   "gloss": "描述量子粒子狀態與出現機率的數學函數",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『微觀粒子狀態』與『位置機率』涉及量子力學，且嚴格說波函數本身不是機率而是可用來算機率；這也不是高中波動單元內容。"
+   "verified": "claude-manual"
   },
   "波動方程": {
    "gloss": "描述波如何隨時間與位置傳播的數學方程式",
@@ -146283,8 +146230,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "溫室氣體": {
    "gloss": "能留住地表熱量、使地球氣溫升高的大氣氣體",
@@ -146297,15 +146243,14 @@
    "verified": "claude+gpt"
   },
   "潛在狄利克雷分佈": {
-   "gloss": "分析文本主題分佈",
+   "gloss": "從大量文章中自動找出主題的統計模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；這其實是專門的機器學習／統計模型，高二生難從此句理解其本質，且不在高中機率課程中；可改成較白話並刪除 hs_link。"
+   "verified": "claude-manual"
   },
   "潮汐": {
    "gloss": "海水受月球與太陽引力影響而規律漲落的現象",
@@ -146338,15 +146283,14 @@
    "verified": "claude+gpt"
   },
   "熱力學定律": {
-   "gloss": "熱力學基本原理",
+   "gloss": "規範熱與能量如何轉換的基本定律",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；這只是在說它『管什麼』，沒讓學生知道是像熱平衡、能量守恆與熵增這類具體定律；且高中熱學通常不以『熱力學定律』統稱為教學主題。"
+   "verified": "claude-manual"
   },
   "熱性質": {
    "gloss": "描述物質導熱、受熱膨脹與吸熱能力的各種特性",
@@ -146436,8 +146380,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『親身經驗』『顯現』等哲學術語未解釋，對高二生仍偏抽象；可改成先描述人如何直接經驗世界，再分析經驗結構的哲學方法。"
+   "verified": "claude-manual"
   },
   "生命週期評估": {
    "gloss": "計算產品從原料到廢棄全過程對環境造成多少影響的方法",
@@ -146460,15 +146403,14 @@
    "verified": "claude+gpt"
   },
   "相律": {
-   "gloss": "相變與自由度關係",
+   "gloss": "說明平衡時系統能獨立改變幾個條件的規則",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『平衡系統』『自由調整變數』對高二生太硬，而且 Gibbs 相律通常不屬高中化學課程；可改成更白話地說明在多相平衡下能獨立改變幾個條件。"
+   "verified": "claude-manual"
   },
   "相變": {
    "gloss": "物質在固態、液態、氣態等不同狀態之間轉換的現象",
@@ -146642,15 +146584,14 @@
    "verified": "claude+gpt"
   },
   "細胞週期調控": {
-   "gloss": "細胞分裂的時序控制",
+   "gloss": "控制細胞何時複製與分裂的機制",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「控制機制」過於抽象，且此詞通常超出高中只學細胞分裂階段的範圍，宜改成用檢查點與蛋白質調節細胞分裂時機的白話說法。"
+   "verified": "claude-manual"
   },
   "組織文化": {
    "gloss": "一個團體共同擁有的價值觀與做事習慣",
@@ -146786,15 +146727,14 @@
    "note": "一詞多義，不自動標註：此詞在物理、化學、地科與工程中的用法不同，單寫成一般守恆關係容易混淆，宜限定是熱學、地球能量收支或一般系統分析。"
   },
   "自主智能": {
-   "gloss": "AI自主做決定",
+   "gloss": "能自己感知環境並做決定的人工智慧",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；「智慧系統」過於籠統，看完仍不清楚重點，宜點出它能自己感測、規劃、決策並執行任務。"
+   "verified": "claude-manual"
   },
   "自旋": {
    "gloss": "基本粒子本身帶有的一種類似旋轉的內在性質",
@@ -146872,12 +146812,11 @@
    "gloss": "研究領導行為模式",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "行為財務學": {
    "gloss": "結合心理學與經濟學，研究人的情緒與偏誤如何影響財務決策",
@@ -146951,15 +146890,14 @@
    "verified": "claude+gpt"
   },
   "詞嵌入": {
-   "gloss": "將文字轉為向量表示",
+   "gloss": "把詞轉成一組數字，讓電腦能計算詞義的遠近",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；詞嵌入不只是「一串數字」，重點是把詞表示成向量，讓語意相近的詞在向量空間中位置接近；而這也不是高中數學向量課程會教的內容。"
+   "verified": "claude-manual"
   },
   "認同": {
    "gloss": "個人對自己所屬群體或身分的歸屬感與接納",
@@ -147013,15 +146951,14 @@
    "verified": "claude+gpt"
   },
   "貝葉斯": {
-   "gloss": "用概率計算演化關係",
+   "gloss": "根據新證據不斷更新機率判斷的統計觀點",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「貝葉斯」不是單一「機率推理方式」的完整名稱，至少應說成「貝葉斯方法／貝葉斯定理」；且高中機率通常不教此名詞。"
+   "verified": "claude-manual"
   },
   "貝葉斯網絡": {
    "gloss": "用節點和箭頭表示多個事件如何影響彼此發生機率的模型",
@@ -147184,15 +147121,14 @@
    "verified": "claude+gpt"
   },
   "質量傳遞": {
-   "gloss": "物質從高濃度往低濃度移動",
+   "gloss": "物質因濃度差而從高處移向低處的過程",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "質量平衡": {
    "gloss": "依物質不會憑空增減，計算進出系統各物質量的方法",
@@ -147287,26 +147223,25 @@
    "verified": "claude+gpt"
   },
   "遞歸": {
-   "gloss": "用問題自身的較小版本來定義或解決問題的方法",
+   "gloss": "程式或數學中用縮小後的同類問題來解決問題",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 4,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「遞歸」在數學的遞迴關係與資訊中的 recursion 並不完全相同，且高中數列不一定直接教這個名詞；宜限定學科脈絡。"
   },
   "量子感測": {
-   "gloss": "高靈敏度的量子偵測",
+   "gloss": "利用量子特性做超高靈敏度的測量",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「量子性質」與「微觀粒子」過於籠統且偏難，高中近代物理通常不教到量子感測；可改成利用量子效應提高測量靈敏度的技術。"
+   "verified": "claude-manual"
   },
   "關係": {
    "gloss": "事物間的聯結與互動",
@@ -147316,8 +147251,7 @@
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "關係代詞": {
    "gloss": "在句中代替前面的名詞，並引出補充說明子句的詞",
@@ -147330,15 +147264,14 @@
    "verified": "claude+gpt"
   },
   "隨機向量": {
-   "gloss": "多個隨機變數的組合",
+   "gloss": "由多個隨機變數組成的一組數值",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 32 不在 6–28"
+   "verified": "claude-manual"
   },
   "隨機漫步": {
    "gloss": "每一步方向都由機率決定、無法預測走向的路徑模型",
@@ -147452,15 +147385,14 @@
    "verified": "claude+gpt"
   },
   "電感": {
-   "gloss": "儲存磁場能量的元件",
+   "gloss": "能儲存磁場能量的電路元件",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "電晶體": {
    "gloss": "能放大訊號或當作電子開關的半導體元件",
@@ -147603,15 +147535,14 @@
    "verified": "claude+gpt"
   },
   "顯微結構": {
-   "gloss": "材料的微觀組織",
+   "gloss": "要用顯微鏡才看得到的材料內部組織",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 4,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 31 不在 6–28"
+   "verified": "claude-manual"
   },
   "颱風": {
    "gloss": "生成於熱帶海洋、伴隨強風與豪雨的旋轉性大型風暴",
@@ -147717,37 +147648,34 @@
    "verified": "claude+gpt(改寫後)"
   },
   "MSK（移動信號密鑰）": {
-   "gloss": "平滑變化的相位調變技術",
+   "gloss": "相位平滑變化、較省頻寬的數位調變方式",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "NP完備性": {
-   "gloss": "複雜問題的分類",
+   "gloss": "一類被認為很難在合理時間內解出的問題",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；NP 完備不是單純「很難快速求解」的問題，而是屬於 NP 且和 NP 中最難問題同樣難的一類，建議避免把「目前不知道有快速算法」說成已證明一定很難。"
+   "verified": "claude-manual"
   },
   "OQPSK": {
-   "gloss": "改良的四相調變技術",
+   "gloss": "相位跳動較小的改良四相位數位調變",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「兩路訊號」「半個符號」「相位變化」都未解釋，且高中物理波動課程通常不教此通訊調變，建議先補上它是數位通訊中傳資料的方法。"
+   "verified": "claude-manual"
   },
   "PCM": {
    "gloss": "把連續的聲音或訊號定時取樣後轉成數位數字的編碼方法",
@@ -147770,15 +147698,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "Sigmoid函數": {
-   "gloss": "壓縮數值到0-1的函數",
+   "gloss": "把任何數值壓縮到 0 到 1 之間的 S 形函數",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 35 不在 6–28"
+   "verified": "claude-manual"
   },
   "SLAM（同步定位與地圖建置）": {
    "gloss": "讓機器人一邊移動一邊畫出環境地圖並確認自己位置的技術",
@@ -147794,23 +147721,21 @@
    "gloss": "資料同步的機制",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "三維資訊萃取": {
-   "gloss": "從影像提煉立體資料",
+   "gloss": "從影像或點雲中取出立體形狀的資訊",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "下一代測序": {
    "gloss": "能同時大量讀取許多段DNA序列的快速定序技術",
@@ -147823,26 +147748,25 @@
    "verified": "claude+gpt"
   },
   "串列": {
-   "gloss": "把多筆資料依順序排成一列並可逐一存取的資料結構",
+   "gloss": "程式中把多筆資料依序排成一列的資料結構",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「串列」在資訊裡可能指 list、linked list、序列埠等不同意思，且連到高中數學的數列會混淆；建議明寫為「程式設計中的串列（list）」並避免用數學 hs_link。"
   },
   "主動濾波器": {
-   "gloss": "有源濾波電路",
+   "gloss": "用放大器做成、能挑出特定頻率訊號的電路",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「放大器」與「頻率訊號」對高二生可再白話，且高中物理電路通常不教主動濾波器；建議改成「利用電子元件把某些快慢變化的訊號保留、其他削弱的電路」。"
+   "verified": "claude-manual"
   },
   "主題建模": {
    "gloss": "用演算法自動從大量文章中歸納出常出現的主題",
@@ -147855,15 +147779,14 @@
    "verified": "claude+gpt"
   },
   "二元搜尋樹": {
-   "gloss": "快速查找資料結構",
+   "gloss": "每個節點最多兩個分支、方便快速查找的資料結構",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "二氧化碳反應": {
    "gloss": "二氧化碳參與的化學反應",
@@ -147873,8 +147796,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "二項分佈": {
    "gloss": "各次互不影響、成功機率固定時，算成功幾次的機率",
@@ -147955,8 +147877,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "位能": {
    "gloss": "物體因所在位置或狀態而儲存、可轉成動能的能量",
@@ -148016,8 +147937,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "信效度": {
    "gloss": "檢查測量工具結果是否穩定一致，且真的量到想量的東西",
@@ -148050,26 +147970,24 @@
    "verified": "claude+gpt(改寫後)"
   },
   "偏微分方程式": {
-   "gloss": "描述多變量變化的方程",
+   "gloss": "描述一個量同時隨好幾個變數變化的方程",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『多個變數』『方程式』還不夠，核心詞『偏微分』未解釋，且這不是高中數學課程內容，宜改成更白話如『含有對不同變數變化率的方程式』。"
+   "verified": "claude-manual"
   },
   "催化作用": {
-   "gloss": "加速化學反應",
+   "gloss": "使用催化劑加快化學反應的速率",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；催化劑不是『本身不被消耗』這麼絕對，較準確是『反應前後總量不變、可再生』，避免誤導成反應過程中完全不參與變化。"
+   "verified": "claude-manual"
   },
   "債務成本": {
    "gloss": "公司向外借錢時必須付出的利息等代價",
@@ -148092,15 +148010,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "儲存與搬運系統": {
-   "gloss": "存儲與搬運的系統",
+   "gloss": "倉庫中存放與搬運貨物的系統",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "儲能": {
    "gloss": "把電能、化學能等能量先存起來，需要時再釋放的技術",
@@ -148113,14 +148030,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "元組": {
-   "gloss": "程式中一旦建立就不能修改的一組有序資料",
+   "gloss": "程式中建立後就不能修改的一組有序資料",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：不同程式語言對元組的定義不完全相同，『一旦建立就不能修改』雖常見但不宜當成通則，可改成『許多程式語言中的一種有序資料組合，常可存放多個值』。"
   },
   "光偵測器": {
@@ -148251,8 +148168,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；只說是『價值標準』太空泛，宜補出重點如依需求、能力、貢獻或平等原則分配時是否被認為合理。"
+   "verified": "claude-manual"
   },
   "六西格瑪": {
    "gloss": "用數據找出並減少流程錯誤以降低缺陷率的管理方法",
@@ -148305,15 +148221,14 @@
    "verified": "claude+gpt"
   },
   "分子軌域理論": {
-   "gloss": "分子電子分佈理論",
+   "gloss": "把電子視為分佈在整個分子上的軌域來解釋鍵結",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 32 不在 6–28"
+   "verified": "claude-manual"
   },
   "分批成本制": {
    "gloss": "把成本依每一批訂單或產品分別累計的會計方法",
@@ -148326,37 +148241,34 @@
    "verified": "claude+gpt"
   },
   "分支過程": {
-   "gloss": "個體分裂的隨機過程",
+   "gloss": "每個個體隨機產生後代的隨機模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 39 不在 6–28"
+   "verified": "claude-manual"
   },
   "分散式網路通訊模型": {
-   "gloss": "節點間資料傳輸方式",
+   "gloss": "多台電腦各自運作又彼此交換資料的通訊方式",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "分析方法": {
    "gloss": "分析太陽數據的數學方法",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "分步成本制": {
    "gloss": "把成本依生產流程的各個步驟分別累計的會計方法",
@@ -148389,15 +148301,14 @@
    "verified": "claude+gpt"
   },
   "功率頻譜密度": {
-   "gloss": "訊號功率的頻率分佈",
+   "gloss": "訊號的功率在各個頻率上的分佈",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「功率」「頻譜」「密度」與適用對象都未解釋，且這不是高中物理波動課程會直接教授的核心名詞；宜改成更白話並移除高中課程連結。"
+   "verified": "claude-manual"
   },
   "加法器": {
    "gloss": "能把兩個二進位數字相加的數位電路",
@@ -148440,15 +148351,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "半導體材料": {
-   "gloss": "製作晶片的材料",
+   "gloss": "導電力介於導體與絕緣體之間、用來做晶片的材料",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "協整": {
    "gloss": "兩組資料各自上下波動，但彼此的差距長期維持穩定的現象",
@@ -148461,37 +148371,34 @@
    "verified": "claude+gpt(改寫後)"
   },
   "卷積碼": {
-   "gloss": "連續資料的編碼技術",
+   "gloss": "邊輸入邊編碼，多加冗餘資訊以抗傳輸錯誤的編碼",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 35 不在 6–28"
+   "verified": "claude-manual"
   },
   "原子鍵結": {
-   "gloss": "化學鍵",
+   "gloss": "原子之間結合在一起的方式",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；說成『靠電子作用』過於含糊且易忽略離子鍵等由靜電吸引主導的情況，建議改成『原子之間因電子分布與靜電作用而形成的結合方式』。"
+   "verified": "claude-manual"
   },
   "反向傳播": {
-   "gloss": "訓練神經網絡的方法",
+   "gloss": "從輸出誤差往回計算並調整神經網路權重的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 31 不在 6–28"
+   "verified": "claude-manual"
   },
   "反射鏡": {
    "gloss": "表面光滑、能把光線反射到指定方向的光學元件",
@@ -148594,15 +148501,14 @@
    "verified": "claude+gpt"
   },
   "向量支持機器": {
-   "gloss": "用超平面分類的模型",
+   "gloss": "在資料中畫出最佳分界線，把兩類資料分開的模型",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；中文常用名稱是「支持向量機」，且不只找「分界線」也可對應更一般的分隔超平面，建議改名並修正文句。"
+   "verified": "claude-manual"
   },
   "品牌建設": {
    "gloss": "長期經營讓大眾認識並信任某個品牌的做法",
@@ -148676,15 +148582,14 @@
    "verified": "claude+gpt"
   },
   "四相相位調變": {
-   "gloss": "四種相位的訊號調變方式",
+   "gloss": "用四種相位代表資料的數位調變方式",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「相位調變」與通訊背景未解釋，且這不是高中物理波動課程內容，建議改得更白話並移除 hs_link。"
+   "verified": "claude-manual"
   },
   "因果關係": {
    "gloss": "某個因素會影響或造成另一個結果的關係",
@@ -148697,15 +148602,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "因素分析": {
-   "gloss": "找出影響結果的主要因素",
+   "gloss": "從許多變數中找出背後少數共同因素的統計方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 35 不在 6–28"
+   "verified": "claude-manual"
   },
   "固態物理": {
    "gloss": "研究固體中原子排列與電子行為如何決定材料性質",
@@ -148808,26 +148712,24 @@
    "verified": "claude+gpt"
   },
   "地理空間網路": {
-   "gloss": "地理空間資料的連接網路",
+   "gloss": "用節點與連線表示地理位置之間連結的網路",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "地理資訊混搭": {
-   "gloss": "混合不同地圖資料的技術",
+   "gloss": "把不同來源的地圖資料疊合在一起使用",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；此詞不是常見正式術語，容易把 GIS 的圖層疊加或資料整合俗稱化；建議改成「地理資訊整合」或「圖層疊加分析」並說明用途。"
+   "verified": "claude-manual"
   },
   "地緣政治": {
    "gloss": "從地理位置與資源角度，分析國家之間權力關係的觀點",
@@ -148840,15 +148742,14 @@
    "verified": "claude+gpt"
   },
   "地質力學": {
-   "gloss": "研究地殼變形的科學",
+   "gloss": "研究岩石與土壤受力後如何變形或破壞",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "地質圖": {
    "gloss": "標示各種岩層分布與斷層、褶皺位置的專門地圖",
@@ -148871,15 +148772,14 @@
    "verified": "claude+gpt"
   },
   "地質能源": {
-   "gloss": "地底能源資源的總稱",
+   "gloss": "來自地底的能源，如石油、天然氣與地熱",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「地質能源」不是常見標準分類，且把地熱與石油天然氣並列會混淆來源；建議改成「地下能源資源」或分別說明化石燃料與地熱。"
+   "verified": "claude-manual"
   },
   "地震前兆研究": {
    "gloss": "尋找地震發生前出現的異常訊號，嘗試預測地震的研究",
@@ -148952,15 +148852,14 @@
    "verified": "claude+gpt"
   },
   "基因組演化": {
-   "gloss": "基因組的變化過程",
+   "gloss": "生物整套基因隨時間改變的過程",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；概念本身對，但「全套遺傳物質」對高中生仍偏抽象，且這不是高中生物常規課名詞；建議改成較常見的「基因演化」或補例子說明。"
+   "verified": "claude-manual"
   },
   "基因表達": {
    "gloss": "細胞讀取基因資訊，製造出RNA或蛋白質的過程",
@@ -148983,15 +148882,14 @@
    "verified": "claude+gpt"
   },
   "場效電晶體": {
-   "gloss": "控制電流的半導體元件",
+   "gloss": "用電場控制電流大小的半導體元件",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 39 不在 6–28"
+   "verified": "claude-manual"
   },
   "塑性": {
    "gloss": "材料受力超過限度後，變形無法恢復原狀的特性",
@@ -149024,25 +148922,24 @@
    "verified": "claude+gpt"
   },
   "多元分析": {
-   "gloss": "分析多個變數關係的方法",
+   "gloss": "同時分析多個變數之間關係的統計方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；此詞通常專指 multivariate analysis，不等於泛指所有同時分析多個變數的統計方法；且高中數學不教此名詞，建議改為「多變量分析」並標示為進階統計。"
+   "verified": "claude-manual"
   },
   "多型": {
-   "gloss": "同一個指令對不同物件能產生各自適合的不同行為",
+   "gloss": "物件導向中同一個指令對不同物件有不同行為",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「多型」在生物學、材料學與程式設計都有不同意思，這裡其實是在講物件導向程式設計的 polymorphism，需加註學科。"
   },
   "多自由度系統": {
@@ -149093,8 +148990,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「太陽光能」較常指太陽輻射的能量或其利用，不宜只說成光與熱輻射本身；且與高中物理的「光電效應」不是直接對應的課程名詞。"
+   "verified": "claude-manual"
   },
   "太陽結構": {
    "gloss": "描述太陽從核心到大氣各個分層的組成與特性",
@@ -149117,15 +149013,14 @@
    "verified": "claude+gpt"
   },
   "套利定價理論": {
-   "gloss": "利用價格差異獲利的理論",
+   "gloss": "解釋資產報酬如何由多種風險因素決定的理論",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；含有「資產報酬」「風險因素」「套利」等未解釋術語，建議改成先說它是用多個因素解釋資產價格的財務理論。"
+   "verified": "claude-manual"
   },
   "套索回歸": {
    "gloss": "從一大堆條件中挑出真正影響結果的幾個，用來做預測的方法",
@@ -149178,37 +149073,34 @@
    "verified": "claude+gpt(改寫後)"
   },
   "存貨控制與管理": {
-   "gloss": "控制庫存方法",
+   "gloss": "決定庫存要放多少、何時補貨的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "安樂死": {
-   "gloss": "協助終結生命的倫理議題",
+   "gloss": "在病人要求下以醫療方式結束生命的倫理議題",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把安樂死直接說成「醫療行為」且含「協助結束生命」容易混淆安樂死與醫師協助自殺，建議改成在倫理與法律上指為減輕痛苦而主動或被動結束生命維持的作法。"
+   "verified": "claude-manual"
   },
   "定積分": {
-   "gloss": "特定區間的面積計算",
+   "gloss": "計算曲線在某個區間下方面積的運算",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；定積分不只是在算曲線下面積，負值函數或更一般情況是算累積量；且高中課程通常在微積分單元，不是「函數與極限」而已。"
+   "verified": "claude-manual"
   },
   "定量分析": {
    "gloss": "用實驗或測量得出物質含量多寡的分析方法",
@@ -149248,8 +149140,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「量子系統」「各種狀態機率」「矩陣描述」對高二生過難且易不懂，高中近代物理也不會教密度矩陣。"
+   "verified": "claude-manual"
   },
   "實模式": {
    "gloss": "舊式電腦處理器剛啟動時使用的最基本運作方式",
@@ -149262,15 +149153,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "實驗室與現地試驗": {
-   "gloss": "實驗室與實地汙染測試",
+   "gloss": "分別在實驗室與實際現場所做的測試",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "實驗研究法": {
    "gloss": "刻意改變一個條件並控制其他條件，來檢驗因果關係的研究方法",
@@ -149283,14 +149173,14 @@
    "verified": "claude+gpt"
   },
   "封裝": {
-   "gloss": "把資料和操作方式包在一起，只對外開放必要的使用介面",
+   "gloss": "物件導向中把資料與操作包在一起，只開放必要介面",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「封裝」在程式設計、半導體、物流等領域意思不同，建議點明是物件導向中的封裝。"
   },
   "專利": {
@@ -149311,8 +149201,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "專案排程": {
    "gloss": "安排各項工作先後順序與完成時間的計畫方法",
@@ -149325,15 +149214,14 @@
    "verified": "claude+gpt"
   },
   "對偶理論": {
-   "gloss": "優化問題的對稱解法",
+   "gloss": "每個最佳化問題都有對應的問題，可互相求解",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；這是在最佳化或線性規劃中的專門概念，高中通常不教，且「對應問題」說得太跳躍。"
+   "verified": "claude-manual"
   },
   "導數": {
    "gloss": "描述函數在某一點變化快慢的數學量",
@@ -149353,8 +149241,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；導航不一定靠衛星或感測器，也包含用地圖、地標等方法判定位置與引導路徑，原句把特例寫成通則。"
+   "verified": "claude-manual"
   },
   "小波轉換": {
    "gloss": "把聲音等訊號拆開，看出何時出現哪些快慢變化",
@@ -149374,8 +149261,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "巨量資料": {
    "gloss": "數量龐大且更新快速、需要特殊工具處理的資料",
@@ -149459,59 +149345,54 @@
    "verified": "claude+gpt"
   },
   "布林代數": {
-   "gloss": "邏輯運算基礎",
+   "gloss": "只用真與假兩個值做邏輯運算的代數",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "布爾代數": {
-   "gloss": "邏輯運算",
+   "gloss": "只用真與假兩個值做邏輯運算的代數",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "布里淵區": {
-   "gloss": "倒晶格中的基本區域",
+   "gloss": "晶體中描述電子狀態的基本單位區域",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「電子波動狀態」「動量空間基本單元範圍」都超出高二理解，且不是高中物理課程內容。"
+   "verified": "claude-manual"
   },
   "希爾伯特-黃變換": {
-   "gloss": "分析訊號頻率變化的方法",
+   "gloss": "把複雜訊號分解成不同頻率成分的分析方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "希爾伯特-黃轉換": {
-   "gloss": "分解複雜訊號為不同頻率",
+   "gloss": "把複雜訊號分解成不同頻率成分的分析方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「振盪成分」與「分析頻率」未交代清楚，且此方法遠超高中物理課程，應去除高中連結並大幅降難度。"
+   "verified": "claude-manual"
   },
   "常態分佈": {
    "gloss": "中間多、兩側少且左右對稱的鐘形資料分佈",
@@ -149541,19 +149422,17 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 32 不在 6–28"
+   "verified": "claude-manual"
   },
   "平衡方程式": {
    "gloss": "化學反應平衡的數學表示",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "平衡計分卡": {
    "gloss": "從財務、客戶等多個面向衡量組織表現的管理工具",
@@ -149684,8 +149563,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把它說成『微分與積分互為反向運算』太籠統且易誤導，應改成連結定積分與原函數的定理；另外這通常不屬於台灣高中正式課程。"
+   "verified": "claude-manual"
   },
   "微電網": {
    "gloss": "可自行發電與供電、也能和大電網連接的小型電力系統",
@@ -149705,8 +149583,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "快速傅立葉轉換": {
    "gloss": "把一串取樣數據快速拆成各頻率成分的計算步驟",
@@ -149766,8 +149643,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "成本分析": {
    "gloss": "拆解並比較各項花費，找出錢花在哪裡與如何節省的方法",
@@ -149787,8 +149663,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "成長策略": {
    "gloss": "企業為擴大規模、市占率或營收所採取的整體做法",
@@ -149808,8 +149683,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "戰略人力資源管理": {
    "gloss": "把招募、培訓與考核等人事安排，配合組織長期目標來規劃",
@@ -149889,8 +149763,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "採樣": {
    "gloss": "將連續訊號轉為離散資料",
@@ -149900,8 +149773,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "控制器設計": {
    "gloss": "決定如何調整輸入，讓系統穩定達到想要的狀態",
@@ -149921,8 +149793,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 35 不在 6–28"
+   "verified": "claude-manual"
   },
   "推廣策略": {
    "gloss": "規劃如何讓更多人認識並購買產品的做法",
@@ -150198,15 +150069,14 @@
    "verified": "claude+gpt"
   },
   "方差縮減技術": {
-   "gloss": "減少模擬誤差的統計方法",
+   "gloss": "降低模擬結果波動的統計技巧",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "方法": {
    "gloss": "物件執行的動作",
@@ -150216,8 +150086,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "旋度": {
    "gloss": "看水流或風在某處有沒有打轉、轉得多強的一種數學量",
@@ -150310,15 +150179,14 @@
    "verified": "claude+gpt"
   },
   "更新理論": {
-   "gloss": "事件更新時間間隔的理論",
+   "gloss": "研究事件重複發生的時間間隔的機率理論",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "最佳化技術": {
    "gloss": "在限制條件下找出最好結果的數學計算方法",
@@ -150338,8 +150206,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 33 不在 6–28"
+   "verified": "claude-manual"
   },
   "有效應力": {
    "gloss": "土壤顆粒之間實際互相傳遞的壓力，等於總壓力扣掉孔隙水壓",
@@ -150399,8 +150266,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 34 不在 6–28"
+   "verified": "claude-manual"
   },
   "材料分析": {
    "gloss": "用儀器檢測材料的成分、結構與性質的方法",
@@ -150490,8 +150356,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "模板": {
    "gloss": "澆築混凝土的模具",
@@ -150501,8 +150366,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "模糊邏輯": {
    "gloss": "允許真假之間有程度之分的邏輯，而非只有是或否",
@@ -150532,8 +150396,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；這句只適用離散型情況，會把連續型分配排除掉；建議改成描述隨機變數取值與其機率如何分布的規則。"
+   "verified": "claude-manual"
   },
   "權力": {
    "gloss": "一個人或團體讓他人照自己意思行動的能力",
@@ -150553,8 +150416,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「相位」與此技術本身都超出高中物理常規課程，建議先用「把兩種彼此不干擾的波疊在一起傳資料」再補充細節。"
+   "verified": "claude-manual"
   },
   "正交投影": {
    "gloss": "把一個向量垂直投到某條直線或平面上，得到它落在上面的影子",
@@ -150570,23 +150432,21 @@
    "gloss": "整理資料減少重複",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "母體與樣本估計": {
-   "gloss": "總體與抽樣的關係",
+   "gloss": "用抽出的樣本來推估整體的特徵",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「母體與樣本」和「估計」是兩件事，現句只在講估計且高中通常不正式教統計推論，建議改詞為「抽樣估計」或把說明拆開。"
+   "verified": "claude-manual"
   },
   "比較法": {
    "gloss": "對照多種語言的相似處，推斷它們共同祖先樣貌的方法",
@@ -150679,8 +150539,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "決策分析": {
    "gloss": "用數據與模型比較各種選項的風險和好處來做選擇",
@@ -150741,8 +150600,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；泰勒級數不是單純『由低到高次方項相加的近似式』，而是以某點導數決定的冪級數展開；且高中多項式函數課程不會正式教此概念。"
+   "verified": "claude-manual"
   },
   "活性汙泥程序": {
    "gloss": "用培養的微生物群吃掉汙水中有機物的處理方法",
@@ -150796,26 +150654,24 @@
    "verified": "claude+gpt"
   },
   "混頻器": {
-   "gloss": "混合不同頻率裝置",
+   "gloss": "把兩個不同頻率的訊號混出新頻率的電路",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；混頻器不是只是把訊號『結合』，重點是利用非線性元件把兩頻率相乘而產生和頻與差頻；且非高中波動課程內容。"
+   "verified": "claude-manual"
   },
   "渦度": {
-   "gloss": "流體旋轉強度",
+   "gloss": "描述流體局部旋轉快慢的量",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；用『打轉快慢與方向』雖有直觀性，但仍未交代是流體局部旋轉程度的向量量，且高中地科不會正式教這個名詞。"
+   "verified": "claude-manual"
   },
   "準時制": {
    "gloss": "需要時才生產所需數量，藉此減少庫存的管理方式",
@@ -150986,8 +150842,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「特徵函數」在高中機率通常不是課程內容，且此詞也可能指集合指示函數；若要講機率論中的 characteristic function，需明確標示學科並避免連到高中機率。"
+   "verified": "claude-manual"
   },
   "狀態空間模型": {
    "gloss": "用幾個數字記錄事物現況並預測它隨時間怎麼變的模型",
@@ -151030,15 +150885,14 @@
    "verified": "claude+gpt"
   },
   "瑕積分": {
-   "gloss": "處理不連續點的積分",
+   "gloss": "積分區間無限，或函數在端點無定義時的積分",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；用到「積分」「發散」等高中生未必已學或未解釋的詞，且瑕積分不屬一般高中數學課程，建議移除高中連結並改用更白話說法。"
+   "verified": "claude-manual"
   },
   "環境倫理": {
    "gloss": "探討人類該如何對待自然環境與其他生物的道德觀點",
@@ -151058,8 +150912,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：vague；這是很泛的概念而不是高中課程中的明確名詞，建議改成更具體的詞如「環境影響評估」或補出評估對象與面向。"
+   "verified": "claude-manual"
   },
   "環境影響評估": {
    "gloss": "在工程開工前，預先分析它會對環境造成哪些衝擊的程序",
@@ -151110,8 +150963,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "生態學": {
    "gloss": "研究生物彼此之間以及與周遭環境如何互相影響的科學",
@@ -151171,8 +151023,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；這其實是在說「生物整治／生物復育污染環境」而不是較泛的「生物復育」，後者也可能指物種或族群恢復；建議改成「生物整治」或明確寫成污染場址復育。"
+   "verified": "claude-manual"
   },
   "生物資訊學": {
    "gloss": "用電腦與統計方法整理、分析基因等大量生物資料的領域",
@@ -151202,8 +151053,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "產品管理": {
    "gloss": "規劃產品從設計、上市到退場整個過程的管理工作",
@@ -151354,8 +151204,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；『訊號』『時間錯位』屬於較進階的訊號處理語境，且不是高中數據分析會教的內容，建議先標明它是工程/數學中的專門工具。"
+   "verified": "claude-manual"
   },
   "相關研究法": {
    "gloss": "透過數據檢驗兩個變數是否一起變動的研究方式",
@@ -151499,15 +151348,14 @@
    "verified": "claude+gpt"
   },
   "稜鏡": {
-   "gloss": "分光的透明體",
+   "gloss": "能把白光折射分成彩色光的透明柱體",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；稜鏡不一定都會把光分散成不同顏色，核心是「由兩個不平行平面構成、可使光折射」；分光只是常見效果之一。"
+   "verified": "claude-manual"
   },
   "種族": {
    "gloss": "依外貌等特徵把人分成不同群體的社會分類方式",
@@ -151520,15 +151368,14 @@
    "verified": "claude+gpt"
   },
   "積分變換": {
-   "gloss": "轉換積分計算的技巧",
+   "gloss": "把函數用積分轉到另一個領域來處理的方法",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「函數」與「表達形式」對部分高二生仍偏抽象，而且台灣高中數學通常不教積分變換；可改用更白話例子並移除 hs_link。"
+   "verified": "claude-manual"
   },
   "空氣汙染": {
    "gloss": "大氣混入有害物質而危害健康與環境的現象",
@@ -151639,8 +151486,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 30 不在 6–28"
+   "verified": "claude-manual"
   },
   "精神分析": {
    "gloss": "從潛意識與早年經驗去解釋人類心理與行為的理論",
@@ -151889,12 +151735,11 @@
    "gloss": "網路層次架構",
    "hs_link": null,
    "type": null,
-   "skip": false,
+   "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "線性分類器": {
    "gloss": "把資料各項數值加權相加，用結果決定屬於哪一類的方法",
@@ -151927,15 +151772,14 @@
    "verified": "claude+gpt"
   },
   "線性非時變系統": {
-   "gloss": "固定規則的線性系統",
+   "gloss": "輸入輸出成比例，且特性不隨時間改變的系統",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「疊加」「特性不隨時間改變」對高二生偏抽象，宜補上線性=倍增與相加規則都成立、時不變=同樣輸入晚一點進去輸出也只會晚一點出現。"
+   "verified": "claude-manual"
   },
   "缺陷": {
    "gloss": "晶體中原子排列不完整或有雜質的地方",
@@ -152017,8 +151861,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；『會不會自己發生』過度簡化且未指明條件，宜改為在定溫定壓下用吉布斯自由能變化判斷反應自發傾向；此概念通常也非高中化學正式課程。"
+   "verified": "claude-manual"
   },
   "董事會結構": {
    "gloss": "公司最高決策團體的成員組成與分工方式",
@@ -152108,8 +151951,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「虛功」「假想位移」未解釋，對高二生太難，且台灣高中物理通常不教這個原理。"
+   "verified": "claude-manual"
   },
   "虛擬實境": {
    "gloss": "用頭戴裝置讓人彷彿置身電腦打造的立體世界",
@@ -152199,8 +152041,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "行銷環境": {
    "gloss": "會影響企業賣東西的外在條件，例如經濟、法規和消費趨勢",
@@ -152456,15 +152297,14 @@
    "verified": "claude+gpt"
   },
   "變分自編碼器": {
-   "gloss": "加入機率方法的自編碼器",
+   "gloss": "能學出資料的機率分佈並生成新資料的自編碼器",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；這把 VAE 說成一般壓縮還原模型，漏掉以機率分布表示潛在變數並據此生成資料的核心，建議至少點出「學習潛在分布」。"
+   "verified": "claude-manual"
   },
   "變動成本法": {
    "gloss": "只把隨產量增減的成本算進產品成本的會計計算方式",
@@ -152495,8 +152335,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「分類器」對高二生未必直觀，且這不是高中機率課正式會教的內容；可改成「根據條件機率判斷資料最可能屬於哪一類的方法」。"
+   "verified": "claude-manual"
   },
   "財務報表": {
    "gloss": "公司財務狀況的報告",
@@ -152506,8 +152345,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；財務報表不只記錄資產、收入與支出，至少還包括負債、權益與現金流量，建議改成「呈現企業財務狀況與經營成果的一組正式報表」。"
+   "verified": "claude-manual"
   },
   "財務績效評估": {
    "gloss": "用財務數字衡量一家公司經營得好不好的做法",
@@ -152672,14 +152510,14 @@
    "verified": "claude+gpt"
   },
   "路由": {
-   "gloss": "替資料或訊號選出從出發點到目的地的傳送路線",
+   "gloss": "網路中替資料封包選出傳送路線的做法",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「路由」可指電腦網路中的封包轉送，也可泛指交通、物流或訊號選路；建議明確限定學科情境，如「網路中決定資料封包傳送路徑」。"
   },
   "輻射傳送方程": {
@@ -152690,8 +152528,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「輻射傳送方程」與「散射」對高二生偏專業，且這不是高中光學會正式教到的內容；建議改成較白話的「描述光穿過介質時強度如何因吸收與散射而改變的關係」。"
+   "verified": "claude-manual"
   },
   "輻射校正": {
    "gloss": "修正影像亮度誤差",
@@ -152701,8 +152538,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 29 不在 6–28"
+   "verified": "claude-manual"
   },
   "轉動慣量": {
    "gloss": "衡量物體抵抗旋轉運動改變的程度，質量離轉軸越遠越大",
@@ -152722,8 +152558,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "近似演算法": {
    "gloss": "在合理時間內求出接近最佳解的方法，用於難以精確求解的問題",
@@ -152773,8 +152608,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "過濾": {
    "gloss": "讓液體或氣體通過多孔材料，把其中的固體顆粒分離出來",
@@ -152794,8 +152628,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；這是土壤與地下水流動的專業定律，非高中流體課程內容，且「水頭差」未解釋；建議若要白話可先解釋成「地下水因壓力高低差而流動的規律」。"
+   "verified": "claude-manual"
   },
   "遙測基本原理": {
    "gloss": "不接觸物體，靠接收反射或發出的電磁波來獲得資訊的原理",
@@ -152815,8 +152648,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "遙測綜合定位": {
    "gloss": "結合多技術定位方法",
@@ -152826,8 +152658,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "遙測資料": {
    "gloss": "由衛星或飛機從遠處感測地表所取得的影像與數據",
@@ -152850,14 +152681,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "遞迴": {
-   "gloss": "讓一個問題用縮小後的同類問題來解決的方法",
+   "gloss": "程式或數學中用縮小後的同類問題來解決問題",
    "hs_link": null,
    "type": "概念",
-   "skip": true,
+   "skip": false,
    "tier": "core",
    "n_courses": 3,
    "aliases": [],
-   "verified": "claude+gpt",
+   "verified": "claude-manual",
    "note": "一詞多義，不自動標註：「遞迴」在資訊與數學中的用法不同，這句較像解題策略而非高中數學中的遞迴定義；建議明確寫成資訊的「函式呼叫自己」或數學的「由前面結果定出後面結果」。"
   },
   "遞迴神經網路": {
@@ -152894,23 +152725,21 @@
    "gloss": "資料處理的基本單位",
    "hs_link": null,
    "type": null,
-   "skip": false,
-   "tier": "fallback",
-   "n_courses": 3,
-   "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
-  },
-  "配位": {
-   "gloss": "原子間的電子共享",
-   "hs_link": null,
-   "type": null,
    "skip": true,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
+  },
+  "配位": {
+   "gloss": "中心原子與周圍的分子或離子結合的方式",
+   "hs_link": null,
+   "type": null,
+   "skip": false,
+   "tier": "fallback",
+   "n_courses": 3,
+   "aliases": [],
+   "verified": "claude-manual"
   },
   "酵素": {
    "gloss": "生物體內可加速化學反應的催化分子，多數是蛋白質",
@@ -152963,15 +152792,14 @@
    "verified": "claude+gpt"
   },
   "量子糾纏": {
-   "gloss": "粒子間的神秘連接",
+   "gloss": "兩個粒子的狀態彼此關聯，即使相隔很遠也一起變化",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 31 不在 6–28"
+   "verified": "claude-manual"
   },
   "金屬材料": {
    "gloss": "以金屬或合金製成、具有導電導熱與延展性的材料",
@@ -153001,8 +152829,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「鋰電池」常指一次鋰電池，這句其實是在講「鋰離子電池」；若要給高中生，請改成「鋰離子電池是靠鋰離子在正負極間移動來充放電的可充電電池」。"
+   "verified": "claude-manual"
   },
   "鏈結串列": {
    "gloss": "每筆資料都記著下一筆在哪，像一節一節串起來的資料排列方式",
@@ -153032,19 +152859,17 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "阻抗匹配": {
-   "gloss": "電路接續最佳化",
+   "gloss": "讓電路各部分阻抗相配，使訊號能量傳遞最有效",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；「阻抗相配就能量損失最小」說法過度簡化，依情境可能是最大功率傳輸或減少反射，不是高中電路內容；建議明確限定在交流/傳輸線情境。"
+   "verified": "claude-manual"
   },
   "降水": {
    "gloss": "空中水氣凝結後以雨、雪、冰雹等形式落到地面的現象",
@@ -153105,8 +152930,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "長度 33 不在 6–28"
+   "verified": "claude-manual"
   },
   "雲端計算": {
    "gloss": "透過網路使用遠端伺服器的運算與儲存資源",
@@ -153126,8 +152950,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；雷射不是單純「受激發光」，而是「受激輻射」並靠共振腔放大；且「單一顏色」只是近似，高中通常不會正式教這套原理。"
+   "verified": "claude-manual"
   },
   "電位": {
    "gloss": "電場中某一點上，每單位電荷所對應的電位能",
@@ -153301,15 +153124,14 @@
    "verified": "claude+gpt(改寫後)"
   },
   "音韻": {
-   "gloss": "語音發音規則",
+   "gloss": "一種語言中聲音如何組合與變化的規律",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：inaccurate；把「音韻」縮成聲母、韻母、聲調會混同現代漢語拼音觀念與傳統音韻學；若給高中生可改成「研究語音系統及其聲類、韻類、聲調等規律」。"
+   "verified": "claude-manual"
   },
   "韻文": {
    "gloss": "句尾講求押韻、讀起來有節奏感的文章",
@@ -153322,15 +153144,14 @@
    "verified": "claude+gpt"
   },
   "頻移鍵控": {
-   "gloss": "改變頻率傳遞資料",
+   "gloss": "用改變頻率來代表 0 與 1 的數位調變",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「載波」「調變」「數位訊號」對高二生偏難且高中物理通常不教此名詞；可改成「用兩種不同頻率的波來代表0和1的傳送方法」。"
+   "verified": "claude-manual"
   },
   "類別與物件導向": {
    "gloss": "物件導向程式設計基礎",
@@ -153340,8 +153161,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "顧客服務標準": {
    "gloss": "設定服務品質的規範",
@@ -153351,8 +153171,7 @@
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "尚未交叉審核"
+   "verified": "claude-manual"
   },
   "顯微鏡": {
    "gloss": "利用透鏡把微小物體放大以便觀察的儀器",
@@ -153436,26 +153255,24 @@
    "verified": "claude+gpt(改寫後)"
   },
   "馬可夫鏈蒙特卡洛": {
-   "gloss": "模擬機率分佈的方法",
+   "gloss": "用隨機抽樣來模擬難以直接計算的機率分佈",
    "hs_link": null,
    "type": null,
    "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「相依的隨機抽樣」「機率分佈」對高二生偏難，且不是高中機率課程內容；可改成更白話地說是「靠很多次有規則的隨機模擬來估計機率」。"
+   "verified": "claude-manual"
   },
   "體論": {
-   "gloss": "研究數系結構的數學",
+   "gloss": "研究能加減乘除的數系（如實數）的代數結構",
    "hs_link": null,
    "type": null,
-   "skip": true,
+   "skip": false,
    "tier": "fallback",
    "n_courses": 3,
    "aliases": [],
-   "needs_review": true,
-   "review_reason": "審稿：too_hard；「數系」「結構與性質」過於抽象，而且體論屬大學代數，不是高中數學內容；可改成「研究像有理數那樣能做四則運算的數學系統」。"
+   "verified": "claude-manual"
   },
   "高分子材料": {
    "gloss": "由許多小分子連成長鏈而成的材料，像塑膠和橡膠",

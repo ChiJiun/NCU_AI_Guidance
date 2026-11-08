@@ -74,6 +74,8 @@ SYSTEM_PROMPT = """你是「中央大學選課助理」，協助高中生、大�
    - 知道系所時：`<course>課名（系所）</course>`，例如：`<course>統計學（數學系）</course>`
    - 不知道系所時：`<course>課名</course>`，例如：`<course>資料結構</course>`
    ⚠️ **`<course>` 標籤只能包住「課程名稱」，絕對不可用來包住系所名稱、學院名稱或其他非課程的詞**。
+   課程裡涵蓋的「概念」與「技術」（例如二元搜尋樹、動態規劃、NP 完備性、Python、C++）不是課程，
+   一律用純文字，不加標籤；只有課表上真的存在、且工具回傳過的課名才加。
       課名必須與工具回傳的原始名稱「逐字相同」，不得縮寫、改寫或翻譯。
       若不確定課名是否正確，**不要加標籤**，寧可不標也不要標錯。
       標籤只用於工具實際回傳過的課程，不得自行推測或補充工具未回傳的課程。
@@ -103,16 +105,17 @@ SYSTEM_PROMPT = """你是「中央大學選課助理」，協助高中生、大�
 
 1. 先講「大學會學什麼」，再講課名；課名只當佐證，不要整段倒課名。
 2. 第一次出現學分、必修、選修、先修、學程等詞時，用一句白話解釋。
-3. 探索型回答（不知道選什麼、想比較方向）：最多 3–4 條路徑，每條 2–3 門代表課並說明它在學什麼，
-   最後問學生想往哪條走；完整清單等學生要求再給。
-4. 資訊太少時先問再查：學生只說「我不知道喜歡什麼」「喜歡動手做」這類沒有科系或作品線索的描述，
-   先用口語問 1–2 個會改變建議的問題（例如偏實驗還是程式、喜歡理論還是應用），或提出 2–3 條方向請學生選；
-   不要一次丟出大量課程。學生已經給出明確主題或想做的東西時才直接查詢。
+3. 探索型回答：學生已經給出一個主題、科目或想做的東西，只是想比較方向時，先查詢，
+   再給最多 3–4 條路徑，每條 2–3 門代表課並說明它在學什麼，最後問學生想往哪條走；完整清單等學生要求再給。
+4. 資訊太少時只問、不查（與第 3 條互斥）：學生只說「我不知道喜歡什麼」「喜歡動手做」這類沒有科系、
+   主題或作品線索的描述，這一輪只用口語問 1–2 個會改變建議的問題（例如偏實驗還是程式、喜歡理論還是應用），
+   並提供 2–3 個選項讓學生挑；不要同時又列出完整的路徑與課程。等學生回答後再查詢。
 5. 比較兩個系：分「相同的地方」「不同的地方」「各自代表課」，用查到的課程支持，不評價誰比較好、誰比較簡單。
 6. 遇到迷思或錯誤前提（例如「資工不用數學」「自然組讀文學院是浪費」），先溫和說明課程資料看到的樣子，
    不照單接受，也不空泛安慰。
 7. 資料查不到的需求（例如藝術創作）要明說中大課程資料中沒有對應，再提供可查證的相近課程。
 8. 語氣像學長姐：友善、簡短、不用術語；結尾給一個可行的下一步（例如「想先看哪一類？」）。
+9. 一次只給一份回答：同一則回答不要把相同的內容換句話再寫一遍，追問時問題只出現一次。
 
 ## Filter 使用原則
 
@@ -752,6 +755,24 @@ def _parse_courses_from_str(tool_name: str, text: str) -> list[dict]:
                 courses.append({"name": name, "dept": dept, "credits": 0, "type": "", "code": "", "teacher": ""})
 
     elif tool_name in ("find_similar_courses", "get_course_knowledge_map"):
+        if tool_name == "get_course_knowledge_map":
+            # 第一行是被查詢的課本身：【演算法】（生醫科學與工程學系，3學分）；不是清單行，要另外解析
+            hm = re.match(r'\s*【(.+?)】（([^，）]+)(?:，(\d+)學分)?）', text)
+            if hm and len(hm.group(1).strip()) >= 2:
+                courses.append({
+                    "name": hm.group(1).strip(), "dept": hm.group(2).strip(),
+                    "credits": int(hm.group(3)) if hm.group(3) else 0,
+                    "type": "", "code": "", "teacher": "",
+                })
+            # 另有同名課程：演算法（資訊管理學系，3學分）、演算法（通訊工程學系，3學分）
+            om = re.search(r'另有同名課程：(.+)', text)
+            if om:
+                for m in re.finditer(r'([^、：]+?)（([^，）]+)(?:，(\d+)學分)?）', om.group(1)):
+                    courses.append({
+                        "name": m.group(1).strip(), "dept": m.group(2).strip(),
+                        "credits": int(m.group(3)) if m.group(3) else 0,
+                        "type": "", "code": "", "teacher": "",
+                    })
         # - 深度學習程式設計（通訊工程學系，3學分） [共享概念：8 個]
         for m in re.finditer(r'-\s*(.+?)（([^，）]+)(?:，(\d+)學分)?）', text):
             name = m.group(1).strip()
@@ -818,10 +839,15 @@ def _collect_course_pool(tool_name: str, result, course_pool: dict) -> None:
                 }
     elif tool_name in ("ppr_explore", "find_similar_courses",
                        "get_course_knowledge_map", "get_depts_by_tech") and isinstance(result, str):
+        existing = {(v.get("name"), v.get("dept")) for v in course_pool.values()}
         for c in _parse_courses_from_str(tool_name, result):
             name = c["name"]
-            if name and name not in course_pool:
-                course_pool[name] = c
+            if not name or (name, c["dept"]) in existing:
+                continue
+            # 同名但不同系所的課（如多個系都開「演算法」）各自保留，標籤比對會依系所挑對應版本
+            key = name if name not in course_pool else f"{name}（{c['dept']}）"
+            course_pool[key] = c
+            existing.add((name, c["dept"]))
 
     elif tool_name == "get_course_detail" and isinstance(result, dict):
         if result.get("ambiguous"):

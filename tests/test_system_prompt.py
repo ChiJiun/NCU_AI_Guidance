@@ -63,6 +63,16 @@ class SystemPromptTests(unittest.TestCase):
         for phrase in ("薪資", "錄取分數", "視為查無", "114 學年", "不編造網址"):
             self.assertIn(phrase, self.prompt)
 
+    def test_concepts_and_technologies_are_not_course_tags(self):
+        # 回歸：模型曾把「二元搜尋樹」「C++」這類概念與技術也用 <course> 包起來
+        self.assertIn("概念」與「技術」", self.prompt)
+        self.assertIn("不是課程", self.prompt)
+
+    def test_explore_and_clarify_rules_do_not_overlap(self):
+        # 「探索」與「先追問」兩條規則曾同時適用於「我不知道喜歡什麼」，導致模型把兩種回答都寫出來
+        self.assertIn("與第 3 條互斥", self.prompt)
+        self.assertIn("一次只給一份回答", self.prompt)
+
     def test_examples_cover_compare_clarify_and_missing_department(self):
         for title in ("範例 13", "範例 14", "範例 15"):
             self.assertIn(title, self.prompt)

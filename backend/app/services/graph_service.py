@@ -907,6 +907,23 @@ def get_course_info(course_name_or_code: str) -> list[dict]:
     return results
 
 
+def _norm_course_name(name: str) -> str:
+    return "".join(name.replace("[已停開]", "").split())
+
+
+def get_course_info_exact_first(course_name: str) -> list[dict]:
+    """有完全同名的課就只回傳同名課（各系版本），沒有才退回模糊比對。
+
+    get_course_info 是雙向包含比對，查「演算法」會連《數位訊號處理演算法》《生物資訊演算法》
+    一起撈到，把別門課的概念混進來；已停開的課也不該代表現在的課程內容。
+    """
+    fuzzy = get_course_info(course_name)
+    target = _norm_course_name(course_name)
+    exact = [c for c in fuzzy
+             if _norm_course_name(c.get("name", "")) == target and "[已停開]" not in c.get("name", "")]
+    return exact or fuzzy
+
+
 _2HOP_DISCOUNT = 0.5  # SIMILAR_TO 鄰居概念的分數折扣
 
 def search_courses_by_concept_cluster(seed_course_name: str, top_n: int = 20) -> list[dict]:
@@ -919,7 +936,7 @@ def search_courses_by_concept_cluster(seed_course_name: str, top_n: int = 20) ->
     3. 走反向邊找到有共同概念的其他課程，加總 weight 排序
     4. 回傳 top_n（由 Qdrant RRF 過濾 2-hop 的低品質候選）
     """
-    seed_courses = get_course_info(seed_course_name)
+    seed_courses = get_course_info_exact_first(seed_course_name)
     if not seed_courses:
         return []
 
@@ -1058,7 +1075,7 @@ def get_course_knowledge_map(course_name: str) -> dict:
       "similar_courses": [{name, dept, credits, shared_concepts}],
     }
     """
-    courses = get_course_info(course_name)
+    courses = get_course_info_exact_first(course_name)
     if not courses:
         return {}
 
@@ -1085,6 +1102,14 @@ def get_course_knowledge_map(course_name: str) -> dict:
     similar = search_courses_by_concept_cluster(course_name, top_n=10)
 
     primary = courses[0]
+    # 同名課程依系所去重（同系多班只算一個）；概念與技術是這些版本的合併結果，呼叫端要據實說明
+    same_name: list[dict] = []
+    seen_depts: set[str] = set()
+    for sc in courses:
+        dept = sc.get("dept", "")
+        if dept and dept not in seen_depts:
+            seen_depts.add(dept)
+            same_name.append({"name": sc.get("name", ""), "dept": dept, "credits": sc.get("credits")})
     return {
         "course": {
             "id":      primary["id"],
@@ -1092,6 +1117,7 @@ def get_course_knowledge_map(course_name: str) -> dict:
             "dept":    primary.get("dept", ""),
             "credits": primary.get("credits"),
         },
+        "same_name_courses": same_name,
         "concepts":        sorted(concepts, key=lambda x: x["name"]),
         "technologies":    technologies,
         "similar_courses": similar,
@@ -1316,6 +1342,7 @@ def ppr_explore(
     alpha: float = 0.85,
     n_iter: int = 25,
     node_type_filter: list[str] = None,
+    exclude_grad: bool = False,
 ) -> list[dict]:
     """Personalized PageRank 探索：從種子節點出發做帶重置的隨機遊走。
 
@@ -1325,6 +1352,7 @@ def ppr_explore(
     seed_names:        概念/技術/課程名稱列表
     alpha:             延續前進的機率（1-alpha = 重置到種子的機率）
     node_type_filter:  若指定，只回傳特定類型的節點（如 ["Course", "Instructor"]）
+    exclude_grad:      True 時略過研究所課程（Course 節點 level == "grad"）
     """
     g = _g()
 
@@ -1394,6 +1422,8 @@ def ppr_explore(
                     ntype = nd.get("node_type", "")
                     if allowed and ntype not in allowed:
                         continue
+                    if exclude_grad and _is_grad_course(nd):
+                        continue
                     results.append({
                         "id":        nid,
                         "name":      nd.get("name", nid),
@@ -1437,6 +1467,8 @@ def ppr_explore(
         ntype = nd.get("node_type", "")
         if allowed and ntype not in allowed:
             continue
+        if exclude_grad and _is_grad_course(nd):
+            continue
         results.append({
             "id":        nid,
             "name":      nd.get("name", nid),
@@ -1450,10 +1482,16 @@ def ppr_explore(
     return _ppr_gap_filter(results)
 
 
+def _is_grad_course(node: dict) -> bool:
+    """圖譜 Course 節點的 level 為 grad（研究所課程）。level 為 ugrad 或 unknown 都視為可給大學部學生看。"""
+    return node.get("node_type") == "Course" and node.get("level") == "grad"
+
+
 def explore_by_concept_neighborhood(
     query: str,
     hops: int = 2,
     top_k: int = 15,
+    exclude_grad: bool = False,
 ) -> list[dict]:
     """以概念詞彙為中心，igraph BFS 遍歷 N 跳收集相關課程。
 
@@ -1499,6 +1537,9 @@ def explore_by_concept_neighborhood(
                         if nbr not in visited:
                             queue.append((nbr, depth + 1))
 
+            if exclude_grad:
+                course_hits = {k: v for k, v in course_hits.items()
+                               if not _is_grad_course(g["nodes"].get(k, {}))}
             results: list[dict] = []
             for nid, score in sorted(course_hits.items(), key=lambda x: -x[1])[:top_k]:
                 nd = g["nodes"].get(nid, {})
@@ -1531,6 +1572,9 @@ def explore_by_concept_neighborhood(
                 if rel in TRAVERSE_RELS and src not in visited_fb:
                     queue_fb.append((src, depth + 1))
 
+    if exclude_grad:
+        course_hits_fb = {k: v for k, v in course_hits_fb.items()
+                          if not _is_grad_course(g["nodes"].get(k, {}))}
     results_fb: list[dict] = []
     for nid, score in sorted(course_hits_fb.items(), key=lambda x: -x[1])[:top_k]:
         nd = g["nodes"].get(nid, {})

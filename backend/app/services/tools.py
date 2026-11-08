@@ -219,6 +219,9 @@ def _rrf_similar_courses(course_name: str, top_n: int = 15) -> list[dict]:
     scores: dict[str, float] = {}
     meta:   dict[str, dict]  = {}
 
+    # 研究所課程不推薦給大學部（與 search_courses 預設隱藏研究所專屬課的行為一致）
+    graph_results = [r for r in graph_results if r.get("level") != "grad"]
+
     for rank, r in enumerate(graph_results, 1):
         n = r["name"]
         scores[n] = scores.get(n, 0.0) + 1.0 / (RRF_K + rank)
@@ -226,7 +229,7 @@ def _rrf_similar_courses(course_name: str, top_n: int = 15) -> list[dict]:
 
     for rank, r in enumerate(vector_results, 1):
         n = r.get("metadata", {}).get("name_zh", "")
-        if not n:
+        if not n or r.get("metadata", {}).get("is_grad_only"):
             continue
         scores[n] = scores.get(n, 0.0) + 1.0 / (RRF_K + rank)
         meta.setdefault(n, {
@@ -875,6 +878,14 @@ def tool_get_course_knowledge_map(course_name: str) -> str:
     c = result["course"]
     lines.append(f"【{c['name']}】（{c['dept']}，{c.get('credits', '?')}學分）")
 
+    others = [x for x in result.get("same_name_courses", []) if x["dept"] != c["dept"]]
+    if others:
+        lines.append(
+            "另有同名課程：" + "、".join(
+                f"{x['name']}（{x['dept']}，{x.get('credits', '?')}學分）" for x in others)
+            + "\n（以下概念與技術是這些同名課程合併的結果，各系內容可能略有不同，不要只歸給第一個系所）"
+        )
+
     techs = result.get("technologies", [])
     if techs:
         lines.append(f"\n使用技術：{', '.join(t['name'] for t in techs[:10])}")
@@ -1033,6 +1044,7 @@ def tool_ppr_explore(
         seed_names=seed_list,
         top_k=fetch_k,
         node_type_filter=type_filter,
+        exclude_grad=True,
     )
 
     if not results:
@@ -1149,7 +1161,7 @@ def tool_explore_concept_neighborhood(
     hops: BFS 跳數（預設 2，最多 3）
     """
     hops = max(1, min(hops, 3))
-    results = graph_service.explore_by_concept_neighborhood(query, hops=hops, top_k=top_k)
+    results = graph_service.explore_by_concept_neighborhood(query, hops=hops, top_k=top_k, exclude_grad=True)
     if not results:
         return (f"找不到與「{query}」相關的概念節點。"
                 f"請嘗試更精確的概念詞，如「深度學習」、「Python」、「資料結構」。")
@@ -1557,7 +1569,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "find_similar_courses",
-            "description": "透過知識圖譜 Concept 節點找與指定課程概念最相近的跨系課程。適合「有沒有類似 OO 的課」、「跨系有沒有教 OO 的課」等推薦類查詢。",
+            "description": "透過知識圖譜 Concept 節點找與指定課程概念最相近的跨系課程。適合「有沒有類似 OO 的課」、「跨系有沒有教 OO 的課」等推薦類查詢。預設不含研究所課程。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1599,7 +1611,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "ppr_explore",
-            "description": "Personalized PageRank 廣泛探索：從概念/課程出發，找知識圖譜中最相關的節點（可跨課程、教師、系所）。種子策略自動複合（無需指定種子類型）。適合「和 AI 相關的一切有哪些？」「深度學習連結到哪些老師和系所？」等廣泛探索。⚠️ 不適合直接查詢某門具體課程：若使用者問「總體經濟學是什麼」「有沒有自然語言處理的課」，請改用 get_course_detail 或 search_courses。",
+            "description": "Personalized PageRank 廣泛探索：從概念/課程出發，找知識圖譜中最相關的節點（可跨課程、教師、系所）。種子策略自動複合（無需指定種子類型）。適合「和 AI 相關的一切有哪些？」「深度學習連結到哪些老師和系所？」等廣泛探索。⚠️ 不適合直接查詢某門具體課程：若使用者問「總體經濟學是什麼」「有沒有自然語言處理的課」，請改用 get_course_detail 或 search_courses。結果預設不含研究所課程。",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -1616,7 +1628,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "explore_concept_neighborhood",
-            "description": "以語意概念詞彙為入口，在知識圖譜做 N 跳 BFS 鄰域探索，找出直接覆蓋此概念的課程。適合「有哪些課涵蓋神經網路？」「學卷積神經網路要修哪些課？」等需要精確概念鄰域的問題（比 ppr_explore 更精準，比 search_courses 更廣）。需先執行 build_qdrant_index.py；未建立時自動退回字串比對。",
+            "description": "以語意概念詞彙為入口，在知識圖譜做 N 跳 BFS 鄰域探索，找出直接覆蓋此概念的課程。適合「有哪些課涵蓋神經網路？」「學卷積神經網路要修哪些課？」等需要精確概念鄰域的問題（比 ppr_explore 更精準，比 search_courses 更廣）。需先執行 build_qdrant_index.py；未建立時自動退回字串比對。結果預設不含研究所課程。",
             "parameters": {
                 "type": "object",
                 "properties": {

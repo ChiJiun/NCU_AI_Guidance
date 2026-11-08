@@ -75,6 +75,11 @@ premature_single_recommendation, overwhelming_list, missed_clarification, ignore
   "needs_human_check": ["無法從現有資訊判斷、需要對照工具原始回傳的地方"]
 }"""
 
+ERROR_FLAGS = (
+    "hallucinated_course", "hallucinated_department", "unsupported_career_claim",
+    "premature_single_recommendation", "overwhelming_list", "missed_clarification", "ignored_constraint",
+)
+
 TAG_RE = re.compile(r"<course>(.*?)</course>", re.S)
 PAREN_RE = re.compile(r"[（(].*?[）)]")
 ANSWER_TOO_LONG = 900  # 字；高中生一次要讀完的上限，僅作為提示訊號
@@ -223,8 +228,13 @@ def parse_judgement(text: str) -> dict | None:
     scores = j.get("scores", {})
     if set(scores) != set(DIMENSIONS) or any(scores[k] not in (0, 1, 2) for k in scores):
         return None
-    j.setdefault("flags", [])
-    j.setdefault("reasons", {})
+    # 評審偶爾會自創標記或回傳字串；只保留合法標記，欄位型態統一
+    raw_flags = j.get("flags")
+    j["flags"] = [f for f in (raw_flags if isinstance(raw_flags, list) else []) if f in ERROR_FLAGS]
+    if not isinstance(j.get("reasons"), dict):
+        j["reasons"] = {}
+    check = j.get("needs_human_check")
+    j["needs_human_check"] = [str(x) for x in check] if isinstance(check, list) else ([str(check)] if check else [])
     return j
 
 

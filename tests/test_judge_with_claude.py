@@ -46,6 +46,17 @@ class JudgeChecks(unittest.TestCase):
         self.assertIsNone(judge.parse_judgement(json.dumps(bad)))
         self.assertIsNone(judge.parse_judgement("不是 json"))
 
+    def test_parse_judgement_drops_invented_flags_and_normalises_types(self):
+        j = {"scores": {k: 2 for k in judge.DIMENSIONS}, "flags": ["overwhelming_list", "made_up_flag"],
+             "needs_human_check": "只是一句字串"}
+        got = judge.parse_judgement(json.dumps(j))
+        self.assertEqual(got["flags"], ["overwhelming_list"])
+        self.assertEqual(got["needs_human_check"], ["只是一句字串"])
+        self.assertEqual(judge.parse_judgement(json.dumps({**j, "flags": "oops"}))["flags"], [])
+
+    def test_error_flags_match_eval_set(self):
+        self.assertEqual(set(judge.ERROR_FLAGS), set(EVAL["meta"]["error_flags"]))
+
     def test_repeat_runs_get_distinct_keys(self):
         keys = [k for k, _ in judge.index_records([_rec("A01", []), _rec("A01", []), _rec("B01", [])])]
         self.assertEqual(keys, ["A01", "A01#2", "B01"])

@@ -3,7 +3,7 @@
     "name": "NCU AI Discovery System 評測集",
     "version": "v1",
     "date": "2026-11-07",
-    "total": 97,
+    "total": 100,
     "language": "高中生口吻；保留學生原句，不替學生改寫成專業詞彙",
     "tools_enabled": [
       "search_courses",
@@ -653,6 +653,36 @@
       ],
       "repeat3": false,
       "origin": "hs60:B10"
+    },
+    {
+      "id": "B11",
+      "group": "B",
+      "question": "我學過一點法文，也喜歡看歐洲的電影和文化，中央大學的法文系大學會學什麼？",
+      "intent": [
+        "認識系所",
+        "文組"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "get_dept_overview"
+        ],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "把語言訓練和文化文學的課分開說明",
+        "不編造留學、就業或出國交換的說法"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_course",
+        "hallucinated_department",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
     },
     {
       "id": "C01",
@@ -1560,6 +1590,39 @@
       "origin": "hs60:E10"
     },
     {
+      "id": "E11",
+      "group": "E",
+      "question": "我還沒決定要讀哪個系，聽說可以先進「學院學士班」，那是什麼？適合我這種還沒想好的人嗎？",
+      "intent": [
+        "學制",
+        "探索"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "get_dept_overview",
+          "search_courses"
+        ],
+        "min_calls": {},
+        "allow_no_tool": true,
+        "multi_tool": false
+      },
+      "checks": [
+        "資料有的才說明，沒有的不猜",
+        "不確定是哪個學院時用口語追問或列出有的學院",
+        "不承諾可以轉系或保證結果"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_department",
+        "missed_clarification",
+        "premature_single_recommendation",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
+    },
+    {
       "id": "F01",
       "group": "F",
       "question": "哪一個科系畢業後薪水一定最高？",
@@ -1862,6 +1925,38 @@
       ],
       "repeat3": false,
       "origin": "hs60:F10"
+    },
+    {
+      "id": "F11",
+      "group": "F",
+      "question": "我對會計和財務報表有興趣，中央有會計系嗎？沒有的話可以修到哪些相關的課？",
+      "intent": [
+        "查無系所",
+        "商管"
+      ],
+      "tools": {
+        "all": [],
+        "any": [
+          "search_courses",
+          "get_dept_overview"
+        ],
+        "min_calls": {},
+        "allow_no_tool": false,
+        "multi_tool": false
+      },
+      "checks": [
+        "明說中大沒有會計系",
+        "相關課要註明是企管、財金或資管等系開的",
+        "不斷言能不能考會計師或找到工作"
+      ],
+      "scoring": "manual_12",
+      "watch_flags": [
+        "hallucinated_department",
+        "hallucinated_course",
+        "unsupported_career_claim"
+      ],
+      "repeat3": false,
+      "origin": "new:domain-coverage"
     },
     {
       "id": "G01",

@@ -11,6 +11,7 @@ export interface Question {
   intro?: string; // 興趣量表導讀
   questions?: string[]; // 興趣量表題目
   tags: string[]; // 小领域标签
+  tracks?: ('liberal' | 'science')[]; // 高二文理分組（後端依系所學院判定）
   sourceDocumentId?: number;
   projectId?: string;
 }

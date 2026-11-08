@@ -13,6 +13,11 @@ from app.models.schemas import (
     AdmissionCriteria,
     SubjectSelectionRequest
 )
+from app.services.department_names import (
+    dept_college,
+    dept_tracks,
+    match_admission_to_bank,
+)
 
 router = APIRouter()
 
@@ -62,16 +67,13 @@ async def get_questions(mode: AssessmentMode = Query(..., description="Assessmen
     """
     all_questions = load_questions()
 
-    # 依模式篩選題目
-    if mode == AssessmentMode.GRADE1:
-        # 高一：回傳文組和理組的題目
-        return [q for q in all_questions if q['mode'] == 'grade1']
-    elif mode == AssessmentMode.GRADE2:
-        # 高二：回傳所有科系的題目
-        return [q for q in all_questions if q['mode'] == 'grade2']
-    else:  # grade3
-        # 高三：回傳所有科系的題目（後續可加入學測篩選）
-        return [q for q in all_questions if q['mode'] == 'grade3']
+    # 依模式篩選題目（grade1 / grade2 / grade3 各自一組題卡）
+    # 每張題卡附上 tracks（文組 liberal / 理組 science），供前端高二模式分組使用
+    return [
+        {**q, 'tracks': dept_tracks(q['department'])}
+        for q in all_questions
+        if q['mode'] == mode.value
+    ]
 
 @router.post("/submit", response_model=AssessmentResult)
 async def submit_answers(request: SubmitAnswersRequest):
@@ -141,54 +143,8 @@ async def submit_answers(request: SubmitAnswersRequest):
     )
 
 def get_college_for_department(department: str) -> str:
-    """根據科系名稱回傳學院名稱"""
-    college_mapping = {
-        # 文學院
-        "中國文學系": "文學院",
-        "英美語文學系": "文學院",
-        "法國語文學系": "文學院",
-        "文學院學士班": "文學院",
-
-        # 理學院
-        "化學學系": "理學院",
-        "物理學系": "理學院",
-        "數學系": "理學院",
-        "光電科學與工程學系": "理學院",
-        "理學院學士班": "理學院",
-
-        # 管理學院
-        "經濟學系": "管理學院",
-        "企業管理學系": "管理學院",
-        "財務金融學系": "管理學院",
-        "資訊管理學系": "管理學院",
-
-        # 地球科學學院
-        "地球科學學系": "地球科學學院",
-        "太空科學與工程學系": "地球科學學院",
-        "大氣科學學系": "地球科學學院",
-        "地球科學學士班": "地球科學學院",
-
-        # 客家學院
-        "客家語文暨社會科學學系": "客家學院",
-
-        # 資訊電機學院
-        "電機工程學系": "資訊電機學院",
-        "資訊工程學系": "資訊電機學院",
-        "通訊工程學系": "資訊電機學院",
-        "資訊電機學院學士班": "資訊電機學院",
-
-        # 生醫理工學院
-        "生命科學系": "生醫理工學院",
-        "生醫科學與工程學系": "生醫理工學院",
-
-        # 工學院
-        "土木工程學系": "工學院",
-        "化學工程與材料工程學系": "工學院",
-        "機械工程學系": "工學院",
-        "工學院學士班": "工學院",
-    }
-
-    return college_mapping.get(department, "其他")
+    """根據科系名稱回傳學院名稱（對照表見 app.services.department_names）"""
+    return dept_college(department)
 
 @router.get("/admission-criteria", response_model=List[AdmissionCriteria])
 async def get_admission_criteria():
@@ -236,4 +192,13 @@ async def filter_departments_by_subjects(request: SubjectSelectionRequest):
         if all(subj in request.subjects for subj in required_subjects):
             matching_depts.append(criteria.dept_name)
 
-    return {"departments": matching_depts}
+    # 招生系所名稱（含分組後綴、學系/系差異）→ 題庫中實際有題卡的系所名稱
+    bank_depts = [q['department'] for q in load_questions() if q['mode'] == 'grade3']
+    matched, unmatched, excluded = match_admission_to_bank(matching_depts, bank_depts)
+
+    return {
+        "departments": matched,              # 題庫系所名稱，前端直接用來篩題卡
+        "admission_departments": matching_depts,  # 原始招生系所名稱
+        "unmatched": unmatched,
+        "excluded": excluded,
+    }

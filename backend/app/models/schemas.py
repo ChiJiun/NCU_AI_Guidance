@@ -18,6 +18,7 @@ class Question(BaseModel):
     intro: Optional[str] = None
     questions: Optional[List[str]] = None
     tags: List[str]
+    tracks: List[str] = []  # 高二文理分組：'liberal' / 'science'
 
 class Answer(BaseModel):
     questionId: str

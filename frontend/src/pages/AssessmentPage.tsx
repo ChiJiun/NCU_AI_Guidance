@@ -6,27 +6,16 @@ import {
   HiBookOpen, HiTranslate, HiCalculator, HiChartBar, HiGlobeAlt, HiBeaker,
 } from 'react-icons/hi';
 
-// 文組科系定義
-const LIBERAL_ARTS_DEPARTMENTS = [
-  '文學院學士班', '中國文學系', '英美語文學系', '法國語文學系',
-  '經濟學系', '企管學系', '財務金融學系', '資訊管理學系',
-  '客家語文暨社會科學學系'
-];
-
-// 理組科系定義
-const SCIENCE_DEPARTMENTS = [
-  '理學院學士班', '化學學系', '物理學系', '數學系', '光電科學與工程學系',
-  '地球科學學士班', '地球科學學系', '太空科學與工程學系', '大氣科學學系',
-  '資訊電機學院學士班', '電機工程學系', '資訊工程學系', '通訊工程學系',
-  '生命科學學系', '生醫科學與工程學系',
-  '工學院學士班', '土木工程學系', '化學工程與材料工程學系', '機械工程學系'
-];
+// 文理分組與系所名稱對照由後端統一處理（backend/app/services/department_names.py）：
+// - 每張題卡帶 tracks（'liberal' / 'science'），高二依此分組
+// - 高三 filter-by-subjects 直接回傳題庫中的系所名稱
+type Track = 'liberal' | 'science';
 
 export default function AssessmentPage() {
   const pageTopRef = useRef<HTMLDivElement | null>(null);
   const questionCardRef = useRef<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<AssessmentMode>('grade1');
-  const [trackType, setTrackType] = useState<'liberal' | 'science' | null>(null); // 高二模式的文理分組
+  const [trackType, setTrackType] = useState<Track | null>(null); // 高二模式的文理分組
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]); // 高三模式的學測科目選擇
   const [started, setStarted] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -107,8 +96,7 @@ export default function AssessmentPage() {
 
       // 如果是高二模式且選擇了文理分組，篩選題目
       if (mode === 'grade2' && trackType) {
-        const targetDepts = trackType === 'liberal' ? LIBERAL_ARTS_DEPARTMENTS : SCIENCE_DEPARTMENTS;
-        filteredQuestions = data.filter(q => targetDepts.includes(q.department));
+        filteredQuestions = data.filter(q => q.tracks?.includes(trackType));
       }
       // 如果是高三模式，使用傳入的篩選科系列表
       else if (mode === 'grade3' && filteredDepts && filteredDepts.length > 0) {
@@ -204,8 +192,10 @@ export default function AssessmentPage() {
   const determineTrack = () => {
     if (!result) return null;
     const topDepts = result.departments.slice(0, 5);
-    const liberalCount = topDepts.filter(d => LIBERAL_ARTS_DEPARTMENTS.includes(d.name)).length;
-    const scienceCount = topDepts.filter(d => SCIENCE_DEPARTMENTS.includes(d.name)).length;
+    const deptTracks = new Map<string, Track[]>();
+    questions.forEach(q => deptTracks.set(q.department, q.tracks ?? []));
+    const liberalCount = topDepts.filter(d => deptTracks.get(d.name)?.includes('liberal')).length;
+    const scienceCount = topDepts.filter(d => deptTracks.get(d.name)?.includes('science')).length;
     return liberalCount > scienceCount ? 'liberal' : 'science';
   };
 

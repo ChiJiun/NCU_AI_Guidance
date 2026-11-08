@@ -50,7 +50,12 @@ export const assessmentAPI = {
     return response.data;
   },
 
-  filterBySubjects: async (subjects: string[]): Promise<{ departments: string[] }> => {
+  filterBySubjects: async (subjects: string[]): Promise<{
+    departments: string[];            // 題庫系所名稱（已正規化，可直接比對 question.department）
+    admission_departments?: string[]; // 原始招生系所名稱
+    unmatched?: string[];
+    excluded?: string[];
+  }> => {
     const response = await apiClient.post('/assessment/filter-by-subjects', { subjects });
     return response.data;
   },

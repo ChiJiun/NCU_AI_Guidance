@@ -1039,6 +1039,9 @@ function ChatPanel({
                 )}
               </div>
 
+              {/* 來源頁碼（AI 回答下方；沒有 sources 就不顯示） */}
+              {message.role === 'assistant' && <SourceChips sources={message.sources} />}
+
               {/* 編輯按鈕（氣泡下方） */}
               {canEdit && !isEditing && (
                 <div className="mt-1 flex justify-end">
@@ -1401,4 +1404,32 @@ function createWelcomeMessage(project: Project): ChatMessage {
     role: 'assistant',
     content: `你現在正在查看「${project.title}」這份研究計畫。如果你想了解研究方向、內容重點或延伸問題，可以直接在這裡提問。`,
   };
+}
+
+/** 把後端回傳的來源字串（"p.3"、"p.5-6"、"3"…）整理成去重後的頁碼標籤 */
+function formatSourceLabels(sources?: string[]): string[] {
+  if (!sources?.length) return [];
+  const labels = sources
+    .map((s) => (typeof s === 'string' ? s.trim() : ''))
+    .filter(Boolean)
+    .map((s) => (/^\d+(\s*[-–]\s*\d+)?$/.test(s) ? `p.${s.replace(/\s+/g, '')}` : s));
+  return Array.from(new Set(labels));
+}
+
+function SourceChips({ sources }: { sources?: string[] }) {
+  const labels = formatSourceLabels(sources);
+  if (!labels.length) return null;
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs" aria-label="回答來源頁碼">
+      <span className="text-gray-400">來源</span>
+      {labels.map((label) => (
+        <span
+          key={label}
+          className="rounded-full border border-primary-200 bg-primary-50 px-2 py-0.5 font-medium text-primary-700"
+        >
+          {label}
+        </span>
+      ))}
+    </div>
+  );
 }

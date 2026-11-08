@@ -95,5 +95,20 @@ class SystemPromptTests(unittest.TestCase):
         self.assertLess(len(tiktoken.get_encoding("o200k_base").encode(self.prompt)), 4500)
 
 
+    def test_explicit_requests_override_the_length_limits(self):
+        self.assertIn("學生明確指定要什麼，就照做", self.prompt)
+        self.assertIn("課數沒有上限", self.prompt)
+        self.assertIn("學生明確要完整清單時例外", self.prompt)
+
+    def test_a_single_concrete_noun_counts_as_a_clue(self):
+        self.assertIn("只要出現一個具體名詞就算有線索", self.prompt)
+        self.assertIn("學生已經說清楚要查什麼", self.prompt)
+
+    def test_example_a_shows_the_answer_shape_without_a_course_cap(self):
+        example = self.prompt.split("**範例 A — 比較系所**")[1].split("**範例 B")[0]
+        for part in ("相同的地方", "不同的地方", "各自代表課", "不設上限"):
+            self.assertIn(part, example)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -54,6 +54,12 @@ class JudgeChecks(unittest.TestCase):
         self.assertEqual(got["needs_human_check"], ["只是一句字串"])
         self.assertEqual(judge.parse_judgement(json.dumps({**j, "flags": "oops"}))["flags"], [])
 
+    def test_parse_judgement_ignores_trailing_text_with_braces(self):
+        good = {"scores": {k: 1 for k in judge.DIMENSIONS}, "reasons": {}, "flags": []}
+        text = json.dumps(good, ensure_ascii=False) + '\n\n以上是依標準 {scores} 評分的結果。'
+        self.assertIsNotNone(judge.parse_judgement(text))
+        self.assertIsNone(judge.parse_judgement('["不是物件"]'))
+
     def test_default_judge_model_is_a_pinned_version_not_an_alias(self):
         # 別名（sonnet）會隨 Claude Code 更新而指向不同版本，會讓不同次的評分無法比較
         self.assertEqual(judge.DEFAULT_JUDGE_MODEL, "claude-sonnet-5-5")

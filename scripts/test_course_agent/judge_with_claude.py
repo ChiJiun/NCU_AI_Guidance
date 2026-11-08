@@ -220,12 +220,15 @@ def run_claude(prompt: str, model: str, token: str, timeout: int) -> tuple[str |
 
 
 def parse_judgement(text: str) -> dict | None:
-    start, end = text.find("{"), text.rfind("}")
-    if start < 0 or end <= start:
+    start = text.find("{")
+    if start < 0:
         return None
     try:
-        j = json.loads(text[start:end + 1])
+        # 只解析第一個完整的 JSON 物件；評審偶爾會在後面多附說明文字（其中可能還有大括號）
+        j, _ = json.JSONDecoder().raw_decode(text[start:])
     except json.JSONDecodeError:
+        return None
+    if not isinstance(j, dict):
         return None
     scores = j.get("scores", {})
     if set(scores) != set(DIMENSIONS) or any(scores[k] not in (0, 1, 2) for k in scores):

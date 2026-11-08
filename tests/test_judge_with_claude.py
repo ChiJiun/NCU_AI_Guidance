@@ -52,6 +52,7 @@ class CourseNameNormalisation(unittest.TestCase):
         self.assertEqual(n("線性代數一"), "線性代數")
         self.assertEqual(n("臺灣史"), "台灣史")
         self.assertEqual(n("有機化學 [已停開]"), "有機化學")
+        self.assertEqual(n("「資料結構」"), "資料結構")
 
     def test_does_not_strip_a_name_to_nothing(self):
         self.assertEqual(judge.normalize_course_name("I"), "I")
@@ -59,10 +60,10 @@ class CourseNameNormalisation(unittest.TestCase):
     def test_course_tags_report_unknown_names_and_department_tags(self):
         ans = ("<course>資料結構（資工系）</course>、<course>物理化學實驗Ⅰ</course>、"
                "<course>台灣史</course>、<course>量子美食學</course>、<course>資訊工程學系</course>、"
-               "<course>人工智慧技術應用學程</course>")
+               "<course>人工智慧技術應用學程</course><course>「跨領域榮譽學分學程」</course>")
         t = judge.check_course_tags(ans, KNOWN)
         self.assertEqual(t["unknown"], ["量子美食學"])
-        self.assertEqual(t["dept_tags"], ["人工智慧技術應用學程", "資訊工程學系"])
+        self.assertEqual(t["dept_tags"], ["人工智慧技術應用學程", "資訊工程學系", "跨領域榮譽學分學程"])
         self.assertEqual((t["course_tags"], t["found"], t["unique_courses"]), (4, 3, 4))
 
     def test_known_courses_include_course_data_and_graph(self):

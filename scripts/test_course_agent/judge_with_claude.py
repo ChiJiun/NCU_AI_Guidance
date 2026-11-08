@@ -60,6 +60,7 @@ NAMES_PER_CALL = 40         # 每次工具呼叫最多列出幾個課名
 
 TAG_RE = re.compile(r"<course>(.*?)</course>", re.S)
 BRACKET_RE = re.compile(r"[（(【\[［〔].*?[）)】\]］〕]")
+QUOTE_RE = re.compile(r"[「」『』\"“”]")
 TRAILING_NUM_RE = re.compile(r"(?:[IVX]+|[一二三])$")
 DEPT_SUFFIX_RE = re.compile(r"(系|所|學程|學院)$")
 # 結尾段落出現問號，或「你選一個／回我 A、B、C」這類請學生挑選的句型，視為有追問
@@ -108,9 +109,9 @@ def index_records(results: list[dict]) -> list[tuple[str, dict]]:
 
 
 def normalize_course_name(name: str) -> str:
-    """NFKC、去括號內容與空白、去結尾羅馬數字與一二三、臺→台。"""
+    """NFKC、去括號內容、引號與空白、去結尾羅馬數字與一二三、臺→台。"""
     s = unicodedata.normalize("NFKC", name or "")
-    s = BRACKET_RE.sub("", s)
+    s = QUOTE_RE.sub("", BRACKET_RE.sub("", s))
     s = re.sub(r"\s+", "", s)
     s = s.replace("臺", "台")
     prev = None
@@ -167,7 +168,7 @@ def check_required_tools(q: dict, rec: dict, banned: set[str]) -> dict:
 
 def check_course_tags(answer: str, known: set[str]) -> dict:
     raw = [m.strip() for m in TAG_RE.findall(answer or "")]
-    stripped = [re.sub(r"\s+", "", BRACKET_RE.sub("", unicodedata.normalize("NFKC", r))) for r in raw]
+    stripped = [re.sub(r"\s+", "", QUOTE_RE.sub("", BRACKET_RE.sub("", unicodedata.normalize("NFKC", r)))) for r in raw]
     dept_tags = sorted({s for s in stripped if s and DEPT_SUFFIX_RE.search(s)})
     names = [normalize_course_name(r) for r in raw]
     course_names = [n for n, s in zip(names, stripped) if n and s not in dept_tags]

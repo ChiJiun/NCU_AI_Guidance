@@ -2,7 +2,7 @@
   "meta": {
     "name": "NCU AI Discovery System 評測集",
     "version": "v1",
-    "date": "2026-11-07",
+    "date": "2026-11-09",
     "total": 100,
     "language": "高中生口吻；保留學生原句，不替學生改寫成專業詞彙",
     "tools_enabled": [
@@ -37,23 +37,26 @@
       "J": "舊回歸題精選（別名、查無、課名消歧）"
     },
     "scoring": {
-      "manual_12": "六面向各 0–2 分：證據正確性、探索相關性、範圍與多樣性、澄清與不確定性、高中生可理解性、下一步可行性",
-      "auto_tool": "自動檢查：tools.all 全部呼叫、tools.any 至少一個、min_calls 次數、無錯誤、未呼叫 tools_must_not_call；回答另做幻覺標記"
+      "checkpoints": "主指標：AI 評審逐條判斷 checks 是否達成（met / not_met，附回答原文為證據）",
+      "aux_8": "輔助四面向各 0–2 分：切題、正確與誠實、高中生看得懂、引導探索（不評長度）",
+      "hard": "程式硬指標：課名真實率、系所學程誤標、行為正確率（含 query 題的必要工具子指標）、精簡度、穩定性"
     },
     "error_flags": [
       "hallucinated_course",
       "hallucinated_department",
       "unsupported_career_claim",
-      "premature_single_recommendation",
-      "overwhelming_list",
-      "missed_clarification",
       "ignored_constraint"
     ],
     "tool_semantics": {
       "all": "每一個都必須在回答前被呼叫",
       "any": "至少呼叫其中一個",
       "min_calls": "指定工具至少呼叫幾次（例如比較兩個系需呼叫兩次）",
-      "allow_no_tool": "第一輪可以不呼叫工具（先追問或直接說明邊界）；此時 any 不強制"
+      "allow_no_tool": "可以不呼叫工具（expected_behavior 為 clarify，或不需查證即可說明邊界的 correct_premise）；此時 any 不強制"
+    },
+    "behavior_semantics": {
+      "query": "應呼叫工具查證後回答（有任何具體線索、或明確點名系所／課程／學程／老師）",
+      "clarify": "完全沒有線索，應先追問；可不呼叫工具，但結尾必須提出問題",
+      "correct_premise": "問題含錯誤前提、保證或超出資料範圍的要求，應明說限制或指出前提不成立；allow_no_tool 為 false 時仍須查證"
     }
   },
   "questions": [
@@ -65,6 +68,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -78,14 +82,11 @@
       },
       "checks": [
         "不因「數學不差」只推一個理工系",
-        "用課程區分數學、物理、資工、管理等方向"
+        "追問時用「大學會學什麼」的白話描述區分數學、物理、資工、管理等方向（先追問、不必列課名）"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "hs60:A01"
@@ -97,6 +98,7 @@
       "intent": [
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -111,11 +113,9 @@
         "詢問偏好機械、電子、實驗、程式或實作情境",
         "避免宣稱某系完全不用背"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -128,6 +128,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -142,10 +143,9 @@
       "checks": [
         "能由生活興趣連到大氣、地球科學及相關資料分析課程，並用高中生語言說明"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A03"
@@ -158,6 +158,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -171,12 +172,9 @@
       "checks": [
         "用實際入門課程或學習內容協助辨認硬體、軟體、通訊等差異"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "hs60:A04"
@@ -189,6 +187,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -203,12 +202,9 @@
         "不只推薦企管",
         "應呈現管理、經濟、財金、資管等不同路徑及課程證據"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A05"
@@ -220,6 +216,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -234,10 +231,9 @@
       "checks": [
         "涵蓋中文、英文、法文、客家等可能路徑，以課程內容呈現分析、溝通、文化研究差異"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A06"
@@ -249,6 +245,7 @@
       "intent": [
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -262,11 +259,9 @@
       "checks": [
         "先區分環境、教育溝通、醫療、生技、公共建設、資訊工具等問題場景"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A07"
@@ -279,6 +274,7 @@
         "比較",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -293,11 +289,9 @@
       "checks": [
         "以實驗對象、常見課程與方法比較，不以單一人格測驗式結論選系"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A08"
@@ -309,6 +303,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -324,10 +319,9 @@
         "從物理、太空、光電等實際課程展開",
         "不要把科普興趣直接等同適合某系"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A09"
@@ -339,6 +333,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -352,10 +347,9 @@
       "checks": [
         "回答重心放在代表課程、知識與學習活動，而非泛泛職涯文案"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:A10"
@@ -367,6 +361,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -381,10 +376,9 @@
       "checks": [
         "能跨數學、統計應用、資管、財金、經濟或資料分析相關課程探索"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B01"
@@ -396,6 +390,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -409,10 +404,9 @@
       "checks": [
         "呈現電機、通訊、物理、光電等差異，課程名稱需可查證"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B02"
@@ -424,6 +418,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -438,7 +433,7 @@
       "checks": [
         "以基礎化學、材料、製程或工程課程比較，避免只給抽象定義"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -452,6 +447,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -466,7 +462,7 @@
       "checks": [
         "用兩系課程與研究方法呈現差異，不武斷保證醫療職涯"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -480,6 +476,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -494,10 +491,9 @@
       "checks": [
         "能把氣候、地震／地質、空間或地球系統分流到合理課程路徑"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B05"
@@ -509,6 +505,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -523,10 +520,9 @@
         "根據查到的課程回答",
         "不可套用一般印象捏造數位人文或創作課"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B06"
@@ -538,6 +534,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -551,10 +548,9 @@
       "checks": [
         "區分文學、語言、溝通或其他實際存在的課程方向"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B07"
@@ -567,6 +563,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -581,12 +578,9 @@
         "不預設一定選資工",
         "呈現程式在資工、資管、工程、科學等領域的不同用途"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B08"
@@ -599,6 +593,7 @@
         "比較",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -613,11 +608,9 @@
       "checks": [
         "以課程證據比較理論經濟、金融、企業管理及資料應用"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:B09"
@@ -630,6 +623,7 @@
         "邊界",
         "探索"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -644,12 +638,11 @@
         "誠實說明資料涵蓋與校內選項，不捏造藝術科系",
         "可提供設計、影像、文化或跨域課程候選"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
-        "hallucinated_department",
-        "overwhelming_list"
+        "hallucinated_department"
       ],
       "repeat3": false,
       "origin": "hs60:B10"
@@ -662,6 +655,7 @@
         "認識系所",
         "文組"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -675,7 +669,7 @@
         "把語言訓練和文化文學的課分開說明",
         "不編造留學、就業或出國交換的說法"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "hallucinated_department",
@@ -691,6 +685,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -706,10 +701,9 @@
         "能拆成影像辨識、機器學習、程式與使用情境",
         "避免只列名稱相似的語言課"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "hs60:C01"
@@ -722,6 +716,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -736,12 +731,9 @@
         "能辨識文字分析、資料、媒體理解等跨域需求",
         "避免被「新聞」一詞帶到無關課程"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C02"
@@ -753,6 +745,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -767,10 +760,9 @@
       "checks": [
         "能呈現影像／文字辨識、軟體與會計概念的跨域組合"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C03"
@@ -782,6 +774,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -796,10 +789,9 @@
       "checks": [
         "區分地球科學、土木、資訊／感測等角色，不把預警成果做不實保證"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C04"
@@ -812,6 +804,7 @@
         "比較",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -825,10 +818,9 @@
       "checks": [
         "能說明領域知識與資料方法的互補關係，並提出課程路徑"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C05"
@@ -841,6 +833,7 @@
         "追問",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -848,18 +841,15 @@
           "search_courses"
         ],
         "min_calls": {},
-        "allow_no_tool": true,
+        "allow_no_tool": false,
         "multi_tool": false
       },
       "checks": [
         "先詢問裝置偏感測、控制、結構或軟體，再給跨域組合而非單選"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "hs60:C06"
@@ -871,6 +861,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -885,10 +876,9 @@
       "checks": [
         "能跨材料、電機、物理、環境相關課程探索，說明每條路徑切入點"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C07"
@@ -901,6 +891,7 @@
         "比較",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -915,11 +906,9 @@
       "checks": [
         "依科學研究、通訊控制、硬體等目標區分課程路徑"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C08"
@@ -931,6 +920,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -944,10 +934,9 @@
       "checks": [
         "能連結語言文化內容與資訊工具，避免只推薦單一系所"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C09"
@@ -960,6 +949,7 @@
         "追問",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -967,18 +957,15 @@
           "search_courses"
         ],
         "min_calls": {},
-        "allow_no_tool": true,
+        "allow_no_tool": false,
         "multi_tool": false
       },
       "checks": [
         "詢問偏生物機制、儀器感測、資料分析或材料，再提供對應課程證據"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:C10"
@@ -990,6 +977,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1005,7 +993,7 @@
         "兩邊都必須有查證",
         "用課程與能力比較，不用刻板印象"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1019,6 +1007,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1033,7 +1022,7 @@
       "checks": [
         "應同時查兩系，以代表課程說明大氣與固體地球／地質方向"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1047,6 +1036,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1062,7 +1052,7 @@
         "以實際課程比例與內容謹慎歸納",
         "若資料不足，不做絕對判斷"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1076,6 +1066,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1091,7 +1082,7 @@
         "同時查兩系",
         "不得只查一邊後憑常識補另一邊"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1105,6 +1096,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1119,7 +1111,7 @@
       "checks": [
         "以力學、設計、結構、控制等查到的課程證據比較"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1133,6 +1125,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1147,7 +1140,7 @@
       "checks": [
         "以現有課程回答，不杜撰出路或適合人格"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1162,6 +1155,7 @@
         "比較",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1176,10 +1170,9 @@
       "checks": [
         "呈現共同基礎與通訊／訊號相關課程，避免把「網路」只理解為寫網站"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:D07"
@@ -1191,6 +1184,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1205,7 +1199,7 @@
       "checks": [
         "檢查並修正學生的簡化假設，用課程證據說明重疊與差異"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1219,6 +1213,7 @@
       "intent": [
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1233,7 +1228,7 @@
       "checks": [
         "比較抽象數學訓練與物理模型／實驗中的使用方式"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1248,6 +1243,7 @@
         "比較",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1262,11 +1258,9 @@
       "checks": [
         "用管理與資訊相關課程比較，再追問偏組織／市場或系統／資料"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:D10"
@@ -1278,6 +1272,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1293,10 +1288,9 @@
         "不因類組排除可能性",
         "提出由入門數學、統計或程式逐步探索的課程"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1310,6 +1304,7 @@
         "邊界",
         "探索"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1324,12 +1319,11 @@
         "不接受「浪費」前提",
         "呈現跨域運用方式，但不做空泛安慰"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
         "hallucinated_department",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1343,6 +1337,7 @@
         "邊界",
         "探索"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1358,12 +1353,11 @@
         "不做絕對否定或保證",
         "具體指出相關基礎課程與可先測試的學習內容"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
         "hallucinated_department",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": true,
@@ -1377,6 +1371,7 @@
         "邊界",
         "探索"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1392,12 +1387,11 @@
         "不替全體學生下結論",
         "說明可查到的入門與基礎課程，以及可先嘗試的方法"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
         "hallucinated_department",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1410,6 +1404,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_programs"
@@ -1425,10 +1420,9 @@
       "checks": [
         "應跨系搜尋實際課程與學程，不把程式學習限定在資工"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1441,6 +1435,7 @@
       "intent": [
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -1454,11 +1449,9 @@
       "checks": [
         "「實作」太廣，先區分實驗、工程製作、程式專案、田野或商業企劃"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1471,6 +1464,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1485,10 +1479,9 @@
         "排除研究所限定課程",
         "用少量代表課程與白話解釋，不傾倒完整清單"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1502,6 +1495,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1516,12 +1510,9 @@
         "先找共同主題，再提供跨域課程／學程",
         "不要一次列出全校所有選項"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1534,6 +1525,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1547,7 +1539,7 @@
         "說明缺乏客觀難度與成績資料，不能保證",
         "轉為探索學習內容與適配需求"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -1565,6 +1557,7 @@
         "比較",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -1580,10 +1573,9 @@
         "尊重學生自主",
         "以電機、生物、生醫交界課程協助探索，不代替決定"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1597,6 +1589,7 @@
         "學制",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1604,7 +1597,7 @@
           "search_courses"
         ],
         "min_calls": {},
-        "allow_no_tool": true,
+        "allow_no_tool": false,
         "multi_tool": false
       },
       "checks": [
@@ -1612,11 +1605,9 @@
         "不確定是哪個學院時用口語追問或列出有的學院",
         "不承諾可以轉系或保證結果"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_department",
-        "missed_clarification",
-        "premature_single_recommendation",
         "unsupported_career_claim"
       ],
       "repeat3": false,
@@ -1629,6 +1620,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1642,7 +1634,7 @@
         "不提供保證",
         "說明課程資料無法推導個人薪資，可改問學習內容與能力方向"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -1658,6 +1650,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1671,7 +1664,7 @@
         "不用傳聞或主觀印象回答",
         "缺乏一致的難度／畢業率證據時應拒絕排名"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -1687,6 +1680,7 @@
       "intent": [
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -1700,11 +1694,9 @@
       "checks": [
         "「科技」過廣，至少追問想理解、製作或解決的問題，不直接單押一系"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "hs60:F03"
@@ -1716,6 +1708,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1731,7 +1724,7 @@
         "先核對是否存在該系",
         "不存在時不可自行補成相近系名或捏造課程"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -1747,6 +1740,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1761,7 +1755,7 @@
         "核對系所存在性",
         "查無時說明限制，再提供「心理／人類行為＋AI」的可查證替代方向"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -1778,6 +1772,7 @@
         "邊界",
         "追問"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1792,11 +1787,9 @@
         "拒絕保證",
         "指出缺少背景、入學科系與未來課表資訊，可先提供探索性基礎路徑"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
         "unsupported_career_claim",
         "hallucinated_department"
       ],
@@ -1811,6 +1804,7 @@
         "探索",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1824,12 +1818,9 @@
       "checks": [
         "說明範圍很大，先分入門、數學、程式、應用領域並確認學生想看哪一類"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:F07"
@@ -1842,6 +1833,7 @@
         "比較",
         "追問"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -1855,11 +1847,9 @@
       "checks": [
         "以目前查到的課程確認各路徑，先問偏理論、硬體／光學或演算法，不追逐熱門詞"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:F08"
@@ -1871,6 +1861,7 @@
       "intent": [
         "追問"
       ],
+      "expected_behavior": "clarify",
       "tools": {
         "all": [],
         "any": [
@@ -1885,11 +1876,9 @@
         "不傾倒大量清單",
         "用二選一情境或活動偏好逐步縮小範圍"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "missed_clarification",
-        "premature_single_recommendation"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "hs60:F09"
@@ -1902,6 +1891,7 @@
         "邊界",
         "探索"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1915,12 +1905,11 @@
       "checks": [
         "糾正「不用數學」前提，以實際基礎課程說明數學用途，同時避免斷言一定不適合"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
         "hallucinated_department",
-        "overwhelming_list",
         "ignored_constraint"
       ],
       "repeat3": false,
@@ -1934,6 +1923,7 @@
         "查無系所",
         "商管"
       ],
+      "expected_behavior": "correct_premise",
       "tools": {
         "all": [],
         "any": [
@@ -1949,7 +1939,7 @@
         "相關課要註明是企管、財金或資管等系開的",
         "不斷言能不能考會計師或找到工作"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_department",
         "hallucinated_course",
@@ -1965,6 +1955,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_graduation_requirements"
@@ -1979,7 +1970,7 @@
         "區分系訂必修與含共同必修的總學分",
         "提醒以學校最新公告為準"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -1993,6 +1984,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_courses"
@@ -2006,7 +1998,7 @@
         "列出必修課並依修習年級整理",
         "total_found 超過 15 時說明是代表性清單"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2020,6 +2012,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_graduation_requirements"
@@ -2033,7 +2026,7 @@
         "縮寫「化材系」能正確對應，不查無",
         "不重複呼叫同一工具"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2047,6 +2040,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_detail"
@@ -2060,7 +2054,7 @@
         "依修課資格原文判斷，不憑印象",
         "限修條件不明時說明並導向開課單位"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2074,6 +2068,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_detail"
@@ -2087,7 +2082,7 @@
         "同名多系時請學生選擇或帶 dept",
         "先修與年級限制來自資料"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2101,6 +2096,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_program_info"
@@ -2114,7 +2110,7 @@
         "一次呼叫取得說明與課程，不分兩次",
         "學程名稱與資料一致"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2129,6 +2125,7 @@
         "探索",
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_programs",
@@ -2143,10 +2140,9 @@
         "先搜尋再查詳情，不憑空說出學程名稱",
         "學程名稱皆出現在搜尋結果中"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2158,6 +2154,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_detail"
@@ -2171,7 +2168,7 @@
         "同名多系時不武斷選一個",
         "課程內容來自課綱"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2185,6 +2182,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_detail"
@@ -2198,7 +2196,7 @@
         "課名不精確時用候選清單請學生確認，不自行猜",
         "修課資格以資料為準"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2213,6 +2211,7 @@
         "比較",
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_graduation_requirements"
@@ -2228,7 +2227,7 @@
         "兩系都必須查證，不能只查一邊",
         "別名「大氣系」「地科系」能對應"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2242,6 +2241,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_teacher_info"
@@ -2258,7 +2258,7 @@
         "先找老師再查詳情，兩步串接",
         "教師與課程皆來自查詢結果"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2272,6 +2272,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_teachers"
@@ -2288,10 +2289,9 @@
         "列出研究方向相關的老師，不編造老師姓名",
         "不暗示老師一定願意收學生"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2303,6 +2303,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_courses"
@@ -2319,10 +2320,9 @@
         "課程與老師分開呈現",
         "避免把不相關的語言課當客家課"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2335,6 +2335,7 @@
         "探索",
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_teachers"
@@ -2351,10 +2352,9 @@
         "老師與開課對得起來",
         "查不到時明說，不補猜"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2367,6 +2367,7 @@
         "老師",
         "研究"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_teachers",
@@ -2381,10 +2382,9 @@
         "老師姓名來自第一步回傳，不自己編",
         "研究與課程有依據"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2396,6 +2396,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_depts_by_tech"
@@ -2411,10 +2412,9 @@
         "技術查無時改用課名搜尋（如地理資訊系統），不直接回覆沒有",
         "不補全未查證的系所"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2426,6 +2426,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_depts_by_tech"
@@ -2439,10 +2440,9 @@
         "必修與選修科系分開說明",
         "某類別為空時說「目前沒有」而非「查無」"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2454,6 +2454,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "find_similar_courses"
@@ -2467,10 +2468,9 @@
         "相似課程有概念依據",
         "通識或人文課無結果時改用 search_courses"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2483,6 +2483,7 @@
         "查詢",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_knowledge_map",
@@ -2498,10 +2499,9 @@
         "同名多系時消歧",
         "用高中生能懂的話解釋"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2513,6 +2513,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "explore_concept_neighborhood"
@@ -2526,10 +2527,9 @@
         "列出跨領域連結並說明為什麼相關",
         "不把名稱相似的課當作相關"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2541,6 +2541,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "ppr_explore",
@@ -2555,10 +2556,9 @@
         "廣泛探索後補 search_courses 補完整課程",
         "回答說明是代表性概覽，不止這些"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": true,
       "origin": "new"
@@ -2570,6 +2570,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -2584,10 +2585,9 @@
         "課程有 Docker 或容器證據",
         "不推薦無關的雲端行銷課"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2599,6 +2599,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_courses"
@@ -2612,10 +2613,9 @@
         "使用通識 dept 做精準搜尋，不拉全部通識課",
         "課名皆來自搜尋結果"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2628,6 +2628,7 @@
         "相似課",
         "比較"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "find_similar_courses"
@@ -2641,10 +2642,9 @@
         "只列工具回傳的相似課",
         "不評價哪門比較簡單"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2657,6 +2657,7 @@
         "課程內容",
         "相似課"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_knowledge_map"
@@ -2670,10 +2671,9 @@
         "說明課程涵蓋的概念與用到的工具，用白話解釋",
         "相似課來自工具回傳，並註明是哪個系開的"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2686,6 +2686,7 @@
         "學習路徑",
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "ppr_explore"
@@ -2699,11 +2700,10 @@
         "分基礎與進階說明",
         "課程與系所都來自工具回傳"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "hallucinated_department",
-        "overwhelming_list"
+        "hallucinated_department"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2715,6 +2715,7 @@
       "intent": [
         "概念延伸"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "explore_concept_neighborhood"
@@ -2728,10 +2729,9 @@
         "只說工具回傳的相關概念",
         "用白話解釋每個關聯"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2744,6 +2744,7 @@
         "探索",
         "概念延伸"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "ppr_explore"
@@ -2757,11 +2758,10 @@
         "課程與系所來自工具回傳",
         "最後給一個可接續的方向"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
-        "hallucinated_department",
-        "overwhelming_list"
+        "hallucinated_department"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2774,6 +2774,7 @@
         "概念延伸",
         "先修"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "explore_concept_neighborhood"
@@ -2787,10 +2788,9 @@
         "概念來自工具回傳",
         "新名詞有白話解釋"
       ],
-      "scoring": "manual_12",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new:tool-coverage"
@@ -2802,6 +2802,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_courses"
@@ -2815,7 +2816,7 @@
         "同名課程合併，不重複列",
         "必修列表完整，不只挑幾門"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2830,6 +2831,7 @@
         "查詢",
         "邊界"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_course_detail"
@@ -2843,7 +2845,7 @@
         "精確課名查不到時只給候選課，不憑空捏造先修",
         "請學生確認正確課名"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
@@ -2860,6 +2862,7 @@
         "探索",
         "邊界"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_courses"
@@ -2873,12 +2876,11 @@
         "只能說查到的課，查不到就說明資料中沒有",
         "不編造 Web3 專屬課程"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",
-        "hallucinated_department",
-        "overwhelming_list"
+        "hallucinated_department"
       ],
       "repeat3": true,
       "origin": "new"
@@ -2890,6 +2892,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -2904,7 +2907,7 @@
         "同名不同系的課各自呈現",
         "課號與開課單位正確"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2918,6 +2921,7 @@
       "intent": [
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "search_courses"
@@ -2931,7 +2935,7 @@
         "多系開課都列出",
         "不補全未查證的系所"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course"
       ],
@@ -2945,6 +2949,7 @@
       "intent": [
         "探索"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview"
@@ -2958,10 +2963,9 @@
         "縮寫「資管系」能對應",
         "只根據回傳資料，不補寫系所特色"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -2974,6 +2978,7 @@
         "探索",
         "查詢"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [
           "get_dept_overview",
@@ -2988,10 +2993,9 @@
         "必修與選修分開說明",
         "選修只列代表課並說明不止這些"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
-        "hallucinated_course",
-        "overwhelming_list"
+        "hallucinated_course"
       ],
       "repeat3": false,
       "origin": "new"
@@ -3003,6 +3007,7 @@
       "intent": [
         "邊界"
       ],
+      "expected_behavior": "query",
       "tools": {
         "all": [],
         "any": [
@@ -3018,7 +3023,7 @@
         "查無對應系所時直接說明，不補成「法律系」之類的相近名稱",
         "可建議改問法律相關通識或學程"
       ],
-      "scoring": "auto_tool",
+      "scoring": "checkpoints",
       "watch_flags": [
         "hallucinated_course",
         "unsupported_career_claim",

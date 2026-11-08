@@ -4,5 +4,12 @@ services:
     ports:
       - "6333:6333"
     volumes:
-      - ./data/processed/qdrant_data:/qdrant/storage
+      # 具名 volume：資料放在 Docker 自己的磁碟空間，不在專案資料夾。
+      # 不要把 Qdrant 的儲存目錄掛在 OneDrive／雲端同步的資料夾底下：同步工具會在 Qdrant 寫檔時
+      # 動到檔案（產生 -電腦名稱 的衝突副本、改壞 WAL），造成 collection 損壞。
+      # 第一次啟動是空的，請用 scripts/qdrant/restore_to_docker.py 從 snapshot 還原（見 scripts/qdrant/README.md）。
+      - qdrant_storage:/qdrant/storage
     restart: unless-stopped
+
+volumes:
+  qdrant_storage:

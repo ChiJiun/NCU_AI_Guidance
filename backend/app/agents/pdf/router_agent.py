@@ -45,6 +45,14 @@ def _fire_and_forget(coro) -> None:
 ROUTER_PROMPT_NAME = "route_coordinator"
 VALID_AGENTS = {"chat", "retrieval", "research"}
 MAX_HANDOFFS = 3
+# Wall-clock cap for one deep-research run. Each slot already has its own timeouts, but
+# slots run sequentially (up to 180s x 2 attempts each), so without an overall cap one
+# stuck run could hold the per-user stream lock for many minutes.
+RESEARCH_MAX_SECONDS = 240.0
+# How often the research loop re-checks the cancel flag while no tokens arrive
+# (the planning/retrieval phase only emits stage events, which bypass the queue).
+_CANCEL_POLL_SECONDS = 1.0
+RESEARCH_TIMEOUT_MESSAGE = "深度研究超過時間上限，已先停止。可以把問題拆成較小的部分（例如只問研究方法）再試一次。"
 COMPOSE_MIN_CHARS = 600  # minimum research response length to trigger composition
 
 _FOLLOWUP_SIGNALS = (
@@ -564,9 +572,25 @@ async def route_agent_stream(
 
                 _ans_extractor = _AnswerExtractor()
                 streamed_tokens = False
+                research_timed_out = False
+                _loop = asyncio.get_running_loop()
+                _research_deadline = _loop.time() + RESEARCH_MAX_SECONDS
                 try:
                     while True:
-                        event = await _rqueue.get()
+                        _remaining = _research_deadline - _loop.time()
+                        if _remaining <= 0:
+                            logger.warning("research exceeded %.0fs, cancelling thread_id=%s",
+                                           RESEARCH_MAX_SECONDS, thread_id)
+                            research_timed_out = True
+                            break
+                        try:
+                            event = await asyncio.wait_for(
+                                _rqueue.get(), timeout=min(_CANCEL_POLL_SECONDS, _remaining),
+                            )
+                        except asyncio.TimeoutError:
+                            if _chat_jobs.is_cancelled(thread_id):
+                                break
+                            continue
                         if event is None:
                             if not _chat_jobs.is_cancelled(thread_id):
                                 while not _rqueue.empty():
@@ -603,7 +627,17 @@ async def route_agent_stream(
                         except (asyncio.CancelledError, Exception):
                             pass
 
+                if research_timed_out:
+                    _streamed_response.append(RESEARCH_TIMEOUT_MESSAGE)
+                    yield RESEARCH_TIMEOUT_MESSAGE, False, []
+                    agent_result = None
+                    last_sources = []
+                    _full_response = RESEARCH_TIMEOUT_MESSAGE
+                    break
                 if rtask.cancelled():
+                    if _chat_jobs.is_cancelled(thread_id):
+                        yield "", True, last_sources
+                        return
                     raise asyncio.CancelledError("research task was cancelled")
                 if rtask.exception():
                     raise rtask.exception()

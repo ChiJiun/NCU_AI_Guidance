@@ -639,7 +639,7 @@ const MarkdownAnswer: React.FC<{ text: string }> = ({ text }) => (
         h2: ({ children }) => <h2 className="mb-1.5 text-sm font-bold text-slate-950">{children}</h2>,
         h3: ({ children }) => <h3 className="mb-1 text-sm font-semibold text-slate-900">{children}</h3>,
         ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-5">{children}</ul>,
-        ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-5">{children}</ol>,
+        ol: ({ children, start }) => <ol start={start} className="mb-2 list-decimal space-y-0.5 pl-5">{children}</ol>,
         li: ({ children }) => <li className="leading-relaxed">{children}</li>,
         strong: ({ children }) => <strong className="font-semibold text-slate-950">{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,

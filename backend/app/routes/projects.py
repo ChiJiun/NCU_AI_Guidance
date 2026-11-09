@@ -3,6 +3,7 @@ import json as _json
 import logging
 import os
 import re as _re
+import time
 from datetime import datetime, timezone
 from functools import lru_cache
 from typing import List, Optional
@@ -33,12 +34,21 @@ async def _require_pdf_chat() -> None:
 
 # Per-user stream lock: prevents duplicate concurrent requests for the same user+project.
 # Key: "{project_id}:{user_id_or_anon}"
-_stream_lock: dict[str, str] = {}  # key → active thread_id
+_stream_lock: dict[str, tuple[str, float]] = {}  # key → (active thread_id, monotonic start)
+# A lock older than this is treated as leaked and replaced. Normal streams finish well
+# within it (deep research is capped at RESEARCH_MAX_SECONDS=240s, plus ~30s gate wait);
+# it only matters if a stream's cleanup never ran (e.g. the client disconnected before
+# the response body started, so the generator — and its finally — never executed).
+STREAM_LOCK_MAX_AGE = 330.0
 _stream_lock_mutex = asyncio.Lock()  # makes check-and-set atomic within a single asyncio worker
 
 # project_id → pdf_documents.id cache (stable for the lifetime of the process)
 _project_doc_id_cache: dict[str, int | None] = {}
 
+_background_cleanup: set[asyncio.Future] = set()
+# Stage events go to a side queue; poll it this often so progress such as「搜尋文件中」
+# shows immediately instead of only when a heartbeat timeout fires (up to 15s late).
+STAGE_POLL_INTERVAL = 0.3
 HEARTBEAT_INTERVAL = 15.0  # seconds between SSE heartbeats while waiting for LLM tokens
 
 _ROUTE_LABELS = {
@@ -374,10 +384,16 @@ async def chat_with_project_stream(
     # silently drop the duplicate request so the frontend only sees one response.
     # Mutex makes the check-and-set atomic within a single asyncio worker.
     # Authenticated users are keyed by user_id; anonymous by stable anon_id (or thread_id fallback).
-    lock_key = f"{project_id}:{user_id or anon_id or thread_id}"
+    lock_key = f"{project_id}:{user_id or thread_id}"
     async with _stream_lock_mutex:
-        if lock_key in _stream_lock:
-            _active = _stream_lock[lock_key]
+        _held = _stream_lock.get(lock_key)
+        if _held is not None and time.monotonic() - _held[1] > STREAM_LOCK_MAX_AGE:
+            logger.warning("stale stream lock released project=%s active_thread=%s age=%.0fs",
+                           project_id, _held[0], time.monotonic() - _held[1])
+            _stream_lock.pop(lock_key, None)
+            _held = None
+        if _held is not None:
+            _active = _held[0]
             if request.thread_id and request.thread_id == _active:
                 # Client sent back the in-flight thread_id → steering, not a duplicate.
                 steering.set(_active, request.message)
@@ -399,7 +415,7 @@ async def chat_with_project_stream(
 
             return StreamingResponse(_drop(), media_type="text/event-stream")
 
-        _stream_lock[lock_key] = thread_id
+        _stream_lock[lock_key] = (thread_id, time.monotonic())
 
     logger.info("stream request project=%s thread=%s has_thread_in_req=%s",
                 project_id, thread_id, bool(request.thread_id))
@@ -465,11 +481,18 @@ async def chat_with_project_stream(
             ).__aiter__()
 
             pending = asyncio.create_task(aiter.__anext__())
+            _last_sent = time.monotonic()
             while True:
                 try:
-                    result = await asyncio.wait_for(asyncio.shield(pending), timeout=HEARTBEAT_INTERVAL)
+                    result = await asyncio.wait_for(asyncio.shield(pending), timeout=STAGE_POLL_INTERVAL)
                 except asyncio.TimeoutError:
-                    # drain 再 heartbeat，讓前端更快收到 stage 事件
+                    # 短間隔輪詢 stage 事件，讓前端即時看到進度；閒置滿 HEARTBEAT_INTERVAL 才送 heartbeat
+                    if _meta_queue.empty():
+                        if time.monotonic() - _last_sent >= HEARTBEAT_INTERVAL:
+                            _last_sent = time.monotonic()
+                            yield f"data: {_json.dumps({'heartbeat': True})}\n\n"
+                        continue
+                    _last_sent = time.monotonic()
                     while not _meta_queue.empty():
                         meta = _meta_queue.get_nowait()
                         if meta[0] == "stage":
@@ -478,12 +501,12 @@ async def chat_with_project_stream(
                             yield f"data: {_json.dumps({'type': 'agent_start', 'agent': meta[1], 'label': meta[2]})}\n\n"
                         else:
                             logger.debug("unknown meta event type: %s", meta[0])
-                    yield f"data: {_json.dumps({'heartbeat': True})}\n\n"
                     continue
                 except StopAsyncIteration:
                     break
 
                 token, is_done, sources = result
+                _last_sent = time.monotonic()
                 while not _meta_queue.empty():
                     meta = _meta_queue.get_nowait()
                     if meta[0] == "stage":
@@ -506,20 +529,23 @@ async def chat_with_project_stream(
             logger.error("event_stream error thread=%s: %s", thread_id, exc)
             yield f"data: {_json.dumps({'error': '處理時發生錯誤，請稍後再試。', 'done': True, 'session_id': thread_id})}\n\n"
         finally:
-            if pending and not pending.done():
-                pending.cancel()
-                try:
-                    await pending
-                except (asyncio.CancelledError, StopAsyncIteration):
-                    pass
-                except Exception as _drain_exc:
-                    logger.debug("event_stream: pending drain error: %s", _drain_exc)
+            # Release everything synchronously FIRST. On client disconnect Starlette cancels
+            # this generator inside an anyio cancel scope, where every further `await` in
+            # this block raises CancelledError again — previously that aborted the cleanup
+            # at `await pending`, leaking the stream lock until the backend restarted
+            # ("duplicate stream dropped" for every later question).
+            if _stream_lock.get(lock_key, (None,))[0] == thread_id:
+                _stream_lock.pop(lock_key, None)
             if gate_acquired:
                 get_gate().release()
             chat_jobs.finish(thread_id)
-            await asyncio.to_thread(_mark_stream, thread_id, None)
-            _stream_lock.pop(lock_key, None)
             exit_reservation(_quota_id)
+            if pending and not pending.done():
+                pending.cancel()  # agent/research task stops at its next await
+                pending.add_done_callback(lambda t: t.cancelled() or t.exception())
+            _bg = asyncio.ensure_future(asyncio.to_thread(_mark_stream, thread_id, None))
+            _background_cleanup.add(_bg)
+            _bg.add_done_callback(_background_cleanup.discard)
 
     return StreamingResponse(
         event_stream(),

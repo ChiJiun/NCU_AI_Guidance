@@ -7,6 +7,7 @@ import type { CourseCard } from '../types';
 import glossaryData from '../data/glossary.json';
 import GlossaryTerm from './GlossaryTerm';
 import { createMatcher, injectGlossary } from './glossary';
+import { normalizeBold } from './markdownFixes';
 
 const GLOSSARY_MATCHER = createMatcher(glossaryData as Record<string, string>);
 
@@ -56,7 +57,8 @@ export default function HighlightedAnswer({
 
   // 先標課名，再標術語（術語比對會略過課名按鈕、程式碼與連結）
   const { text: processedText, hits: glossaryHits } = useMemo(() => {
-    const withCourses = courseCards.length ? injectCourseMarkers(clean, courseCards) : clean;
+    const bolded = normalizeBold(clean);
+    const withCourses = courseCards.length ? injectCourseMarkers(bolded, courseCards) : bolded;
     return injectGlossary(withCourses, GLOSSARY_MATCHER);
   }, [clean, courseCards]);
 
@@ -94,7 +96,9 @@ export default function HighlightedAnswer({
           h2: ({ children }) => <h2 className="mb-1.5 text-sm font-bold text-gray-900">{children}</h2>,
           h3: ({ children }) => <h3 className="mb-1 text-sm font-semibold text-gray-800">{children}</h3>,
           ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4">{children}</ul>,
-          ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4">{children}</ol>,
+          // 保留 start：清單項目之間夾了段落時，markdown 會切成好幾個 <ol start="2">…，
+          // 丟掉 start 會讓每一項都顯示「1.」
+          ol: ({ children, start }) => <ol start={start} className="mb-2 list-decimal space-y-0.5 pl-4">{children}</ol>,
           li: ({ children }) => <li className="leading-relaxed">{children}</li>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,

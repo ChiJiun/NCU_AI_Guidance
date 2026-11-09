@@ -81,21 +81,30 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("PDF chat init failed (non-fatal): %s", exc)
 
-    # RAG 預熱（向量庫 + reranker），checkpointer 失敗仍執行
+    # RAG 預熱（向量庫 + reranker），checkpointer 失敗仍執行。
+    # 展示模式下所有 AI endpoint 都被擋下，用不到 RAG，因此完全跳過：
+    # FlashRank reranker 載入就要約 240 MB、一次推論再加數百 MB，
+    # 會讓 512 MB 的主機（例如 Render 免費方案）OOM 而不斷重啟。
     rag_ok = False
-    try:
-        from app.rag import warmup as rag_warmup
-        rag_ok = await rag_warmup()
-    except Exception as exc:
-        logger.warning("RAG warmup failed (non-fatal): %s", exc)
+    rag_skipped = demo_mode.is_demo_mode()
+    if rag_skipped:
+        logger.info("Demo mode: RAG warmup skipped (AI endpoints are disabled)")
+    else:
+        try:
+            from app.rag import warmup as rag_warmup
+            rag_ok = await rag_warmup()
+        except Exception as exc:
+            logger.warning("RAG warmup failed (non-fatal): %s", exc)
 
     app_state.pdf_chat_ready = pdf_ok
     app_state.rag_ready = rag_ok
+    app_state.rag_skipped = rag_skipped
 
     yield
 
     app_state.pdf_chat_ready = False
     app_state.rag_ready = False
+    app_state.rag_skipped = False
 
     # PDF 問答 shutdown：先 drain 再等 tasks，最後關 pool
     try:
@@ -186,6 +195,13 @@ async def health_check():
 
 @app.get("/ready")
 async def readiness_check():
+    if app_state.rag_skipped:
+        # 展示模式刻意不載入 RAG；服務本身可以正常提供非 AI 的頁面，不應被判定為未就緒而重啟。
+        return {
+            "status": "ready",
+            "rag": "skipped",
+            "pdf_chat": "ready" if app_state.pdf_chat_ready else "degraded",
+        }
     if not app_state.rag_ready:
         raise HTTPException(
             status_code=503,

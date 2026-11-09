@@ -143,6 +143,54 @@ def test_status_endpoint(client, monkeypatch):
     assert client.get("/api/demo/status").json() == {"demo_mode": False, "live_ai_enabled": True}
 
 
+def _fake_startup_modules(monkeypatch, warmup_result: bool) -> list[str]:
+    """把 lifespan 會 import 的 checkpointer 與 RAG 換成假模組，不連資料庫、不載入模型。
+
+    回傳的 list 會記錄 RAG warmup 有沒有被呼叫。
+    """
+    import types
+
+    calls: list[str] = []
+
+    async def _noop() -> None:
+        return None
+
+    async def _warmup() -> bool:
+        calls.append("warmup")
+        return warmup_result
+
+    runner = types.ModuleType("app.agents.pdf.runner")
+    vars(runner).update(setup_checkpointer=_noop, shutdown_checkpointer=_noop)
+    rag = types.ModuleType("app.rag")
+    vars(rag).update(warmup=_warmup, close_qdrant_clients=_noop)
+    monkeypatch.setitem(sys.modules, "app.agents.pdf.runner", runner)
+    monkeypatch.setitem(sys.modules, "app.rag", rag)
+    return calls
+
+
+def test_demo_mode_skips_rag_warmup_and_reports_ready(monkeypatch):
+    """展示模式不載入 reranker／向量庫（512 MB 主機會 OOM），/ready 仍要回 200，避免健康檢查判定失敗。"""
+    monkeypatch.setenv("DEMO_MODE", "true")
+    calls = _fake_startup_modules(monkeypatch, warmup_result=True)
+    with TestClient(app) as c:
+        assert calls == [], "展示模式不應執行 RAG warmup"
+        resp = c.get("/ready")
+        assert resp.status_code == 200
+        assert resp.json()["rag"] == "skipped"
+
+
+@pytest.mark.parametrize("warmup_ok,expected_status", [(True, 200), (False, 503)])
+def test_normal_mode_still_runs_rag_warmup(monkeypatch, warmup_ok, expected_status):
+    monkeypatch.delenv("DEMO_MODE", raising=False)
+    calls = _fake_startup_modules(monkeypatch, warmup_result=warmup_ok)
+    with TestClient(app) as c:
+        assert calls == ["warmup"]
+        resp = c.get("/ready")
+        assert resp.status_code == expected_status
+        if warmup_ok:
+            assert resp.json()["rag"] == "ready"
+
+
 def test_demo_mode_off_does_not_block(client, monkeypatch):
     monkeypatch.delenv("DEMO_MODE", raising=False)
     resp = client.post("/api/chat", json={"question": "hi"})

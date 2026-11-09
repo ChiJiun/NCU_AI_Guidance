@@ -24,6 +24,9 @@
   `backend/tests/test_demo_mode.py` 會掃描所有路由，確保白名單以外的寫入型 endpoint 都被擋下；
   另外把目前的 GET 路由列成快照，新增 GET 路由時測試會失敗，提醒先確認它不呼叫模型（展示模式會放行所有 GET）。
 - 後端狀態可用 `GET /api/demo/status` 確認：`{"demo_mode": true, "live_ai_enabled": false}`。
+- 展示模式啟動時不會載入 FlashRank reranker 與向量庫（AI endpoint 都被擋下，用不到），
+  記憶體峰值約 420 MB，可以跑在 Render 免費方案（512 MB）上；`GET /ready` 會回 `"rag": "skipped"`。
+  細節見 [deployment.md](deployment.md) 的「Render 免費方案的記憶體限制」。
 - 模型金鑰只在後端（ECS task role 呼叫 Bedrock，不需要金鑰）。前端打包檔只含公開的 Firebase web config；
   可以在 build 後執行下列指令自行確認：
 

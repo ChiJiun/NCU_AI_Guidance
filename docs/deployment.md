@@ -44,8 +44,8 @@ CLOUDINARY_PROJECT_FOLDER=ncu-ai-guidance/data/raw/projects
 
 - `frontend/.env.example`
   本地範例
-- `frontend/.env.production`
-  正式 build 會使用的 API 網址
+- 正式 build 的值來自 GitHub repository secrets（`VITE_API_URL`、`VITE_FIREBASE_*` 等），
+  由 `.github/workflows/firebase-hosting-merge.yml` 帶入；repo 裡沒有 `frontend/.env.production`
 
 正式環境目前設定為：
 
@@ -129,7 +129,32 @@ Render 後台至少需要這些 environment variables：
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_PROJECT_FOLDER=ncu-ai-guidance/data/raw/projects
 ALLOWED_ORIGINS=http://localhost:5173,https://ncu-ai-guidance.web.app,https://ncu-ai-guidance.firebaseapp.com
+DEMO_MODE=true          # 免費方案（512 MB）必須開，原因見下方
+PYTHON_VERSION=3.13     # 固定版本；未設定時 Render 會用最新版（曾是 3.14）
 ```
+
+#### Render 免費方案的記憶體限制（512 MB）
+
+免費方案只有 512 MB，**跑不動 AI 功能**。本機實測（Windows，RSS）：
+
+| 狀態 | 記憶體 |
+|---|---|
+| 載入後端程式 | 約 150 MB |
+| 正常模式啟動完成（含 FlashRank reranker 預熱） | 約 410 MB |
+| 正常模式＋瀏覽課程、圖譜等頁面 | 峰值約 630 MB → 超過上限 |
+| 研究助理一次 rerank（36 份候選） | 再增加約 860 MB |
+| `DEMO_MODE=true` 啟動完成 | 約 190 MB |
+| `DEMO_MODE=true`＋瀏覽各頁面 | 峰值約 420 MB |
+
+超過上限時 Render 會直接重啟 instance，log 只看得到 `Instance ... restarted`、沒有錯誤訊息；
+重啟期間的回應是 503（`x-render-routing: hibernate-wake-error`）且沒有 CORS header，
+瀏覽器會顯示成 CORS 錯誤。
+
+因此 Render 免費方案請設定 `DEMO_MODE=true`：所有 AI endpoint 會被擋下，
+後端也不會在啟動時載入 reranker 與向量庫（`/ready` 回報 `"rag": "skipped"`），
+只提供課程、課程地圖、圖譜、研究計畫列表等一般頁面。前端建議同樣用 `VITE_DEMO_MODE=true` build，
+否則提問框仍會出現、送出時只會收到「即時 AI 已停用」。
+需要 AI 功能時請改用 AWS 部署（見 [aws-deployment.md](aws-deployment.md)）。
 
 部署後請確認：
 

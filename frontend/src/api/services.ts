@@ -40,8 +40,15 @@ export const authAPI = {
 
 // 科系兴趣量表 API
 export const assessmentAPI = {
-  getQuestions: async (mode: AssessmentMode): Promise<Question[]> => {
-    const response = await apiClient.get(`/assessment/questions?mode=${mode}`);
+  // 後端每系抽 1 張題卡、最多 10 張；同一個 seed 會拿到同一組題目
+  getQuestions: async (
+    mode: AssessmentMode,
+    options: { track?: 'liberal' | 'science'; subjects?: string[]; seed: number },
+  ): Promise<Question[]> => {
+    const params = new URLSearchParams({ mode, seed: String(options.seed) });
+    if (options.track) params.set('track', options.track);
+    options.subjects?.forEach((s) => params.append('subjects', s));
+    const response = await apiClient.get(`/assessment/questions?${params.toString()}`);
     return response.data;
   },
 

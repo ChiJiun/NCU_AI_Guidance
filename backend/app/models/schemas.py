@@ -36,11 +36,17 @@ class DepartmentScore(BaseModel):
 
 class TagScore(BaseModel):
     tag: str
-    score: float
+    score: float  # 帶有此標籤的題卡平均分（1-5），不受題卡數多寡影響
+    count: int = 1  # 出現在幾張題卡
+
+class TrackScores(BaseModel):
+    liberal: Optional[float] = None  # 文組系所題卡平均分（1-5）
+    science: Optional[float] = None  # 理組系所題卡平均分（1-5）
 
 class AssessmentResult(BaseModel):
     departments: List[DepartmentScore]
     tagScores: List[TagScore]
+    trackScores: Optional[TrackScores] = None
 
 # 課程相關模型
 class CoreAbility(BaseModel):

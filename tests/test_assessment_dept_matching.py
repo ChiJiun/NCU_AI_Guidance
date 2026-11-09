@@ -14,7 +14,7 @@ ALL_SUBJECTS = ["chinese", "english", "math_a", "math_b", "social", "science"]
 
 
 def _questions(mode):
-    return asyncio.run(assessment.get_questions(assessment.AssessmentMode(mode)))
+    return assessment.mode_cards(mode)
 
 
 def _filter(subjects):

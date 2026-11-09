@@ -87,29 +87,30 @@ export default function AssessmentPage() {
     },
   ];
 
-  const loadQuestions = async (filteredDepts?: string[]) => {
+  // 抽題在後端：每個系所 1 張題卡、最多 10 張（30 個子題，約 10 分鐘）。
+  // 每次開始作答產生一個 seed，題目存在 state，作答期間不會變；重新測驗會換一組題卡。
+  const loadQuestions = async () => {
     try {
       setLoading(true);
-      const data = await assessmentAPI.getQuestions(mode);
-
-      let filteredQuestions = data;
-
-      // 如果是高二模式且選擇了文理分組，篩選題目
-      if (mode === 'grade2' && trackType) {
-        filteredQuestions = data.filter(q => q.tracks?.includes(trackType));
+      const seed = Math.floor(Math.random() * 2 ** 31);
+      const data = await assessmentAPI.getQuestions(mode, {
+        seed,
+        track: mode === 'grade2' && trackType ? trackType : undefined,
+        subjects: mode === 'grade3' ? selectedSubjects : undefined,
+      });
+      if (data.length === 0) {
+        alert('依你選擇的學測科目，目前沒有可報名的科系題卡，請調整科目後再試');
+        setStarted(false);
+        return;
       }
-      // 如果是高三模式，使用傳入的篩選科系列表
-      else if (mode === 'grade3' && filteredDepts && filteredDepts.length > 0) {
-        filteredQuestions = data.filter(q => filteredDepts.includes(q.department));
-      }
-
-      setQuestions(filteredQuestions);
+      setQuestions(data);
       setCurrentIndex(0);
       setAnswers(new Map());
       setResult(null);
     } catch (error) {
       console.error('載入題目失敗:', error);
       alert('載入題目失敗，請稍後再試');
+      setStarted(false);
     } finally {
       setLoading(false);
     }
@@ -120,31 +121,13 @@ export default function AssessmentPage() {
     if (mode === 'grade2' && !trackType) {
       return;
     }
-
-    // 高三模式需要先選擇學測科目
-    if (mode === 'grade3') {
-      if (selectedSubjects.length === 0) {
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const result = await assessmentAPI.filterBySubjects(selectedSubjects);
-        setStarted(true);
-        // 將篩選後的科系列表直接傳遞給 loadQuestions
-        await loadQuestions(result.departments);
-        setLoading(false);
-        return;
-      } catch (error) {
-        console.error('篩選科系失敗:', error);
-        alert('篩選科系失敗，請稍後再試');
-        setLoading(false);
-        return;
-      }
+    // 高三模式需要先選擇學測科目（後端只出「採計科目都有考到」的科系）
+    if (mode === 'grade3' && selectedSubjects.length === 0) {
+      return;
     }
 
     setStarted(true);
-    loadQuestions();
+    await loadQuestions();
   };
 
   const getQuestionCount = (question: Question) => question.questions?.length || 1;
@@ -188,15 +171,16 @@ export default function AssessmentPage() {
     }
   };
 
-  // 判斷文組或理組（高一模式）
-  const determineTrack = () => {
+  // 判斷文組或理組（高一模式）：文 / 理組各 5 張題卡，比較兩組平均分（後端 trackScores）；
+  // 平均相同時看排名第一的科系屬哪一組
+  const determineTrack = (): Track | null => {
     if (!result) return null;
-    const topDepts = result.departments.slice(0, 5);
-    const deptTracks = new Map<string, Track[]>();
-    questions.forEach(q => deptTracks.set(q.department, q.tracks ?? []));
-    const liberalCount = topDepts.filter(d => deptTracks.get(d.name)?.includes('liberal')).length;
-    const scienceCount = topDepts.filter(d => deptTracks.get(d.name)?.includes('science')).length;
-    return liberalCount > scienceCount ? 'liberal' : 'science';
+    const liberal = result.trackScores?.liberal ?? 0;
+    const science = result.trackScores?.science ?? 0;
+    if (liberal !== science) return liberal > science ? 'liberal' : 'science';
+    const top = result.departments[0];
+    const topTracks = questions.find(q => q.department === top?.name)?.tracks ?? [];
+    return topTracks.includes('liberal') ? 'liberal' : 'science';
   };
 
   // 選擇模式畫面
@@ -353,7 +337,7 @@ export default function AssessmentPage() {
               <ul className="space-y-2 text-gray-600">
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
-                  <span>共約 30-40 題，每題評分 1-5 分</span>
+                  <span>每個科系 1 張研究題卡，最多 10 張（每張 3 題，共 30 題），每題評分 1-5 分</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
@@ -361,7 +345,7 @@ export default function AssessmentPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
-                  <span>測評時間約 15-20 分鐘</span>
+                  <span>測評時間約 10 分鐘；每次測驗會輪替不同的研究題卡</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
@@ -414,6 +398,11 @@ export default function AssessmentPage() {
                 <span className="text-gray-700">的學習方向</span>
               </p>
             </div>
+            {result.trackScores && (
+              <p className="text-sm text-gray-600 text-center mt-2">
+                文組題卡平均 {(result.trackScores.liberal ?? 0).toFixed(1)} 分・理組題卡平均 {(result.trackScores.science ?? 0).toFixed(1)} 分（滿分 5）
+              </p>
+            )}
           </div>
         )}
 
@@ -442,7 +431,7 @@ export default function AssessmentPage() {
                 <div className="text-3xl font-bold text-primary-700">
                   {dept.score.toFixed(1)}
                 </div>
-                <div className="text-xs text-gray-500">匹配度</div>
+                <div className="text-xs text-gray-500">興趣平均分（滿分 5）</div>
               </div>
             ))}
           </div>
@@ -474,7 +463,8 @@ export default function AssessmentPage() {
 
         {/* 興趣標籤 */}
         <div className="card p-8 mt-8 max-w-5xl mx-auto">
-          <h2 className="text-lg font-bold text-primary-900 mb-6">你的興趣標籤</h2>
+          <h2 className="text-lg font-bold text-primary-900 mb-2">你的興趣標籤</h2>
+          <p className="text-xs text-gray-500 mb-6">分數為帶有該標籤的研究題卡平均分（滿分 5）</p>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {result.tagScores.slice(0, 12).map((tag) => (
               <div
@@ -482,7 +472,7 @@ export default function AssessmentPage() {
                 className="p-3 bg-primary-50 rounded-lg text-center hover:bg-primary-100 transition-colors"
               >
                 <div className="text-2xl font-bold text-primary-700 mb-1">
-                  {tag.score.toFixed(0)}
+                  {tag.score.toFixed(1)}
                 </div>
                 <div className="text-xs text-gray-700 font-medium">{tag.tag}</div>
               </div>

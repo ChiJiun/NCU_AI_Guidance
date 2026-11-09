@@ -1,11 +1,12 @@
 """
 compare_judge_runs.py
 
-把多份 judge_with_claude.py（v2）產生的 *_judge_v2_summary.json 整理成一張比較表。
+把多份 judge_with_claude.py 產生的 *_<OUT_SUFFIX>_summary.json 整理成一張比較表。
+各份只評一次時，可用 --reliability-from 指定一份評兩次的 summary，另列評審可信度。
 
 執行方式：
   python scripts/test_course_agent/compare_judge_runs.py 20261108_151846 20261108_170323 20261108_224715
-  python scripts/test_course_agent/compare_judge_runs.py <run_id ...> --out docs/10-retrieval-evaluation/judge-v2-comparison.md
+  python scripts/test_course_agent/compare_judge_runs.py <run_id ...> --reliability-from <兩次評審的 summary.json> --out <md>
 """
 
 import argparse
@@ -21,7 +22,18 @@ def _v(x, suffix=""):
     return "—" if x is None else f"{x}{suffix}"
 
 
-def build_table(summaries: dict[str, dict]) -> str:
+def reliability_rows(s: dict) -> list[str]:
+    r = s["reliability"]
+    out = ["| 指標 | 數值 |", "|---|---|",
+           f"| 四面向總分完全一致 | {r['aux_exact']}% |",
+           f"| 四面向總分差 1 分內 | {r['aux_within_1']}% |",
+           f"| 檢查點判定一致 | {r['check_agree']}% |",
+           f"| 錯誤標記完全相同 | {r['flags_agree']}% |"]
+    out += [f"| 　└ {name} 完全一致 | {r['dim_exact'][k]}% |" for k, name in DIMENSIONS.items()]
+    return out
+
+
+def build_table(summaries: dict[str, dict], reliability: dict | None = None) -> str:
     ids = list(summaries)
     head = "| 指標 | " + " | ".join(ids) + " |"
     sep = "|---|" + "---|" * len(ids)
@@ -56,13 +68,19 @@ def build_table(summaries: dict[str, dict]) -> str:
     for f in ERROR_FLAGS:
         lines.append(row(f"`{f}`（任一次／兩次都標）",
                          lambda s, f=f: f"{s['ai']['flags_any_pass'].get(f, 0)}／{s['ai']['flags_all_passes'].get(f, 0)}"))
-    lines += ["", "## 第三層：評審可信度（同一回答評兩次）", "", head, sep,
-              row("四面向總分完全一致", lambda s: f"{s['reliability']['aux_exact']}%"),
-              row("四面向總分差 1 分內", lambda s: f"{s['reliability']['aux_within_1']}%"),
-              row("檢查點判定一致", lambda s: f"{s['reliability']['check_agree']}%"),
-              row("錯誤標記完全相同", lambda s: f"{s['reliability']['flags_agree']}%")]
-    for k, name in DIMENSIONS.items():
-        lines.append(row(f"　└ {name} 完全一致", lambda s, k=k: f"{s['reliability']['dim_exact'][k]}%"))
+    if all((s.get("reliability") or {}).get("paired_questions") for s in summaries.values()):
+        lines += ["", "## 第三層：評審可信度（同一回答評兩次）", "", head, sep,
+                  row("四面向總分完全一致", lambda s: f"{s['reliability']['aux_exact']}%"),
+                  row("四面向總分差 1 分內", lambda s: f"{s['reliability']['aux_within_1']}%"),
+                  row("檢查點判定一致", lambda s: f"{s['reliability']['check_agree']}%"),
+                  row("錯誤標記完全相同", lambda s: f"{s['reliability']['flags_agree']}%")]
+        for k, name in DIMENSIONS.items():
+            lines.append(row(f"　└ {name} 完全一致", lambda s, k=k: f"{s['reliability']['dim_exact'][k]}%"))
+    elif reliability and (reliability.get("reliability") or {}).get("paired_questions"):
+        rid = reliability["meta"]["run_id"]
+        lines += ["", f"## 第三層：評審可信度（只在 {rid} 量測：同一回答評兩次）", "",
+                  "> 上表各份都只用第 1 次評審；評審穩定度與回答無關，因此只在一份上量測。", "",
+                  *reliability_rows(reliability)]
     groups = sorted({g for s in summaries.values() for g in s.get("ai", {}).get("by_group", {})})
     if groups:
         lines += ["", "## 各類別檢查點達成率", "", "| 類別 | " + " | ".join(ids) + " |", sep]
@@ -76,6 +94,8 @@ def main() -> int:
     ap.add_argument("runs", nargs="+", help="run_id（例如 20261108_224715）或 summary json 路徑")
     ap.add_argument("--dir", default=str(RESULTS_DIR), help="summary 所在資料夾")
     ap.add_argument("--out", default=None, help="輸出 md 路徑（預設印到螢幕）")
+    ap.add_argument("--reliability-from", default=None, help="評兩次的 summary json，用來另列評審可信度")
+    ap.add_argument("--title", default=None, help="表頭標題")
     args = ap.parse_args()
 
     summaries = {}
@@ -83,11 +103,14 @@ def main() -> int:
         p = Path(r) if r.endswith(".json") else Path(args.dir) / f"{r}_{OUT_SUFFIX}_summary.json"
         s = json.loads(p.read_text(encoding="utf-8"))
         summaries[s["meta"]["run_id"]] = s
+    rel = json.loads(Path(args.reliability_from).read_text(encoding="utf-8")) if args.reliability_from else None
+    passes = sorted({s["ai"]["judgements"] // max(1, s["ai"]["judged_questions"]) for s in summaries.values()})
+    model = "、".join(sorted({m for s in summaries.values() for m in [s["meta"].get("model")] if m})) or "claude"
     text = "\n".join([
-        "# 課程助理三次評測比較（評分 v2）", "",
-        "> 同一套評測集標註（含 expected_behavior）與同一版評審（`claude-sonnet-5-5`，每題評 2 次）重評既有回答，"
-        "三次回答之間課程助理的提示詞不同，因此本表比較的是回答品質，評分標準固定。", "",
-        build_table(summaries), ""])
+        args.title or f"# 課程助理評測比較（評分 {OUT_SUFFIX}）", "",
+        f"> 同一套評測集標註（含 expected_behavior）與同一版評審（`{model}`，每題評 {'／'.join(map(str, passes))} 次）重評既有回答，"
+        "各次回答之間課程助理的提示詞不同，因此本表比較的是回答品質，評分標準固定。", "",
+        build_table(summaries, rel), ""])
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
         print(f"已寫入 {args.out}")

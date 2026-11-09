@@ -155,6 +155,12 @@ GRAD_PARENT: Dict[str, str] = {
     "認知神經科學研究所": "生醫科學與工程學系",
 }
 _GRAD_PARENT_KEY = {dept_key(k): dept_key(v) for k, v in GRAD_PARENT.items()}
+_GRAD_PARENT_NAME = {dept_key(k): v for k, v in GRAD_PARENT.items()}
+
+
+def dept_unit(name: str) -> str:
+    """量表推薦單位：研究所 / 研究中心的題卡算給所屬的大學部學系（高中生只能報大學部）。"""
+    return _GRAD_PARENT_NAME.get(dept_key(name), name)
 
 # 學院學士班入學後可在學院內選系 → 展開成該學院的學系
 _COLLEGE_PROGRAMS = {

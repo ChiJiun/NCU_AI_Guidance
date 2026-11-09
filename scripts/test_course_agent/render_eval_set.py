@@ -7,7 +7,8 @@ render_eval_set.py
   python scripts/test_course_agent/render_eval_set.py          # 驗證並重新產生 md / txt
   python scripts/test_course_agent/render_eval_set.py --check  # 只驗證，不寫檔
 
-驗證項目：題號唯一、工具名稱存在、不要求已停用工具、14 個工具都至少被一題強制呼叫。
+驗證項目：題號唯一、工具名稱存在、不要求已停用工具、14 個工具都至少被一題強制呼叫、
+expected_behavior 合法且與 allow_no_tool 一致。
 """
 
 import argparse
@@ -20,6 +21,7 @@ EVAL_DIR = ROOT / "docs" / "10-retrieval-evaluation"
 JSON_PATH = EVAL_DIR / "eval-set-v1.json"
 MD_PATH = EVAL_DIR / "eval-set-v1.md"
 TXT_PATH = EVAL_DIR / "eval-set-v1.txt"
+BEHAVIORS = {"query": "應查詢", "clarify": "應先追問", "correct_premise": "應指出前提／邊界"}
 
 
 def load(path: Path = JSON_PATH) -> dict:
@@ -71,6 +73,13 @@ def validate(data: dict) -> list[str]:
         for f in q["watch_flags"]:
             if f not in meta["error_flags"]:
                 errors.append(f"{qid}: 未知錯誤標記 {f}")
+        eb = q.get("expected_behavior")
+        if eb not in BEHAVIORS:
+            errors.append(f"{qid}: expected_behavior 必須是 {'/'.join(BEHAVIORS)}")
+        elif eb == "clarify" and not t["allow_no_tool"]:
+            errors.append(f"{qid}: clarify 題必須允許不呼叫工具")
+        elif eb == "query" and t["allow_no_tool"]:
+            errors.append(f"{qid}: query 題不可標示可不呼叫工具")
         forced.update(t["all"])
 
     missing = enabled - forced
@@ -87,7 +96,7 @@ def _tools_text(t: dict) -> str:
     if t["any"]:
         parts.append("至少一個：" + "、".join(t["any"]))
     if t["allow_no_tool"]:
-        parts.append("第一輪可不呼叫工具")
+        parts.append("可不呼叫工具")
     return "；".join(parts)
 
 
@@ -107,6 +116,11 @@ def render_md(data: dict) -> str:
     ]
     for k, v in meta["scoring"].items():
         lines.append(f"- `{k}`：{v}")
+    lines += ["", "## 預期行為（expected_behavior）", ""]
+    for k, v in meta["behavior_semantics"].items():
+        lines.append(f"- `{k}`（{BEHAVIORS[k]}）：{v}")
+    counts = {k: sum(q["expected_behavior"] == k for q in data["questions"]) for k in BEHAVIORS}
+    lines.append("- 題數：" + "、".join(f"{BEHAVIORS[k]} {n}" for k, n in counts.items()))
     lines += ["", "## 工具預期欄位說明", ""]
     for k, v in meta["tool_semantics"].items():
         lines.append(f"- `{k}`：{v}")
@@ -117,13 +131,13 @@ def render_md(data: dict) -> str:
         by_group.setdefault(q["group"], []).append(q)
     for g, qs in by_group.items():
         lines += [f"## {g}. {meta['groups'][g]}（{len(qs)} 題）", "",
-                  "| ID | 問題 | 意圖 | 工具預期 | 檢查點 | 評分 |",
+                  "| ID | 問題 | 意圖 | 預期行為 | 工具預期 | 檢查點 |",
                   "|---|---|---|---|---|---|"]
         for q in qs:
             mark = " ×3" if q["repeat3"] else ""
             lines.append(
                 f"| {q['id']}{mark} | {q['question']} | {'＋'.join(q['intent'])} | "
-                f"{_tools_text(q['tools'])} | {'；'.join(q['checks'])} | {q['scoring']} |")
+                f"{BEHAVIORS[q['expected_behavior']]} | {_tools_text(q['tools'])} | {'；'.join(q['checks'])} |")
         lines.append("")
     lines += ["`×3`：該題建議重跑 3 次以觀察穩定度。", ""]
     return "\n".join(lines)

@@ -24,6 +24,14 @@ export interface Answer {
 export interface AssessmentResult {
   departments: DepartmentScore[];
   tagScores: TagScore[];
+  trackScores?: { liberal?: number | null; science?: number | null } | null; // 文 / 理組題卡平均（1-5）
+  colleges?: CollegeScore[]; // 學院排名
+}
+
+export interface CollegeScore {
+  name: string;
+  score: number; // 該學院題卡平均分（1-5）
+  count: number; // 作答的題卡數
 }
 
 export interface DepartmentScore {
@@ -35,7 +43,8 @@ export interface DepartmentScore {
 
 export interface TagScore {
   tag: string;
-  score: number;
+  score: number; // 帶此標籤的題卡平均分（1-5）
+  count?: number; // 出現在幾張題卡
 }
 
 // 课程相关类型

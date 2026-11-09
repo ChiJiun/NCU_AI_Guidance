@@ -40,14 +40,15 @@ export const authAPI = {
 
 // 科系兴趣量表 API
 export const assessmentAPI = {
-  // 後端每系抽 1 張題卡、最多 10 張；同一個 seed 會拿到同一組題目
+  // 後端每個大學部學系抽 1 張題卡（高一 10 張、其他模式每輪最多 16 張）；同一個 seed 會拿到同一組題目
   getQuestions: async (
     mode: AssessmentMode,
-    options: { track?: 'liberal' | 'science'; subjects?: string[]; seed: number },
+    options: { track?: 'liberal' | 'science'; subjects?: string[]; seed: number; exclude?: string[] },
   ): Promise<Question[]> => {
     const params = new URLSearchParams({ mode, seed: String(options.seed) });
     if (options.track) params.set('track', options.track);
     options.subjects?.forEach((s) => params.append('subjects', s));
+    options.exclude?.forEach((d) => params.append('exclude', d)); // 再測一輪：已作答過的學系
     const response = await apiClient.get(`/assessment/questions?${params.toString()}`);
     return response.data;
   },
@@ -58,7 +59,8 @@ export const assessmentAPI = {
   },
 
   filterBySubjects: async (subjects: string[]): Promise<{
-    departments: string[];            // 題庫系所名稱（已正規化，可直接比對 question.department）
+    departments: string[];            // 題庫系所原名（含研究所題卡）
+    units?: string[];                 // 可報名的大學部學系（= question.department）
     admission_departments?: string[]; // 原始招生系所名稱
     unmatched?: string[];
     excluded?: string[];

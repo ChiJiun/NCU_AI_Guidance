@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.models.schemas import Answer, AssessmentMode, SubmitAnswersRequest  # noqa: E402
 from app.routes import assessment  # noqa: E402
-from app.services.department_names import dept_tracks  # noqa: E402
+from app.services.department_names import GRAD_PARENT, dept_tracks  # noqa: E402
 
 ALL_SUBJECTS = ["chinese", "english", "math_a", "math_b", "social", "science"]
 LIMIT = assessment.CARDS_PER_ATTEMPT
@@ -51,14 +51,34 @@ class SamplingTests(unittest.TestCase):
         for seed in range(30):
             qs = assessment.select_questions("grade1", seed=seed)
             tracks = Counter(tuple(dept_tracks(q["department"])) for q in qs)
-            self.assertEqual(tracks, Counter({("liberal",): LIMIT // 2, ("science",): LIMIT // 2}))
+            self.assertEqual(tracks, Counter({("liberal",): assessment.GRADE1_CARDS // 2, ("science",): assessment.GRADE1_CARDS // 2}))
 
-    def test_grade2_science_spans_every_college(self):
-        pool = {assessment.dept_college(q["department"])
-                for q in assessment.mode_cards("grade2") if "science" in q["tracks"]}
-        for seed in range(30):
-            qs = assessment.select_questions("grade2", "science", seed=seed)
-            self.assertEqual({assessment.dept_college(q["department"]) for q in qs}, pool)
+    def test_grade2_shows_every_department_of_the_track(self):
+        for track, n in (("liberal", 8), ("science", 16)):
+            pool = {q["department"] for q in assessment.mode_cards("grade2") if track in q["tracks"]}
+            self.assertEqual(len(pool), n)
+            for seed in range(10):
+                qs = assessment.select_questions("grade2", track, seed=seed)
+                self.assertEqual({q["department"] for q in qs}, pool)
+
+    def test_graduate_institutes_fold_into_undergrad_departments(self):
+        for mode in ("grade1", "grade2", "grade3"):
+            units = {q["department"] for q in assessment.mode_cards(mode)}
+            self.assertFalse(units & set(GRAD_PARENT), mode)
+            self.assertLessEqual(len(units), 23)
+
+    def test_grade3_second_round_covers_the_rest(self):
+        all_units = set(assessment.eligible_bank_departments(ALL_SUBJECTS)["units"])
+        self.assertEqual(len(all_units), 23)
+        for seed in range(10):
+            r1 = {q["department"] for q in assessment.select_questions("grade3", subjects=ALL_SUBJECTS, seed=seed)}
+            r2 = {q["department"] for q in assessment.select_questions(
+                "grade3", subjects=ALL_SUBJECTS, seed=seed + 1, exclude=sorted(r1))}
+            self.assertEqual(len(r1), LIMIT)
+            self.assertFalse(r1 & r2)
+            self.assertEqual(r1 | r2, all_units)
+            self.assertEqual(len({assessment.dept_college(d) for d in r1}),
+                             len({assessment.dept_college(d) for d in all_units}))
 
     def test_same_seed_same_questions(self):
         for mode, track, subjects in CASES:
@@ -76,16 +96,16 @@ class SamplingTests(unittest.TestCase):
 
 class EligibilityTests(unittest.TestCase):
     def test_all_subjects_means_all_departments(self):
-        allowed = set(assessment.eligible_bank_departments(ALL_SUBJECTS)["departments"])
+        allowed = set(assessment.eligible_bank_departments(ALL_SUBJECTS)["units"])
         bank = {q["department"] for q in assessment.mode_cards("grade3")}
         self.assertEqual(allowed, bank)
 
     def test_more_subjects_never_removes_departments(self):
         for k in range(1, len(ALL_SUBJECTS)):
             for subset in combinations(ALL_SUBJECTS, k):
-                small = set(assessment.eligible_bank_departments(list(subset))["departments"])
+                small = set(assessment.eligible_bank_departments(list(subset))["units"])
                 for extra in set(ALL_SUBJECTS) - set(subset):
-                    big = set(assessment.eligible_bank_departments(list(subset) + [extra])["departments"])
+                    big = set(assessment.eligible_bank_departments(list(subset) + [extra])["units"])
                     self.assertLessEqual(small, big, (subset, extra))
 
 
@@ -109,6 +129,14 @@ class ScoringTests(unittest.TestCase):
         res = _submit(answers)
         self.assertTrue(all(1 <= t.score <= 5 for t in res.tagScores))
         self.assertTrue(all(t.score == 5 for t in res.tagScores))
+
+    def test_college_scores(self):
+        qs = assessment.select_questions("grade2", "science", seed=2)
+        answers = [(q["id"], 5 if q["college"] == "地球科學學院" else 1) for q in qs for _ in range(3)]
+        res = _submit(answers)
+        self.assertEqual(res.colleges[0].name, "地球科學學院")
+        self.assertEqual(res.colleges[0].score, 5)
+        self.assertEqual(sum(c.count for c in res.colleges), len(qs))
 
     def test_track_scores(self):
         qs = assessment.select_questions("grade1", seed=5)

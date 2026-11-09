@@ -18,7 +18,9 @@ class Question(BaseModel):
     intro: Optional[str] = None
     questions: Optional[List[str]] = None
     tags: List[str]
-    tracks: List[str] = []  # 高二文理分組：'liberal' / 'science'
+    tracks: List[str] = []  # 'liberal' / 'science'
+    sourceDepartment: Optional[str] = None  # 題卡原屬系所（研究所題卡會併入大學部學系）
+    college: Optional[str] = None  # 高二文理分組：'liberal' / 'science'
 
 class Answer(BaseModel):
     questionId: str
@@ -43,10 +45,16 @@ class TrackScores(BaseModel):
     liberal: Optional[float] = None  # 文組系所題卡平均分（1-5）
     science: Optional[float] = None  # 理組系所題卡平均分（1-5）
 
+class CollegeScore(BaseModel):
+    name: str
+    score: float  # 該學院題卡平均分（1-5）
+    count: int    # 作答了幾張該學院的題卡
+
 class AssessmentResult(BaseModel):
     departments: List[DepartmentScore]
     tagScores: List[TagScore]
     trackScores: Optional[TrackScores] = None
+    colleges: List[CollegeScore] = []
 
 # 課程相關模型
 class CoreAbility(BaseModel):

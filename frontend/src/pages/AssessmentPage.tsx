@@ -23,6 +23,10 @@ export default function AssessmentPage() {
   const [answers, setAnswers] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  // 高三：可報名的學系、前幾輪的作答（再測一輪時保留，最後一起計分）
+  const [eligibleUnits, setEligibleUnits] = useState<string[]>([]);
+  const [prevAnswers, setPrevAnswers] = useState<Map<string, number>>(new Map());
+  const [prevDepts, setPrevDepts] = useState<string[]>([]);
 
   // 換題時滾回頂端
   useLayoutEffect(() => {
@@ -87,16 +91,19 @@ export default function AssessmentPage() {
     },
   ];
 
-  // 抽題在後端：每個系所 1 張題卡、最多 10 張（30 個子題，約 10 分鐘）。
-  // 每次開始作答產生一個 seed，題目存在 state，作答期間不會變；重新測驗會換一組題卡。
-  const loadQuestions = async () => {
+  // 抽題在後端：推薦單位是大學部學系（研究所題卡併入所屬學系），每個學系 1 張題卡。
+  // 高一 10 張；高二文組 8 張、理組 16 張；高三每輪最多 16 張，沒出到的學系可再測一輪。
+  // 每輪開始時產生一個 seed，題目存在 state，作答期間不會變；重新測驗會換一組題卡。
+  const loadQuestions = async (exclude?: string[]) => {
     try {
       setLoading(true);
+      setQuestions([]);
       const seed = Math.floor(Math.random() * 2 ** 31);
       const data = await assessmentAPI.getQuestions(mode, {
         seed,
         track: mode === 'grade2' && trackType ? trackType : undefined,
         subjects: mode === 'grade3' ? selectedSubjects : undefined,
+        exclude,
       });
       if (data.length === 0) {
         alert('依你選擇的學測科目，目前沒有可報名的科系題卡，請調整科目後再試');
@@ -127,7 +134,26 @@ export default function AssessmentPage() {
     }
 
     setStarted(true);
+    setPrevAnswers(new Map());
+    setPrevDepts([]);
+    setEligibleUnits([]);
+    if (mode === 'grade3') {
+      try {
+        const eligible = await assessmentAPI.filterBySubjects(selectedSubjects);
+        setEligibleUnits(eligible.units ?? []);
+      } catch (error) {
+        console.error('篩選科系失敗:', error); // 只影響「未涵蓋學系」提示，題目照常載入
+      }
+    }
     await loadQuestions();
+  };
+
+  // 高三再測一輪：保留這一輪的作答，只出還沒作答過的學系
+  const handleNextRound = async () => {
+    const done = [...new Set([...prevDepts, ...questions.map(q => q.department)])];
+    setPrevAnswers(new Map([...prevAnswers, ...answers]));
+    setPrevDepts(done);
+    await loadQuestions(done);
   };
 
   const getQuestionCount = (question: Question) => question.questions?.length || 1;
@@ -154,7 +180,8 @@ export default function AssessmentPage() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      const answersArray: Answer[] = Array.from(answers.entries()).map(
+      const allAnswers = new Map([...prevAnswers, ...answers]);
+      const answersArray: Answer[] = Array.from(allAnswers.entries()).map(
         ([answerKey, score]) => ({
           questionId: answerKey.split('::')[0],
           score,
@@ -337,15 +364,19 @@ export default function AssessmentPage() {
               <ul className="space-y-2 text-gray-600">
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
-                  <span>每個科系 1 張研究題卡，最多 10 張（每張 3 題，共 30 題），每題評分 1-5 分</span>
+                  <span>每個大學部學系 1 張研究題卡，每張 3 題，每題評分 1-5 分</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
-                  <span>題目基於真實的大專生研究計畫</span>
+                  <span>
+                    {mode === 'grade1' && '高一：文、理組各 5 個學系，共 10 張（30 題），約 10 分鐘'}
+                    {mode === 'grade2' && '高二：文組 8 個學系全出（24 題，約 8 分鐘）；理組 16 個學系全出（48 題，約 15 分鐘）'}
+                    {mode === 'grade3' && '高三：只出你可報名的學系，每輪最多 16 張（約 15 分鐘）；沒出到的學系可在結果頁再測一輪'}
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
-                  <span>測評時間約 10 分鐘；每次測驗會輪替不同的研究題卡</span>
+                  <span>題目基於真實的大專生研究計畫，研究所的研究併入所屬學系；每次測驗會輪替不同的研究題卡</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-primary-600 mr-2">•</span>
@@ -374,6 +405,9 @@ export default function AssessmentPage() {
   // 顯示結果
   if (result) {
     const track = mode === 'grade1' ? determineTrack() : trackType;
+    const answeredDepts = new Set([...prevDepts, ...questions.map(q => q.department)]);
+    const uncovered = mode === 'grade3' ? eligibleUnits.filter(d => !answeredDepts.has(d)) : [];
+    const colleges = result.colleges ?? [];
 
     return (
       <div ref={pageTopRef} className="page-container py-8">
@@ -460,6 +494,44 @@ export default function AssessmentPage() {
             </div>
           </div>
         </div>
+
+        {/* 高三：這一輪沒出到的可報名學系 */}
+        {uncovered.length > 0 && (
+          <div className="card p-6 mt-8 max-w-5xl mx-auto border-amber-200 bg-amber-50">
+            <h2 className="text-lg font-bold text-primary-900 mb-2">
+              還有 {uncovered.length} 個你可報名的學系沒有出到
+            </h2>
+            <p className="text-sm text-gray-600 mb-3">{uncovered.join('、')}</p>
+            <button onClick={handleNextRound} className="btn-primary">
+              再測一輪（{uncovered.length} 張題卡，約 {uncovered.length} 分鐘）
+            </button>
+            <p className="text-xs text-gray-500 mt-2">這一輪的作答會保留，完成後一起排名</p>
+          </div>
+        )}
+
+        {/* 學院排名 */}
+        {colleges.length > 0 && (
+          <div className="card p-8 mt-8 max-w-5xl mx-auto">
+            <h2 className="text-lg font-bold text-primary-900 mb-2">學院排名</h2>
+            <p className="text-xs text-gray-500 mb-6">該學院所有研究題卡的平均分（滿分 5），括號內為作答的題卡數</p>
+            <div className="space-y-3">
+              {colleges.map((college, index) => (
+                <div key={college.name} className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-gray-500 w-6">{index + 1}</span>
+                  <span className="text-sm font-semibold text-primary-900 w-28 shrink-0">{college.name}</span>
+                  <div className="flex-1 h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-600 rounded-full"
+                      style={{ width: `${(college.score / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-sm font-bold text-primary-700 w-10 text-right">{college.score.toFixed(1)}</span>
+                  <span className="text-xs text-gray-500 w-12">（{college.count} 張）</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 興趣標籤 */}
         <div className="card p-8 mt-8 max-w-5xl mx-auto">

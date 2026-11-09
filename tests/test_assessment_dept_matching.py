@@ -50,7 +50,7 @@ class AssessmentCoverageTests(unittest.TestCase):
         self.assertEqual(resp["unmatched"], [])
         allowed = set(resp["departments"])
         qs = _questions("grade3")
-        self.assertEqual([q["id"] for q in qs if q["department"] not in allowed], [])
+        self.assertEqual([q["id"] for q in qs if q["sourceDepartment"] not in allowed], [])
 
     def test_grade3_typical_combos_have_no_unmatched(self):
         for subjects in (

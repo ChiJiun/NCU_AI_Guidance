@@ -21,6 +21,7 @@ judge_with_claude.py（v2）
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -328,17 +329,29 @@ def load_course_details(course_files=COURSE_FILES) -> dict[str, list[dict]]:
                 "goal": g.get("課程目標", ""), "content": g.get("授課內容", ""),
                 "field": g.get("課程領域", ""),
             }
-            k = (norm, item["dept"])
+            k = (_squash(name), item["dept"])
             if k not in best or sem > best[k]["semester"]:
                 best[k] = item
     out: dict[str, list[dict]] = defaultdict(list)
-    for (norm, _), item in best.items():
-        out[norm].append(item)
+    for item in best.values():
+        out[normalize_course_name(item["name"])].append(item)
     return dict(out)
 
 
 def _squash(name: str) -> str:
     return re.sub(r"\s+", "", unicodedata.normalize("NFKC", str(name))).replace("臺", "台")
+
+
+HINT_RE = re.compile(r"^(.*?)\s*[（(]([^（）()]*)[）)]\s*$")
+HINT_UNIT_RE = re.compile(r"(系|所|學程|學院|學士班|中心|課群)$")
+
+
+def split_dept_hint(raw: str) -> tuple[str, str]:
+    """「資料結構（生醫科學與工程學系）」→（資料結構, 生醫科學與工程學系）；括號不是單位名稱時原樣保留。"""
+    m = HINT_RE.match(str(raw).strip())
+    if m and m.group(1) and HINT_UNIT_RE.search(m.group(2).strip()):
+        return m.group(1).strip(), m.group(2).strip()
+    return str(raw).strip(), ""
 
 
 def mentioned_courses(rec: dict, details: dict[str, list[dict]]) -> list[str]:
@@ -370,9 +383,13 @@ def format_course_evidence(rec: dict, details: dict[str, list[dict]], limit: int
     out, used = [], 0
     shown: set[tuple[str, str]] = set()
     for i, raw in enumerate(names):
-        pool = details[normalize_course_name(raw)]
-        exact = [r for r in pool if _squash(r["name"]) == _squash(raw)] or pool
-        hit = [r for r in exact if r["dept"] and r["dept"] in context]
+        name, hint = split_dept_hint(raw)
+        pool = details[normalize_course_name(name)]
+        exact = [r for r in pool if _squash(r["name"]) == _squash(name)] or pool
+        if hint:
+            hit = [r for r in exact if r["dept"] and (hint in r["dept"] or r["dept"] in hint)]
+        else:
+            hit = [r for r in exact if r["dept"] and r["dept"] in context]
         recs = (hit or sorted(exact, key=lambda r: r["semester"], reverse=True))[:RECORDS_PER_COURSE]
         for r in recs:
             if (r["name"], r["dept"]) in shown:
@@ -752,6 +769,10 @@ def build_report(rows: list[dict], meta: dict, groups: dict) -> str:
 
 # ── 主流程 ────────────────────────────────────────────────────────────────────
 
+def prompt_sha(prompt: str) -> str:
+    return hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16]
+
+
 def load_cache(path: Path) -> dict[tuple[str, int], dict]:
     done: dict[tuple[str, int], dict] = {}
     if path.exists():
@@ -817,6 +838,12 @@ def main() -> int:
         if not hard["empty_or_error"]:
             prompts[key] = (build_prompt(q, rec, hard, departments, details, rules), len(q["checks"]))
 
+    stale = [kp for kp, row in cache.items()
+             if kp[0] in prompts and row.get("prompt_sha") and row["prompt_sha"] != prompt_sha(prompts[kp[0]][0])]
+    for kp in stale:  # prompt 改過（例如附的資料不同）就重評
+        del cache[kp]
+    if stale:
+        print(f"prompt 已變更、需重評 {len(stale)} 次：{'、'.join(sorted({k for k, _ in stale}))}")
     todo = [(k, p) for k in prompts for p in range(1, args.passes + 1) if (k, p) not in cache]
     if not args.no_judge and todo:
         print(f"需評審 {len(todo)} 次（已快取 {sum(1 for k in prompts for p in range(1, args.passes + 1) if (k, p) in cache)} 次）")
@@ -839,7 +866,7 @@ def main() -> int:
                 fut = next(as_completed(futures))
                 k, p = futures.pop(fut)
                 res = fut.result()
-                row = {"key": k, "pass": p, **res}
+                row = {"key": k, "pass": p, "prompt_sha": prompt_sha(prompts[k][0]), **res}
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
                 f.flush()
                 if res["judgement"]:

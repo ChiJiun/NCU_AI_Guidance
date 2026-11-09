@@ -157,8 +157,22 @@ def make(args) -> int:
 
 # ── 計算一致率 ────────────────────────────────────────────────────────────────
 
+FLAG_LINE_RE = re.compile(r"^- 我會標的錯誤標記[^：\n]*：(.*)$", re.M)
+FACT_LINE_RE = re.compile(r"^- 事實錯誤[^：\n]*：(.*)$", re.M)
+NONE_WORDS = {"", "無", "没有", "沒有", "none", "-", "—"}
+
+
+def _parse_flags(cell: str) -> list[str]:
+    """空白或「無」都當作沒有錯誤標記。"""
+    if cell.strip().lower() in NONE_WORDS:
+        return []
+    return sorted({f for f in J.ERROR_FLAGS if f in cell})
+
+
 def parse_sheet(text: str) -> dict[str, dict]:
-    """回傳 {題號: {"checks": {n: "met"/"not_met"}, "scores": {dim_key: 0-2}}}，只收已填的格子。"""
+    """回傳 {題號: {"checks": {n: "met"/"not_met"}, "scores": {dim_key: 0-2}, "flags": [...], "facts": str}}。
+
+    checks／scores 只收已填的格子；錯誤標記與事實錯誤欄位空白視為「無」。"""
     name_to_key = {v: k for k, v in J.DIMENSIONS.items()}
     parts = MARK_RE.split(text)
     out = {}
@@ -174,7 +188,11 @@ def parse_sheet(text: str) -> dict[str, dict]:
         for name, val in DIM_ROW_RE.findall(body):
             if val.strip() in ("0", "1", "2"):
                 scores[name_to_key[name]] = int(val.strip())
-        out[key] = {"checks": checks, "scores": scores}
+        fm, xm = FLAG_LINE_RE.search(body), FACT_LINE_RE.search(body)
+        fact = (xm.group(1).strip() if xm else "")
+        out[key] = {"checks": checks, "scores": scores,
+                    "flags": _parse_flags(fm.group(1)) if fm else [],
+                    "facts": "" if fact.lower() in NONE_WORDS else fact}
     return out
 
 
@@ -190,7 +208,7 @@ def cohen_kappa(pairs: list[tuple[str, str]]) -> float | None:
 
 def agreement(human: dict[str, dict], ai: dict[str, list[dict]], which: int = 0) -> dict:
     """人工 vs 第 which+1 次 AI 評審。"""
-    check_pairs, dim_pairs, totals = [], defaultdict(list), []
+    check_pairs, dim_pairs, totals, flag_pairs = [], defaultdict(list), [], []
     for key, h in human.items():
         js = ai.get(key) or []
         if len(js) <= which:
@@ -203,6 +221,8 @@ def agreement(human: dict[str, dict], ai: dict[str, list[dict]], which: int = 0)
             dim_pairs[k].append((v, j["scores"][k]))
         if len(h["scores"]) == len(J.DIMENSIONS):
             totals.append((sum(h["scores"].values()), J.aux_total(j)))
+        if h["checks"] or h["scores"]:
+            flag_pairs.append((key, set(h.get("flags", [])), set(j.get("flags", []))))
 
     def pct(xs):
         return round(100 * sum(xs) / len(xs), 1) if xs else None
@@ -221,6 +241,11 @@ def agreement(human: dict[str, dict], ai: dict[str, list[dict]], which: int = 0)
         "total_within_1": pct([abs(a - b) <= 1 for a, b in totals]),
         "mean_total_human": round(statistics.mean(a for a, _ in totals), 2) if totals else None,
         "mean_total_ai": round(statistics.mean(b for _, b in totals), 2) if totals else None,
+        "flag_questions": len(flag_pairs),
+        "flag_agree": pct([a == b for _, a, b in flag_pairs]),
+        "flag_human_any": sum(1 for _, a, _ in flag_pairs if a),
+        "flag_ai_any": sum(1 for _, _, b in flag_pairs if b),
+        "flag_disagree": [(k, sorted(a), sorted(b)) for k, a, b in flag_pairs if a != b],
     }
 
 
@@ -246,7 +271,14 @@ def agree(args) -> int:
         for k, name in J.DIMENSIONS.items():
             if k in a["dim_exact"]:
                 lines.append(f"| 　└ {name}：完全一致／差 1 內 | {a['dim_exact'][k]}%／{a['dim_within_1'][k]}% |")
+        lines.append(f"| 錯誤標記一致率（空白視為「無」） | {a['flag_agree']}%（{a['flag_questions']} 題；人工標 {a['flag_human_any']} 題、AI 標 {a['flag_ai_any']} 題） |")
         lines.append("")
+        for k, hf, af in a["flag_disagree"]:
+            lines.append(f"- {k}：人工 {'、'.join(hf) or '無'}；AI {'、'.join(af) or '無'}")
+        if a["flag_disagree"]:
+            lines.append("")
+    facts = [(k, h["facts"]) for k, h in filled.items() if h.get("facts")]
+    lines += ["## 人工記下的事實錯誤", ""] + ([f"- {k}：{v}" for k, v in facts] or ["- 無（空白視為「無」）"]) + [""]
     text = "\n".join(lines)
     print(text)
     if args.out:

@@ -26,6 +26,8 @@ SHEET = """
 | 正確與誠實 | 1 |  |
 | 高中生看得懂 | 2 |  |
 | 引導探索 | 2 |  |
+- 事實錯誤（沒有就寫「無」）：
+- 我會標的錯誤標記（hallucinated_course／…；沒有就寫「無」）：hallucinated_course
 <details>
 | 1 | ✗ | AI 的證據 | ✗ |
 | 切題 | 0 | AI 理由 | 0 |
@@ -57,7 +59,15 @@ class HumanReview(unittest.TestCase):
         got = H.parse_sheet(SHEET)
         self.assertEqual(got["A01"]["checks"], {1: "met", 2: "not_met"})
         self.assertEqual(got["A01"]["scores"], {"relevance": 2, "honesty": 1, "readable": 2, "guidance": 2})
-        self.assertEqual(got["B01"], {"checks": {}, "scores": {}})
+        self.assertEqual(got["A01"]["flags"], ["hallucinated_course"])
+        self.assertEqual(got["A01"]["facts"], "")
+        self.assertEqual(got["B01"], {"checks": {}, "scores": {}, "flags": [], "facts": ""})
+
+    def test_blank_flag_means_none(self):
+        self.assertEqual(H._parse_flags("  "), [])
+        self.assertEqual(H._parse_flags("無"), [])
+        self.assertEqual(H._parse_flags("ignored_constraint、hallucinated_course"),
+                         ["hallucinated_course", "ignored_constraint"])
 
     def test_agreement_against_each_pass(self):
         human = H.parse_sheet(SHEET)
@@ -68,6 +78,7 @@ class HumanReview(unittest.TestCase):
         a2 = H.agreement(human, ai, 1)
         self.assertEqual(a2["check_agree"], 100.0)
         self.assertEqual(a2["dim_exact"]["honesty"], 100.0)
+        self.assertEqual((a1["flag_questions"], a1["flag_agree"], a1["flag_human_any"]), (1, 0.0, 1))
 
     def test_cohen_kappa(self):
         self.assertEqual(H.cohen_kappa([("met", "met"), ("not_met", "not_met")]), 1.0)

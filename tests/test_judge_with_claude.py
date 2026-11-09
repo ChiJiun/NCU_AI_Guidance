@@ -165,7 +165,7 @@ class Judgement(unittest.TestCase):
         rec = _rec("B03", ["get_dept_overview"])
         p = judge.build_prompt(q, rec, judge.hard_signals(q, rec, BANNED, KNOWN))
         self.assertIn("get_dept_overview({}) → 3 筆：資料結構", p)
-        self.assertIn("沒有課程描述", p)
+        self.assertIn("另見下方【課程資料】", p)
         self.assertIn("1. " + q["checks"][0], p)
 
     def test_prompt_lists_departments_when_available(self):
@@ -238,6 +238,59 @@ class Summary(unittest.TestCase):
     def test_repeat_runs_get_distinct_keys(self):
         keys = [k for k, _ in judge.index_records([_rec("A01", []), _rec("A01", []), _rec("B01", [])])]
         self.assertEqual(keys, ["A01", "A01#2", "B01"])
+
+
+class CourseEvidence(unittest.TestCase):
+    DETAILS = {
+        "工程數學": [
+            {"name": "工程數學 II", "dept": "機械工程學系", "semester": "1132", "credits": "3", "type": "必修",
+             "teachers": "潘敏俊", "grade": "", "goal": "數學基礎", "content": "Fourier Analysis", "field": ""},
+            {"name": "工程數學", "dept": "化學工程與材料工程學系", "semester": "1141", "credits": "3", "type": "必修",
+             "teachers": "曹恆光", "grade": "", "goal": "", "content": "ODE", "field": ""},
+        ],
+        "動力學": [{"name": "動力學", "dept": "機械工程學系", "semester": "1141", "credits": "3", "type": "必修",
+                    "teachers": "", "grade": "", "goal": "", "content": "", "field": ""}],
+    }
+
+    def rec(self, answer):
+        return {"answer": answer, "tool_calls": [{"tool": "get_dept_overview", "args": {"dept_name": "機械工程學系"},
+                                                  "coursesFound": ["動力學", "工程數學 II"]}]}
+
+    def test_mentions_come_from_tags_and_tool_names_in_order(self):
+        r = self.rec("先修<course>動力學</course>，再看工程數學 II")
+        self.assertEqual(judge.mentioned_courses(r, self.DETAILS), ["動力學", "工程數學 II"])
+
+    def test_unmentioned_tool_results_are_skipped(self):
+        self.assertEqual(judge.mentioned_courses(self.rec("沒有提到課"), self.DETAILS), [])
+
+    def test_prefers_the_department_in_context(self):
+        lines = judge.format_course_evidence(self.rec("機械系的工程數學 II 會教傅立葉"), self.DETAILS)
+        self.assertEqual(len(lines), 1)
+        self.assertIn("機械工程學系", lines[0])
+        self.assertIn("Fourier", lines[0])
+
+    def test_picks_the_exact_variant_of_a_course(self):
+        lines = judge.format_course_evidence(self.rec("先修工程數學 II"), self.DETAILS)
+        self.assertTrue(lines and all("工程數學 II" in l for l in lines))
+
+    def test_dept_rules_for_mentioned_departments(self):
+        rules = {"機械工程學系": {"graduation_rules": [{"description": "最低畢業學分數 128 學分"}],
+                                  "required_courses": [{"name": "動力學", "when": "大二上"}]},
+                 "土木工程學系": {"graduation_rules": [{"description": "x"}]}}
+        lines = judge.format_dept_rules(self.rec("機械系"), rules)
+        self.assertEqual(len(lines), 1)
+        self.assertIn("128 學分", lines[0])
+        self.assertIn("動力學（大二上）", lines[0])
+        self.assertEqual(judge.format_dept_rules({"answer": "無", "tool_calls": []}, rules), [])
+
+    def test_evidence_is_in_the_prompt(self):
+        q = {"id": "D05", "intent": ["比較"], "expected_behavior": "query", "question": "?", "checks": ["c"],
+             "watch_flags": []}
+        hard = {"tags": {"unknown": []}}
+        p = judge.build_prompt(q, self.rec("工程數學 II"), hard, None, self.DETAILS)
+        self.assertIn("【課程資料】", p)
+        self.assertIn("Fourier", p)
+        self.assertNotIn("【課程資料】（評測程式", judge.build_prompt(q, self.rec("x"), hard))
 
 
 if __name__ == "__main__":

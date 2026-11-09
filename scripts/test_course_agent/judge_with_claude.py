@@ -39,10 +39,11 @@ EVAL_PATH = ROOT / "docs" / "10-retrieval-evaluation" / "eval-set-v1.json"
 COURSE_FILES = [ROOT / "data" / "processed" / "courses_deduped" / f for f in ("undergrad.json", "grad.json")]
 GRAPH_PATH = ROOT / "data" / "processed" / "graph" / "knowledge_graph.json"
 DEPT_PATH = ROOT / "data" / "processed" / "dept_college_map.json"
+RULES_PATH = ROOT / "data" / "processed" / "curriculum_requirements_114.json"
 ENV_PATH = ROOT / ".env"
 TOKEN_VAR = "CLAUDE_CODE_OAUTH_TOKEN"
 DEFAULT_JUDGE_MODEL = "claude-sonnet-5-5"
-OUT_SUFFIX = "judge_v2"
+OUT_SUFFIX = "judge_v3"
 
 DIMENSIONS = {
     "relevance": "切題",
@@ -57,6 +58,9 @@ ANSWER_TOO_LONG = 900       # 字
 TOO_MANY_COURSES = 6        # 單題標記的不同課名數上限
 TOOL_DATA_CHARS = 3000      # 提供給評審的工具回傳總長度上限
 NAMES_PER_CALL = 40         # 每次工具呼叫最多列出幾個課名
+EVIDENCE_CHARS = 9000       # 附給評審的課程資料總長度上限
+RECORDS_PER_COURSE = 2      # 同名課程最多附幾個開課系所
+RULES_CHARS = 3500          # 附給評審的系所畢業規定總長度上限
 
 TAG_RE = re.compile(r"<course>(.*?)</course>", re.S)
 BRACKET_RE = re.compile(r"[（(【\[［〔].*?[）)】\]］〕]")
@@ -247,7 +251,7 @@ RUBRIC = """【評分步驟】
    not_met 時若回答完全沒提到，evidence 寫「回答未提及」並用一句話說明缺什麼。
 2. 四個輔助面向（每項 0/1/2，彼此不重疊）：
 - relevance 切題：只看「有沒有回應學生真正問的事」。2=回應了問題的每個部分，學生點名的系所／課程／要求都有處理；1=回應了主要問題但漏掉一部分或偏題；0=答非所問或忽略主要問題。
-- honesty 正確與誠實：只看「說的是否有根據、不確定時是否明說」。2=具體的課名、系所、學程、規定都能在工具回傳中找到，查不到或超出資料範圍時有明說，沒有保證、排名或薪資等無根據斷言；1=大致有根據，但有一兩處過度延伸，或該說「查不到」卻含糊帶過；0=編造課程或系所、與工具回傳矛盾，或做出無根據的保證／斷言。
+- honesty 正確與誠實：只看「說的有沒有錯、有沒有編造、不確定時是否明說」。請對照【課程資料】：課程內容、學分、老師、必選修、年級限制與資料相符或是資料內容的合理白話轉述，都算有根據。2=沒有與資料矛盾、沒有編造課程或系所、沒有保證／排名／薪資等斷言，查不到時有明說；1=有一兩處與資料不符（例如把選修說成必修、學分或系所寫錯），或該說「查不到」卻含糊帶過；0=編造課程或系所、多處與資料矛盾，或做出無根據的保證／斷言。只要沒有找到矛盾、編造或斷言，就給 2；【課程資料】或【系所畢業規定】沒附到、因此無法核對的細節不是扣分理由（附上的只是部分資料），寫進 needs_human_check。回答比資料多做的一般性白話說明（例如「微積分用來描述變化」）不算延伸。
 - readable 高中生看得懂：只看「措辭與講法」，不看長度。2=口語白話，學分、必修、先修、學程等新名詞第一次出現有解釋，先講學什麼再給課名；1=大致可讀，但有未解釋的術語或課表式段落；0=像課表或公文，高二學生看完仍不懂在說什麼。
 - guidance 引導探索：只看「有沒有幫學生往下一步走」，不看長度。2=給出有區隔的方向或比較面向（純查詢題則是把答案講完整），不替學生做決定，結尾有一個具體、學生答得出來的追問或下一步；1=方向單一，或下一步空泛（如「有問題再問我」）；0=只推單一選項、替學生下結論，或完全沒有下一步。
 3. behavior：asks_question=回答是否向學生提出問題以縮小範圍；corrects_premise=回答是否指出問題中的錯誤前提、保證要求或資料範圍限制（題目沒有這類前提時填 false）。
@@ -256,7 +260,7 @@ RUBRIC = """【評分步驟】
 - hallucinated_department：提到中大不存在的系所，或把相近單位當成學生問的系所
 - unsupported_career_claim：薪資、就業率、錄取分數、名額、涼課、老師評價、「適合什麼個性」等課程資料不可能有的斷言
 - ignored_constraint：忽略學生明說的限制（例如只要大學部、不想讀資工、沒寫過程式）
-5. 只看得到課名清單、看不到課程內容時，無法核對的細節不要扣分，寫進 needs_human_check。
+5. 扣 honesty 分時，reasons 必須引用回答的哪一句，並指出它和【課程資料】或【系所畢業規定】的哪一處矛盾；說不出具體矛盾、只能說「沒附資料」「無法核對」時，honesty 給 2，並寫進 needs_human_check。
 
 輸出 JSON 格式：
 {
@@ -268,8 +272,10 @@ RUBRIC = """【評分步驟】
   "needs_human_check": ["無法從現有資訊判斷、需要人工對照的地方"]
 }"""
 
-TOOL_DATA_NOTE = ("（限制：結果檔只保留每次工具呼叫的參數、筆數與回傳的課名清單，"
-                  "沒有課程描述、學分、必修別、先修條件、老師或學程內容；這些細節無法核對時請寫進 needs_human_check，不要扣分。）")
+TOOL_DATA_NOTE = ("（結果檔只保留每次工具呼叫的參數、筆數與回傳的課名清單；"
+                  "回答中提到的課程，其描述、學分、老師等內容另見下方【課程資料】。）")
+EVIDENCE_NOTE = ("（評測程式依回答中提到的課名，從中大課程資料查出的原始資訊，和助理當時查到的資料同源；"
+                 "同名課程只附最相關的開課系所，內容有截斷。）")
 
 
 def format_tool_data(rec: dict, limit: int = TOOL_DATA_CHARS) -> list[str]:
@@ -293,7 +299,140 @@ def format_tool_data(rec: dict, limit: int = TOOL_DATA_CHARS) -> list[str]:
     return out
 
 
-def build_prompt(q: dict, rec: dict, hard: dict, departments: list[str] | None = None) -> str:
+def _clip(text, n: int) -> str:
+    t = re.sub(r"\s+", " ", str(text or "")).strip()
+    return t if len(t) <= n else t[:n] + "…"
+
+
+GRADE_RE = re.compile(r"年級:限[^。']*")
+
+
+def load_course_details(course_files=COURSE_FILES) -> dict[str, list[dict]]:
+    """{正規化課名: [精簡的開課紀錄, ...]}，同系所同課名只留最新一筆。"""
+    best: dict[tuple[str, str], dict] = {}
+    for path in course_files:
+        if not path.exists():
+            continue
+        for c in json.loads(path.read_text(encoding="utf-8")):
+            name = c.get("課程名稱(中文)", "")
+            norm = normalize_course_name(name)
+            if not norm:
+                continue
+            g = c.get("課程綱要") if isinstance(c.get("課程綱要"), dict) else {}
+            sem = str(g.get("學期") or f"{c.get('學年度', '')}{c.get('學期', '')}")
+            item = {
+                "name": name, "dept": c.get("系所", ""), "semester": sem,
+                "credits": c.get("學分", ""), "type": c.get("選修別", ""),
+                "teachers": "、".join(t for t in str(c.get("授課教師", "")).split() if t),
+                "grade": "；".join(sorted(set(GRADE_RE.findall(str(c.get("分發條件", "")))))[:2]),
+                "goal": g.get("課程目標", ""), "content": g.get("授課內容", ""),
+                "field": g.get("課程領域", ""),
+            }
+            k = (norm, item["dept"])
+            if k not in best or sem > best[k]["semester"]:
+                best[k] = item
+    out: dict[str, list[dict]] = defaultdict(list)
+    for (norm, _), item in best.items():
+        out[norm].append(item)
+    return dict(out)
+
+
+def _squash(name: str) -> str:
+    return re.sub(r"\s+", "", unicodedata.normalize("NFKC", str(name))).replace("臺", "台")
+
+
+def mentioned_courses(rec: dict, details: dict[str, list[dict]]) -> list[str]:
+    """回答中提到的課（<course> 標記，以及工具回傳且出現在回答原文的課名），保留原寫法、依出現順序。
+
+    同一門課的不同寫法（如「工程數學 Ｉ」「工程數學Ⅱ」）分開保留，才能各自附上對的那一筆。"""
+    answer = rec.get("answer", "") or ""
+    found: dict[str, tuple[int, str]] = {}
+    cands = [(m.start(), m.group(1).strip()) for m in TAG_RE.finditer(answer)]
+    for c in rec.get("tool_calls") or []:
+        for raw in c.get("coursesFound") or []:
+            pos = answer.find(str(raw).strip())
+            if pos >= 0:
+                cands.append((pos, str(raw).strip()))
+    for pos, raw in cands:
+        if normalize_course_name(raw) in details:
+            k = _squash(raw)
+            if k not in found or pos < found[k][0]:
+                found[k] = (pos, raw)
+    return [raw for pos, raw in sorted(found.values())]
+
+
+def format_course_evidence(rec: dict, details: dict[str, list[dict]], limit: int = EVIDENCE_CHARS) -> list[str]:
+    names = mentioned_courses(rec, details)
+    if not names:
+        return ["- （回答中沒有可對照的課程）"]
+    answer = rec.get("answer", "") or ""
+    context = answer + json.dumps([c.get("args", {}) for c in rec.get("tool_calls") or []], ensure_ascii=False)
+    out, used = [], 0
+    shown: set[tuple[str, str]] = set()
+    for i, raw in enumerate(names):
+        pool = details[normalize_course_name(raw)]
+        exact = [r for r in pool if _squash(r["name"]) == _squash(raw)] or pool
+        hit = [r for r in exact if r["dept"] and r["dept"] in context]
+        recs = (hit or sorted(exact, key=lambda r: r["semester"], reverse=True))[:RECORDS_PER_COURSE]
+        for r in recs:
+            if (r["name"], r["dept"]) in shown:
+                continue
+            shown.add((r["name"], r["dept"]))
+            parts = [f"{r['name']}｜{r['dept']}｜{r['credits']} 學分｜{r['type']}"]
+            if r["teachers"]:
+                parts.append(f"老師：{r['teachers']}")
+            if r["grade"]:
+                parts.append(r["grade"])
+            if r["field"]:
+                parts.append(f"領域：{_clip(r['field'], 30)}")
+            if r["goal"]:
+                parts.append(f"目標：{_clip(r['goal'], 160)}")
+            if r["content"]:
+                parts.append(f"內容：{_clip(r['content'], 260)}")
+            line = "- " + "｜".join(parts)
+            if used + len(line) > limit:
+                out.append(f"- …（其餘 {len(names) - i} 門課因長度省略）")
+                return out
+            out.append(line)
+            used += len(line)
+    return out
+
+
+def load_dept_rules(path: Path = RULES_PATH) -> dict[str, dict]:
+    """{系所名稱: 114 學年畢業規定}，給評審核對學分數、必修課與修課年級。"""
+    if not path.exists():
+        return {}
+    out = {}
+    for col in json.loads(path.read_text(encoding="utf-8")).get("colleges", []):
+        for d in col.get("departments", []):
+            out[d["name"]] = d
+    return out
+
+
+def format_dept_rules(rec: dict, rules: dict[str, dict], limit: int = RULES_CHARS) -> list[str]:
+    answer = rec.get("answer", "") or ""
+    args = json.dumps([c.get("args", {}) for c in rec.get("tool_calls") or []], ensure_ascii=False)
+    hits = sorted((answer.find(n) if n in answer else len(answer) + args.find(n), n)
+                  for n in rules if n in answer or n in args)
+    if not hits:
+        return []
+    out, used = [], 0
+    for i, (_, name) in enumerate(hits):
+        d = rules[name]
+        rules_txt = "；".join(r.get("description", "") for r in d.get("graduation_rules", []) if r.get("description"))
+        req = "、".join(f"{c['name']}（{c.get('when', '')}）" for c in d.get("required_courses", []))
+        line = f"- {name}：{_clip(rules_txt, 500)}" + (f"｜系訂必修：{_clip(req, 700)}" if req else "")
+        if used + len(line) > limit:
+            out.append(f"- …（其餘 {len(hits) - i} 個系所因長度省略）")
+            break
+        out.append(line)
+        used += len(line)
+    return out
+
+
+def build_prompt(q: dict, rec: dict, hard: dict, departments: list[str] | None = None,
+                 details: dict[str, list[dict]] | None = None, rules: dict[str, dict] | None = None) -> str:
+    rule_lines = format_dept_rules(rec, rules) if rules else []
     dept_line = (["【中大系所與學位學程清單（判斷 hallucinated_department 用；學院學士班、研究所也是實際單位）】",
                   "、".join(departments), ""] if departments else [])
     return "\n".join([
@@ -303,6 +442,8 @@ def build_prompt(q: dict, rec: dict, hard: dict, departments: list[str] | None =
         "【這題的檢查點】", *[f"{i}. {c}" for i, c in enumerate(q["checks"], 1)], "",
         f"【這題要特別留意的錯誤】{'、'.join(q['watch_flags']) or '無'}", "",
         "【助理呼叫的工具與回傳的課名】" + TOOL_DATA_NOTE, *format_tool_data(rec), "",
+        *(["【課程資料】" + EVIDENCE_NOTE, *format_course_evidence(rec, details), ""] if details is not None else []),
+        *(["【系所畢業規定】（114 學年；回答或工具參數中出現的系所）", *rule_lines, ""] if rule_lines else []),
         *dept_line,
         "【程式檢查】",
         f"- 回答中標記的課名在中大課程資料查不到的：{'、'.join(hard['tags']['unknown']) or '無'}（可能是課名寫法不同，需你判斷）",
@@ -643,6 +784,8 @@ def main() -> int:
     banned = set(data["meta"]["tools_must_not_call"])
     known = load_known_courses()
     departments = load_departments()
+    details = load_course_details()
+    rules = load_dept_rules()
     if not known:
         print("⚠️ 找不到課程資料或知識圖譜，課名真實率將全部視為查不到")
 
@@ -672,7 +815,7 @@ def main() -> int:
         rows.append({"key": key, "qid": qid, "group": q["group"], "question": q["question"],
                      "checks": q["checks"], "hard": hard, "judgements": [], "judge_models": [], "judge_errors": []})
         if not hard["empty_or_error"]:
-            prompts[key] = (build_prompt(q, rec, hard, departments), len(q["checks"]))
+            prompts[key] = (build_prompt(q, rec, hard, departments, details, rules), len(q["checks"]))
 
     todo = [(k, p) for k in prompts for p in range(1, args.passes + 1) if (k, p) not in cache]
     if not args.no_judge and todo:

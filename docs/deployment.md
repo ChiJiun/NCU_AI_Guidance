@@ -3,6 +3,17 @@
 本文件涵蓋環境變數設定、本地開發、雲端部署流程與資料部署原則。專案介紹請見根目錄
 [README.md](../README.md)。
 
+### 後端部署方式總覽
+
+| 方式 | 適用情境 | 說明文件 |
+|---|---|---|
+| Render（Python runtime） | 目前的正式站；免費方案記憶體較小 | 本文件「部署流程」 |
+| Docker 映像（根目錄 `Dockerfile`） | 任何能跑容器的環境，下面兩種做法都用它 | 本文件「後端容器映像」 |
+| Oracle Cloud VM + Cloudflare Tunnel | 單台 VM、Docker Compose，不開對外 port | [oracle-vm-deployment.md](oracle-vm-deployment.md)（範例檔在 `deploy/oracle/`） |
+| AWS ECS Fargate + ALB | 受管容器服務，CloudFormation 建置，可選 GitHub Actions 自動部署 | [aws-deployment.md](aws-deployment.md)（範本在 `deploy/aws/`） |
+
+不論哪一種，後端都必須維持**單一 process、單一 worker**（`WEB_CONCURRENCY=1`），原因見 README「系統架構」。
+
 ---
 
 ## 環境需求
@@ -134,7 +145,23 @@ ALLOWED_ORIGINS=http://localhost:5173,https://ncu-ai-guidance.web.app,https://nc
 - `https://ncu-ai-guidance.onrender.com/docs`
 - `https://ncu-ai-guidance.onrender.com/api/projects`
 
-### 3. PDF 部署到 Cloudinary
+### 3. 後端容器映像（Docker）
+
+根目錄的 `Dockerfile` 會把 `backend/` 與 `data/` 打包成映像（`python:3.11-slim`、非 root 使用者、
+內建 `/health` 健康檢查、固定單 worker）。建置 context 必須是 repo 根目錄：
+
+```bash
+docker build -t ncu-ai-guidance-backend .
+docker run --rm -p 8000:8000 --env-file .env ncu-ai-guidance-backend
+```
+
+- `.dockerignore` 會排除 `.env`、前端、文件、腳本，以及 `.gitignore` 內的大型資料（本機 Qdrant 儲存、專題 PDF 等），
+  所以映像內容與乾淨 clone 建置的結果一致；執行時需要的 `data/processed`、`data/raw` 小型資料檔會被打包進去。
+- 正式環境的 Qdrant 請用 Qdrant Cloud（`QDRANT_URL`），映像內不含本機 Qdrant 資料。
+- `--env-file` 不會去掉引號，`.env` 的值請不要加引號、不要寫多行值。
+- 實際部署到 Oracle VM 或 AWS 的步驟見上方「後端部署方式總覽」。
+
+### 4. PDF 部署到 Cloudinary
 
 專題 PDF 不再跟後端一起部署，改由 Cloudinary 提供公開連結。
 

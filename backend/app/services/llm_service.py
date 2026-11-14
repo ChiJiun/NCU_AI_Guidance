@@ -2,8 +2,10 @@
 llm_service.py
 
 Azure OpenAI GPT-4o 呼叫 + LangSmith 監控。
+AI_PROVIDER=bedrock 時改走 Amazon Bedrock（Claude），見 app/services/ai_provider.py。
 
 環境變數：
+  AI_PROVIDER                   — azure（預設）| bedrock
   AZURE_OPENAI_API_KEY          — Azure OpenAI 金鑰
   AZURE_OPENAI_ENDPOINT         — https://<resource>.openai.azure.com/
   AZURE_OPENAI_API_VERSION      — 例如 2024-12-01-preview
@@ -20,6 +22,8 @@ from functools import lru_cache
 from typing import Optional
 
 from openai import AzureOpenAI
+
+from app.services.ai_provider import get_chat_client, get_chat_model_name
 
 try:
     from langsmith import traceable
@@ -193,6 +197,20 @@ def _get_client() -> AzureOpenAI:
     return client
 
 
+def _get_chat_client():
+    """課程助理對話用的 client：依 AI_PROVIDER 決定 Azure（上面的 _get_client）或 Bedrock 轉接器。
+
+    _get_client() 本身維持「一定是 Azure」，因為 scripts/nlp/build_glossary.py 也直接用它
+    呼叫 GPT 模型。Bedrock 轉接器不是 openai.OpenAI 實例，無法套 wrap_openai；
+    LangSmith 追蹤改由各函式上的 @traceable 提供。
+    """
+    return get_chat_client(_get_client)
+
+
+def _chat_deployment() -> str:
+    return get_chat_model_name(lambda: os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o"))
+
+
 def _build_context(
     vector_results: list[dict],
     graph_results: dict,
@@ -306,8 +324,8 @@ def generate_answer(
     回傳：
       {"answer": str, "model": str, "input_tokens": int, "output_tokens": int}
     """
-    client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    client = _get_chat_client()
+    deployment = _chat_deployment()
 
     context = _build_context(vector_results or [], graph_results or {})
     if extra_context:
@@ -389,8 +407,8 @@ def _verify_course_list(question: str, answer: str, course_pool: dict) -> list[d
     if not course_pool:
         return []
 
-    client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    client = _get_chat_client()
+    deployment = _chat_deployment()
 
     pool_items = list(course_pool.items())[:60]
 
@@ -727,8 +745,8 @@ def generate_with_tools(
     """
     from app.services.tools import TOOLS, execute_tool
 
-    client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    client = _get_chat_client()
+    deployment = _chat_deployment()
 
     system = SYSTEM_PROMPT
     if context_hint:
@@ -879,8 +897,8 @@ def stream_with_tools(
     """
     from app.services.tools import TOOLS, execute_tool
 
-    client = _get_client()
-    deployment = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4o")
+    client = _get_chat_client()
+    deployment = _chat_deployment()
 
     system = SYSTEM_PROMPT
     if context_hint:

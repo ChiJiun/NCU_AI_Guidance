@@ -24,7 +24,6 @@ from langchain.agents.middleware import (
     ModelRequest,
 )
 from langchain.agents.structured_output import ProviderStrategy, StructuredOutputValidationError
-from langchain_openai import AzureChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
@@ -40,6 +39,7 @@ warnings.filterwarnings(
 )
 
 from app.pdf_config import pdf_settings
+from app.services.ai_provider import disable_parallel_tool_calls, get_chat_llm, is_bedrock
 from app.tools.rag_tool import (
     AgentContext,
     TOOLS,
@@ -140,17 +140,27 @@ class AgentResponse(BaseModel):
     )
 
 
+# AI_PROVIDER=bedrock 時給 ProviderStrategy 用的 schema。
+# Anthropic（Claude）的 structured outputs 不支援陣列長度上限約束，所以拿掉 sources 的 max_length；
+# 使用端本來就會截斷（見 sources[:10]）。azure 仍用原本的 AgentResponse，送出的 schema 不變。
+# 繼承 AgentResponse，所以既有的型別判斷與 .answer / .sources 用法不受影響。
+# 注意：刻意不寫 docstring——pydantic 會把 docstring 放進 JSON schema 的 description 送給模型。
+class BedrockAgentResponse(AgentResponse):
+    sources: list[str] = Field(
+        default_factory=list,
+        description='Leave empty — sources are not displayed to the user.',
+    )
+
+
+def _agent_response_schema() -> type[AgentResponse]:
+    return BedrockAgentResponse if is_bedrock() else AgentResponse
+
+
 def _get_llm():
     global _llm, _agent_llm
     if _llm is None:
-        _llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_chat_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _agent_llm = _llm.bind(parallel_tool_calls=False)
+        _llm = get_chat_llm(temperature=0.3)
+        _agent_llm = disable_parallel_tool_calls(_llm)
         set_query_expander_llm(_llm)
     return _llm
 
@@ -165,14 +175,8 @@ def _get_agent_llm():
 def _get_mini_llm():
     global _mini_llm, _mini_agent_llm
     if _mini_llm is None:
-        _mini_llm = AzureChatOpenAI(
-            azure_deployment=pdf_settings.azure_mini_deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.3,
-        )
-        _mini_agent_llm = _mini_llm.bind(parallel_tool_calls=False)
+        _mini_llm = get_chat_llm(use_mini=True, temperature=0.3)
+        _mini_agent_llm = disable_parallel_tool_calls(_mini_llm)
     return _mini_llm
 
 
@@ -341,6 +345,8 @@ async def setup_checkpointer():
             pool,
             serde=JsonPlusSerializer(allowed_msgpack_modules=[
                 ("app.agents.pdf.runner", "AgentResponse"),
+                # 一律允許：切換 AI_PROVIDER 後仍能讀回另一種供應商寫入的 checkpoint
+                ("app.agents.pdf.runner", "BedrockAgentResponse"),
             ]),
         )
         await _checkpointer.setup()
@@ -391,7 +397,7 @@ async def setup_checkpointer():
                 llm,
                 tools=tools,
                 middleware=middleware,
-                response_format=ProviderStrategy(AgentResponse, strict=True),
+                response_format=ProviderStrategy(_agent_response_schema(), strict=True),
                 checkpointer=_checkpointer,
                 store=_store,
                 context_schema=AgentContext,
@@ -568,7 +574,8 @@ async def run_tool_agent(
         return structured.answer, sources
     ai_messages = [m for m in result["messages"] if isinstance(m, AIMessage) and m.content]
     raw = ai_messages[-1].content if ai_messages else "Unable to generate a response."
-    return _extract_answer(raw), []
+    # Bedrock 的 content 可能是 content block list；字串原樣通過（azure 行為不變）
+    return _extract_answer(_content_to_text(raw)), []
 
 
 def _extract_answer(content: str) -> str:

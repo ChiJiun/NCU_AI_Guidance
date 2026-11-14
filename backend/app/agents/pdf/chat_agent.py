@@ -7,9 +7,8 @@ import logging
 from typing import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import AzureChatOpenAI
 
-from app.pdf_config import pdf_settings
+from app.services.ai_provider import get_chat_llm
 from .no_tool_runner import run_no_tool_agent, stream_no_tool_agent
 from .request_context import get_user_id  # noqa: F401
 from app.prompting.loader import load_stack
@@ -34,19 +33,8 @@ async def _emit_stage(on_stage, msg: str) -> None:
         pass
 
 
-def _llm(use_mini: bool = False) -> AzureChatOpenAI:
-    deployment = (
-        pdf_settings.azure_mini_deployment
-        if use_mini and pdf_settings.azure_mini_deployment
-        else pdf_settings.azure_chat_deployment
-    )
-    return AzureChatOpenAI(
-        azure_deployment=deployment,
-        azure_endpoint=pdf_settings.azure_openai_endpoint,
-        api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-        api_version=pdf_settings.azure_openai_api_version,
-        temperature=0.2,
-    )
+def _llm(use_mini: bool = False):
+    return get_chat_llm(use_mini=use_mini, temperature=0.2)
 
 
 async def compose_final_response(

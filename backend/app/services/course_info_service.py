@@ -12,6 +12,8 @@ from openai import AzureOpenAI, OpenAI
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PayloadSchemaType, PointStruct, VectorParams
 
+from app.services.ai_provider import get_chat_client, get_chat_model_name
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
@@ -725,8 +727,9 @@ def answer_course_question(course_id: str, question: str) -> dict[str, Any]:
         raise ValueError("Question is empty")
 
     context, warnings = build_course_context(course_id)
-    client = _get_ai_client()
-    model = _chat_model_name()
+    # 對話依 AI_PROVIDER 切換；embedding（_embed_query）一律維持 _get_ai_client() 的 Azure／OpenAI
+    client = get_chat_client(_get_ai_client)
+    model = get_chat_model_name(_chat_model_name)
 
     response = client.chat.completions.create(
         model=model,

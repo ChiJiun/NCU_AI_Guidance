@@ -245,6 +245,9 @@ npm run dev                     # http://localhost:5173
 ```
 
 完整的環境變數設定、雲端部署流程與資料部署原則，請見 **[docs/deployment.md](docs/deployment.md)**。
+後端也可以用根目錄的 `Dockerfile` 以容器部署：Oracle Cloud VM + Cloudflare Tunnel 見
+[docs/oracle-vm-deployment.md](docs/oracle-vm-deployment.md)，AWS ECS Fargate 見
+[docs/aws-deployment.md](docs/aws-deployment.md)。
 
 ---
 
@@ -260,9 +263,15 @@ project/
 ├── scripts/
 │   ├── rag/                     # 知識圖譜 / Qdrant 向量索引建置腳本
 │   └── storage/                 # Cloudinary 上傳腳本
+├── deploy/
+│   ├── oracle/                  # Oracle VM + Cloudflare Tunnel 的 compose / deploy.sh 範例
+│   └── aws/                     # AWS ECS Fargate 的 CloudFormation 範本
 ├── docs/
 │   ├── final-report.md          # 期末成果報告
-│   └── deployment.md            # 部署與環境設定
+│   ├── deployment.md            # 部署與環境設定（部署方式總覽）
+│   ├── oracle-vm-deployment.md  # Oracle Cloud VM 部署
+│   └── aws-deployment.md        # AWS ECS Fargate 部署
 ├── png/                          # README 用架構圖
-└── .github/workflows/           # Firebase Hosting 自動部署
+├── Dockerfile                   # 後端容器映像
+└── .github/workflows/           # Firebase Hosting 自動部署、AWS 後端部署（選用）
 ```

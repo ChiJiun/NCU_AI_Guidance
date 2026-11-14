@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  IAM role that GitHub Actions assumes through OIDC to push the backend image to ECR and roll the ECS
+  service (no long-lived AWS keys stored in GitHub). Deploy ecs-fargate.yaml first.
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    AllowedPattern: "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    Description: >-
+      owner/repo allowed to assume the role, exactly as GitHub shows it (e.g. my-org/ncu_ai_guidance).
+      The OIDC subject claim is case-sensitive.
+  GitHubBranch:
+    Type: String
+    Default: main
+  CreateOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Set to false if token.actions.githubusercontent.com is already registered in this account.
+  ExistingOidcProviderArn:
+    Type: String
+    Default: ""
+    Description: Required when CreateOidcProvider=false.
+  ProjectName:
+    Type: String
+    Default: ncu-ai-guidance
+  RepositoryName:
+    Type: String
+    Default: ncu-ai-guidance-backend
+  ClusterName:
+    Type: String
+    Default: ncu-ai-guidance
+  ServiceName:
+    Type: String
+    Default: ncu-ai-guidance-backend
+  ExecutionRoleArn:
+    Type: String
+    Description: ecs-fargate.yaml output ExecutionRoleArn.
+  TaskRoleArn:
+    Type: String
+    Description: ecs-fargate.yaml output TaskRoleArn.
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  OidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-github-deploy"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If [MakeProvider, !Ref OidcProvider, !Ref ExistingOidcProviderArn]
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "token.actions.githubusercontent.com:aud": sts.amazonaws.com
+                "token.actions.githubusercontent.com:sub": !Sub "repo:${GitHubRepository}:ref:refs/heads/${GitHubBranch}"
+      Policies:
+        - PolicyName: deploy-backend
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: ecr:GetAuthorizationToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:CompleteLayerUpload
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                Resource: !Sub "arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${RepositoryName}"
+              - Effect: Allow
+                # These two actions do not support resource-level permissions
+                Action:
+                  - ecs:DescribeTaskDefinition
+                  - ecs:RegisterTaskDefinition
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
+                Resource: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:service/${ClusterName}/${ServiceName}"
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  - !Ref ExecutionRoleArn
+                  - !Ref TaskRoleArn
+                Condition:
+                  StringEquals:
+                    "iam:PassedToService": ecs-tasks.amazonaws.com
+
+Outputs:
+  DeployRoleArn:
+    Description: Store this value as the GitHub Actions repository variable AWS_DEPLOY_ROLE_ARN.
+    Value: !GetAtt DeployRole.Arn

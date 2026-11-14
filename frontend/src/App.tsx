@@ -10,6 +10,8 @@ import ResourcesPage from './pages/ResourcesPage';
 import CurriculumPage from './pages/CurriculumPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import MonitorPage from './pages/MonitorPage';
+import DemoGalleryPage from './pages/DemoGalleryPage';
+import DemoCasePage from './pages/DemoCasePage';
 import { AuthProvider } from './auth/AuthContext';
 
 function ScrollToTop() {
@@ -31,6 +33,8 @@ function App() {
             <Route path="/assessment" element={<AssessmentPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/profile" element={<AnalyticsPage />} />
+            <Route path="/demo" element={<DemoGalleryPage />} />
+            <Route path="/demo/:caseId" element={<DemoCasePage />} />
           </Route>
           <Route element={<Layout noPad />}>
             <Route path="/monitor" element={<MonitorPage />} />

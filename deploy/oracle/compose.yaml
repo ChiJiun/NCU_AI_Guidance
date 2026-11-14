@@ -1,0 +1,41 @@
+# /opt/ncu-backend/compose.yaml — 後端 + Cloudflare Tunnel（Oracle Cloud VM 範例）
+# 說明見 docs/oracle-vm-deployment.md。
+#
+# 對外只經由 Cloudflare Tunnel（https://api.example.com），VM 不開放任何對外 port。
+# 8000 只綁 127.0.0.1，給 VM 內部健康檢查與 deploy.sh 使用。
+
+x-logging: &default-logging
+  # Docker 預設的 json-file 不會輪替，長時間執行會把磁碟塞滿
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  backend:
+    image: ncu-backend:latest   # 由 deploy.sh 以 repo 根目錄的 Dockerfile 建置
+    container_name: ncu-backend
+    restart: unless-stopped
+    env_file: backend.env        # 格式限制見文件「backend.env 的格式」
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # flashrank 會下載模型到 /tmp、fastembed 預設也在 /tmp：掛 volume 避免每次重建容器都重新下載
+      - model-cache:/tmp
+    logging: *default-logging
+
+  tunnel:
+    # Cloudflare Tunnel（在 Cloudflare Dashboard 建立的 remotely-managed tunnel）。
+    # 公開主機名稱在 Dashboard 設定：api.example.com → HTTP → backend:8000
+    # 映像版本請固定並定期更新：https://github.com/cloudflare/cloudflared/releases
+    image: cloudflare/cloudflared:2026.10.2
+    container_name: ncu-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    env_file: tunnel.env         # 只有一行 TUNNEL_TOKEN=<token>（chmod 600）
+    depends_on:
+      - backend
+    logging: *default-logging
+
+volumes:
+  model-cache: {}

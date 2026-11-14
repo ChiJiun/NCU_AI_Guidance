@@ -37,6 +37,24 @@ CLOUDINARY_PROJECT_FOLDER=ncu-ai-guidance/data/raw/projects
 - `ALLOWED_ORIGINS` 在本地通常只需要 localhost
 - 正式站的 CORS 請在 Render 後台設定
 
+### AI 供應商開關（`AI_PROVIDER`）
+
+對話／推理 LLM 可以在 Azure OpenAI 與 Amazon Bedrock（Claude）之間切換：
+
+| `AI_PROVIDER` | 對話／推理 LLM | embedding |
+| --- | --- | --- |
+| 未設定或 `azure`（預設） | Azure OpenAI（`AZURE_OPENAI_CHAT_DEPLOYMENT`、`AZURE_CHAT_DEPLOYMENT`／`AZURE_MINI_DEPLOYMENT`） | Azure `text-embedding-3-large`（3072 維） |
+| `bedrock` | Bedrock 上的 Claude（`BEDROCK_CHAT_MODEL_ID`／`BEDROCK_MINI_MODEL_ID`） | 同上，不變 |
+
+- 未設定時行為與加入開關前完全相同，團隊現有部署不需要改任何設定。
+- embedding 不受開關影響，所以 Qdrant collection、LangGraph store 的 3072 維都不用重建；`AI_PROVIDER=bedrock` 時 Azure 的金鑰與 embedding 部署仍然必填。
+- `bedrock` 時涵蓋：課程助理（`llm_service`）、單門課程問答（`course_info_service`）、PDF 問答的 router／chat／retrieval agent／research agent、HyDE 查詢擴展、使用者側寫抽取。
+- Bedrock 設定（皆有預設值，見 `.env.example`）：`BEDROCK_REGION`（預設 `ap-northeast-1`）、`BEDROCK_CHAT_MODEL_ID`（預設 `global.anthropic.claude-sonnet-4-6`）、`BEDROCK_MINI_MODEL_ID`（預設 `global.anthropic.claude-haiku-4-5-20251001-v1:0`）、`BEDROCK_MAX_TOKENS`（預設 8192）。
+- AWS 憑證走 boto3 預設鏈（環境變數、`AWS_PROFILE`／SSO、IAM role 或 `AWS_BEARER_TOKEN_BEDROCK`），程式不讀取也不記錄金鑰；所選模型須在該帳號／區域的 Bedrock 開通，並支援 structured outputs 與 tool use。
+- `boto3`、`langchain-aws` 只在 `bedrock` 時才會被 import，`azure` 模式不需要 AWS 憑證也能啟動。
+- 不支援的值（例如打錯字）會在建立／呼叫對話模型時拋出 `AI_PROVIDER_INVALID` 錯誤，不會靜默退回 azure。
+- `scripts/` 底下的離線資料管線（例如 `scripts/nlp/build_glossary.py`）不受開關影響，仍直接使用 Azure。
+
 ### 前端環境變數
 
 - `frontend/.env.example`

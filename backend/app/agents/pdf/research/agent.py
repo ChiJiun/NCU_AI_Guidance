@@ -8,8 +8,7 @@ import logging
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from langchain_openai import AzureChatOpenAI
-from app.pdf_config import pdf_settings
+from app.services.ai_provider import get_chat_llm, message_text
 from app.tools.rag_tool import set_query_expander_llm
 
 from .research_graph import _hard_max_searches, _merge_stream_patch, _seed_keywords, final_rs_from_result, research_graph, get_or_build_research_graph  # noqa: F401
@@ -45,14 +44,8 @@ def request_all_drain(reason: str = "shutdown") -> None:
         except Exception:
             pass
 
-def _llm() -> AzureChatOpenAI:
-    return AzureChatOpenAI(
-        azure_deployment=pdf_settings.azure_chat_deployment,
-        azure_endpoint=pdf_settings.azure_openai_endpoint,
-        api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-        api_version=pdf_settings.azure_openai_api_version,
-        temperature=0,
-    )
+def _llm():
+    return get_chat_llm(temperature=0)
 
 
 def _utcnow() -> datetime:
@@ -110,8 +103,10 @@ async def _run_graph_streaming(
                     state = _merge_stream_patch(state, patch)
             elif chunk["type"] == "messages" and on_token:
                 msg, metadata = chunk["data"]
-                if msg.content and metadata.get("langgraph_node") == "writer":
-                    on_token(msg.content)
+                # Bedrock 串流的 content 是 content block list（含 tool_use），只把文字交給 on_token
+                text = message_text(msg.content)
+                if text and metadata.get("langgraph_node") == "writer":
+                    on_token(text)
     except GraphDrained:
         logger.info("research graph drained at superstep boundary (observation_id=%s)", state.get("observation_id"))
     finally:

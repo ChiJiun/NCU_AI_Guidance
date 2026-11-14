@@ -5,6 +5,10 @@ pydantic-settings>=2.0.0
 python-multipart>=0.0.9
 python-dotenv>=1.0.0
 openai>=1.40.0
+# Amazon Bedrock（AI_PROVIDER=bedrock 時的 Claude 對話模型；azure 模式只會安裝、不會載入）
+# langchain-aws 會把 response_format 翻成 Converse 的 outputConfig，行為隨版本變動，所以鎖定實測版本
+boto3>=1.43.64,<2
+langchain-aws==1.9.1
 langsmith>=0.1.0
 python-igraph>=0.11.0
 leidenalg>=0.10.0

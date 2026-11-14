@@ -72,21 +72,9 @@ async def update_user_profile(user_id: str, question: str, answer: str) -> None:
 
         current = await get_user_profile(user_id) or {}
 
-        from app.pdf_config import pdf_settings
-        from langchain_openai import AzureChatOpenAI
+        from app.services.ai_provider import get_chat_llm
 
-        deployment = (
-            pdf_settings.azure_mini_deployment
-            if getattr(pdf_settings, "azure_mini_deployment", None)
-            else pdf_settings.azure_chat_deployment
-        )
-        llm = AzureChatOpenAI(
-            azure_deployment=deployment,
-            azure_endpoint=pdf_settings.azure_openai_endpoint,
-            api_key=pdf_settings.azure_openai_api_key.get_secret_value(),
-            api_version=pdf_settings.azure_openai_api_version,
-            temperature=0.0,
-        )
+        llm = get_chat_llm(use_mini=True, temperature=0.0)
 
         prompt = _EXTRACT_PROMPT.format(
             current_profile=json.dumps(current, ensure_ascii=False),

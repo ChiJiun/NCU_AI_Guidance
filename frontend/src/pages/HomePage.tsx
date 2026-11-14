@@ -367,6 +367,9 @@ export default function HomePage() {
                   <button type="button" onClick={() => navigateWithAnimation('/courses')} className="btn-secondary">
                     瀏覽課程資料
                   </button>
+                  <button type="button" onClick={() => navigateWithAnimation('/demo')} className="btn-secondary">
+                    查看 AI 示範案例
+                  </button>
                 </div>
               </div>
 

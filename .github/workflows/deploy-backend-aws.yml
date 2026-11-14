@@ -1,0 +1,87 @@
+name: Deploy backend to AWS ECS Fargate
+
+# 預設不會執行：先依 docs/aws-deployment.md 建好 CloudFormation stack 與 OIDC 角色，
+# 並在 repo 的 Actions variables 設定 AWS_DEPLOY_ROLE_ARN 之後，
+#   - 手動：Actions → Deploy backend to AWS ECS Fargate → Run workflow（main 分支）
+#   - 自動：另外設定 variable AWS_DEPLOY_ON_PUSH=true，push 到 main 且改到後端相關檔案時部署
+# 沒有設定時 job 會被略過（skipped），不會失敗。
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "data/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/deploy-backend-aws.yml"
+
+permissions:
+  id-token: write   # 以 OIDC 向 AWS 換取短期憑證，不儲存長期 access key
+  contents: read
+
+env:
+  # 可用同名的 repository variables 覆寫；預設值對應 deploy/aws/ecs-fargate.yaml 的 ProjectName=ncu-ai-guidance
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-1' }}
+  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'ncu-ai-guidance-backend' }}
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER || 'ncu-ai-guidance' }}
+  ECS_SERVICE: ${{ vars.ECS_SERVICE || 'ncu-ai-guidance-backend' }}
+  ECS_TASK_FAMILY: ${{ vars.ECS_TASK_FAMILY || 'ncu-ai-guidance-backend' }}
+  CONTAINER_NAME: backend
+
+concurrency:
+  group: deploy-backend-aws
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # 只在設定好部署角色、且從 main 觸發時執行（OIDC 角色的信任政策只允許 main 分支）
+    if: >-
+      vars.AWS_DEPLOY_ROLE_ARN != ''
+      && github.ref == 'refs/heads/main'
+      && (github.event_name == 'workflow_dispatch' || vars.AWS_DEPLOY_ON_PUSH == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        id: image
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          IMAGE="$REGISTRY/$ECR_REPOSITORY:${GITHUB_SHA}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "uri=$IMAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Register new task definition revision
+        id: taskdef
+        env:
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          aws ecs describe-task-definition --task-definition "$ECS_TASK_FAMILY" \
+            --query taskDefinition > current.json
+          jq --arg image "$IMAGE_URI" --arg name "$CONTAINER_NAME" '
+            (.containerDefinitions[] | select(.name == $name) | .image) = $image
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)
+          ' current.json > new.json
+          ARN=$(aws ecs register-task-definition --cli-input-json file://new.json \
+                  --query taskDefinition.taskDefinitionArn --output text)
+          echo "arn=$ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Update service and wait until stable
+        env:
+          TASK_DEF_ARN: ${{ steps.taskdef.outputs.arn }}
+        run: |
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" \
+            --task-definition "$TASK_DEF_ARN" > /dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"

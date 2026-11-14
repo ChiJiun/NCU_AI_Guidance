@@ -11,9 +11,10 @@ assistant_runner.py — 在同一個 process 內啟動後端，對兩個 AI 助�
 模型供應商沿用後端目前的設定，本模組不另外指定。這會真的呼叫模型、產生費用。
 
 資料庫：錄製會寫入對話紀錄（chat_sessions、chat_turns、pdf_conversations、pdf_agent_messages 等，
-user_id 為 `demo-recorder:local`），會影響監控與使用統計。建議設定 `RECORDER_DATABASE_URL`
+user_id 為 `demo-recorder:local`），會影響監控與使用統計。請設定 `RECORDER_DATABASE_URL`
 指向獨立的資料庫（例如另開一個測試用資料庫），本模組會用它取代 `DATABASE_URL`；
-若直接用正式資料庫，錄完後請依 user_id 清除這些紀錄。
+未設定時會直接停止。確定要寫入 `DATABASE_URL` 指向的資料庫時，需另外設定 `RECORDER_ALLOW_MAIN_DB=1`，
+錄完後請依 user_id 清除這些紀錄。
 """
 from __future__ import annotations
 
@@ -187,8 +188,14 @@ class AssistantRunner:
         if recorder_db:
             os.environ["DATABASE_URL"] = recorder_db
             print("[runner] 使用 RECORDER_DATABASE_URL 作為資料庫")
-        else:
+        elif os.getenv("RECORDER_ALLOW_MAIN_DB", "").strip().lower() in {"1", "true", "yes"}:
             print(f"[runner] 注意：將寫入 DATABASE_URL 指向的資料庫（user_id={RECORDER_USER_ID}）")
+        else:
+            raise SystemExit(
+                "[runner] 未設定 RECORDER_DATABASE_URL：錄製會把對話紀錄寫進 DATABASE_URL 指向的資料庫。"
+                "請設定 RECORDER_DATABASE_URL 指向測試資料庫；"
+                "確定要寫入 DATABASE_URL 時，請另外設定 RECORDER_ALLOW_MAIN_DB=1。"
+            )
 
         from fastapi.testclient import TestClient
 

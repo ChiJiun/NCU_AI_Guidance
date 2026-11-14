@@ -358,3 +358,18 @@ def test_invalid_score_is_rejected(tmp_path):
     _write_sheet(tmp_path / "score_A.csv", rows, {"x": (6, 1, 1, 1)})
     with pytest.raises(analyze.ScoreError, match="超出"):
         analyze.load_rater(tmp_path / "score_A.csv")
+
+
+# ── 資料庫保護 ──────────────────────────────────────────────────────────────
+
+def test_runner_refuses_main_db_without_explicit_opt_in(monkeypatch):
+    """沒設 RECORDER_DATABASE_URL 也沒明確允許時，必須在載入後端前就停止，不能寫進正式資料庫。"""
+    import dotenv
+
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *a, **k: False)
+    monkeypatch.delenv("RECORDER_DATABASE_URL", raising=False)
+    monkeypatch.delenv("RECORDER_ALLOW_MAIN_DB", raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://example.invalid/main")
+    with pytest.raises(SystemExit, match="RECORDER_DATABASE_URL"):
+        runner.AssistantRunner().__enter__()
+    assert os.environ["DATABASE_URL"] == "postgresql://example.invalid/main"

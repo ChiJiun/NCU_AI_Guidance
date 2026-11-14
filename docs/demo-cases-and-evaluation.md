@@ -38,8 +38,9 @@
   錄製時會把 `input` + `turns` 的 sha256 寫進 `meta.content_sha256`，驗證腳本會重算比對，內容被改過就不會通過。
   雜湊**不含** `meta`（模型、token、耗時、commit）與 `title`、`scenario`、`review`；這些欄位不受保護，請不要手動修改。
   填寫 `review` 時用一般文字編輯器即可；不要用會把數字 `1.0` 改寫成 `1` 的工具重存整個 JSON，否則雜湊會不符。
-- 錄製會寫入對話紀錄（`user_id = demo-recorder:local`）。建議設定 `RECORDER_DATABASE_URL` 指向獨立的測試資料庫，
-  避免影響正式站的監控與使用統計；若直接用正式資料庫，錄完後要依這個 user_id 清除紀錄。評估腳本 `run_eval.py` 也一樣。
+- 錄製會寫入對話紀錄（`user_id = demo-recorder:local`）。請設定 `RECORDER_DATABASE_URL` 指向獨立的測試資料庫，
+  避免影響正式站的監控與使用統計；未設定時腳本會直接停止。確定要寫入 `DATABASE_URL` 指向的資料庫時，
+  需另外設定 `RECORDER_ALLOW_MAIN_DB=1`，錄完後要依這個 user_id 清除紀錄。評估腳本 `run_eval.py` 也一樣。
 - 研究助理需要後端的 PDF 問答已就緒、且該研究計畫的 PDF 已完成索引，否則請求會被拒絕（503／409），該案例記為失敗。
   如果錄到「已收到補充，將納入考量。」或空回答（同一 thread 仍有串流進行中，被 stream lock 處理），
   該案例也會被標記為錄製失敗、不寫入檔案。

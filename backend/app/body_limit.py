@@ -4,9 +4,9 @@ Request body 大小上限（純 ASGI 中介層）。
 FastAPI 會在執行 dependency（包含登入驗證）之前，先在 event loop 上把整個 body 讀進記憶體並解析 JSON，
 所以沒有上限時，匿名請求就能用大型 body 換到數十倍的記憶體與 event loop 時間。
 
-- 有 Content-Length：超過上限直接回 413，不讀 body。
-- 沒有 Content-Length（例如 Transfer-Encoding: chunked）：由這裡自己讀 body 並累計位元組，
-  超過上限就回 413；沒超過才把已讀的 body 重播給下游 app。
+- 只有 Content-Length：超過上限直接回 413，不讀 body；格式錯誤、負數或多個不一致的值回 400。
+- 沒有 Content-Length，或帶了 Transfer-Encoding（即使同時有 Content-Length）：由這裡自己讀 body
+  並累計位元組，超過上限就回 413；沒超過才把已讀的 body 重播給下游 app。
   不在包裝後的 receive 裡拋例外，因為 FastAPI 會把 body 讀取期間的例外轉成 400，就回不了 413。
 
 必須是純 ASGI 中介層（不能用 BaseHTTPMiddleware），並放在任何會讀 body 的層之外。
@@ -39,26 +39,31 @@ class BodySizeLimitMiddleware:
             await self.app(scope, receive, send)
             return
 
-        content_length = None
+        content_lengths: list[bytes] = []
+        has_transfer_encoding = False
         for name, value in scope.get("headers", []):
             if name == b"content-length":
-                content_length = value
-                break
+                content_lengths.append(value)
+            elif name == b"transfer-encoding":
+                has_transfer_encoding = True
 
-        if content_length is not None:
-            try:
-                declared = int(content_length)
-            except ValueError:
+        # 有 Transfer-Encoding 時一律忽略 Content-Length，改走下面逐 chunk 累計的路徑：
+        # 同時帶兩者時（RFC 9112 §6.3）以 Transfer-Encoding 為準，實際 body 長度可能遠大於宣告值，
+        # 而 uvicorn 的 h11 後端會照 chunked 讀完整個 body，只看 Content-Length 就會被繞過。
+        if content_lengths and not has_transfer_encoding:
+            declared = self._parse_content_length(content_lengths)
+            if declared is None:
                 await JSONResponse({"detail": "Content-Length 格式錯誤。"}, status_code=400)(scope, receive, send)
                 return
             if declared > self.max_bytes:
                 await self._reject(scope, receive, send)
                 return
-            # 宣告的長度在上限內；uvicorn（h11/httptools）會強制實際 body 與 Content-Length 一致
+            # 只有 Content-Length、沒有 Transfer-Encoding，且在上限內；
+            # uvicorn（h11/httptools）會依 Content-Length 讀 body，不會多讀超過宣告長度
             await self.app(scope, receive, send)
             return
 
-        # 沒有 Content-Length：自己讀完 body（有上限），再重播給下游
+        # 沒有 Content-Length，或有 Transfer-Encoding：自己讀完 body（有上限），再重播給下游
         chunks: list[bytes] = []
         total = 0
         while True:
@@ -86,6 +91,21 @@ class BodySizeLimitMiddleware:
             return await receive()
 
         await self.app(scope, replay_receive, send)
+
+    @staticmethod
+    def _parse_content_length(values: list[bytes]) -> int | None:
+        """解析 Content-Length；格式錯誤、負數或多個不一致的值都回 None（呼叫端回 400）。"""
+        parsed: set[int] = set()
+        for value in values:
+            # 也接受 "10, 10" 這種合併後的寫法（RFC 9110 §8.6），但每一段都必須是相同的非負整數
+            for part in value.split(b","):
+                part = part.strip()
+                if not part.isdigit():
+                    return None
+                parsed.add(int(part))
+        if len(parsed) != 1:
+            return None
+        return parsed.pop()
 
     async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
         response = JSONResponse({"detail": _TOO_LARGE_DETAIL}, status_code=413)

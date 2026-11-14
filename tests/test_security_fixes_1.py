@@ -140,8 +140,37 @@ class BodyLimitTests(unittest.TestCase):
         self.assertEqual(client.post("/echo", content=b"a" * 101).status_code, 413)
 
     def test_invalid_content_length(self):
-        status, body, _ = asyncio.run(_asgi_call(_echo_app(100), [b"abc"], [(b"content-length", b"zz")]))
+        for bad in (b"zz", b"-5", b"+5", b"", b"1.5", b"10, 20"):
+            with self.subTest(content_length=bad):
+                status, _, _ = asyncio.run(_asgi_call(_echo_app(100), [b"abc"], [(b"content-length", bad)]))
+                self.assertEqual(status, 400)
+
+    def test_conflicting_duplicate_content_length_rejected(self):
+        headers = [(b"content-length", b"3"), (b"content-length", b"500")]
+        status, _, _ = asyncio.run(_asgi_call(_echo_app(100), [b"abc"], headers))
         self.assertEqual(status, 400)
+
+    def test_consistent_duplicate_content_length_allowed(self):
+        for headers in ([(b"content-length", b"3"), (b"content-length", b"3")], [(b"content-length", b"3, 3")]):
+            with self.subTest(headers=headers):
+                status, body, _ = asyncio.run(_asgi_call(_echo_app(100), [b"abc"], headers))
+                self.assertEqual(status, 200)
+                self.assertEqual(json.loads(body)["len"], 3)
+
+    def test_transfer_encoding_overrides_small_content_length(self):
+        """同時帶 Content-Length 與 Transfer-Encoding 時以實際讀到的 body 計算，不能被小的宣告值繞過。"""
+        headers = [(b"content-length", b"10"), (b"transfer-encoding", b"chunked")]
+        status, body, remaining = asyncio.run(
+            _asgi_call(_echo_app(100), [b"a" * 60, b"b" * 60, b"c" * 60], headers))
+        self.assertEqual(status, 413)
+        self.assertEqual(json.loads(body), {"detail": "請求內容過大。"})
+        self.assertEqual(remaining, 1)
+
+    def test_transfer_encoding_within_limit_replayed(self):
+        headers = [(b"content-length", b"999999"), (b"transfer-encoding", b"chunked")]
+        status, body, _ = asyncio.run(_asgi_call(_echo_app(100), [b"0123456789", b"abcdefghij"], headers))
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body), {"len": 20, "head": "0123456789"})
 
     def test_chunked_over_limit_rejected_without_reading_rest(self):
         status, body, remaining = asyncio.run(

@@ -108,10 +108,14 @@ class BodyLimitTests(unittest.TestCase):
 
     def test_env_override_and_invalid_values(self):
         from app.body_limit import max_body_bytes_from_env
-        with mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": "1024"}):
-            self.assertEqual(max_body_bytes_from_env(), 1024)
-        for bad in ("", "0", "-5", "abc", "1.5"):
-            with mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": bad}):
+        for good, expected in (("1024", 1024), ("  1024  ", 1024), ("0010", 10),
+                               ("9" * 18, int("9" * 18))):
+            with self.subTest(value=good), mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": good}):
+                self.assertEqual(max_body_bytes_from_env(), expected)
+        # "1" * 4301 超過 Python 3.11+ int() 預設的 4300 位上限，int() 會拋 ValueError
+        for bad in ("", "0", "000", "-5", "abc", "1.5", "²", "１２３", "1_000", "+5",
+                    "1" * 19, "1" * 4301, '"1024"', "'1024'"):
+            with self.subTest(value=bad[:20]), mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": bad}):
                 self.assertEqual(max_body_bytes_from_env(), DEFAULT_MAX_BODY_BYTES)
 
     def test_anonymous_oversized_json_rejected_before_auth(self):

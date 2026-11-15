@@ -19,13 +19,21 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 DEFAULT_MAX_BODY_BYTES = 64 * 1024
 _TOO_LARGE_DETAIL = "請求內容過大。"
+# MAX_REQUEST_BODY_BYTES 最多接受的位數（18 位最大約 10^18 bytes，接近 1 EB，足夠任何實際設定）
+_MAX_ENV_DIGITS = 18
 
 
 def max_body_bytes_from_env() -> int:
-    """讀取 MAX_REQUEST_BODY_BYTES；未設定或不是正整數時使用預設 64 KB。"""
+    """讀取 MAX_REQUEST_BODY_BYTES；未設定或不是正整數時使用預設 64 KB，任何輸入都不會拋例外。"""
     raw = os.getenv("MAX_REQUEST_BODY_BYTES", "").strip()
-    if raw.isdigit() and int(raw) > 0:
-        return int(raw)
+    # 只接受最多 _MAX_ENV_DIGITS 位的 ASCII 數字，確保 int() 不會拋例外：
+    # - str.isdigit() 對 "²" 這類 Unicode 數字也回 True，但 int("²") 會拋 ValueError；
+    # - Python 3.11 起 int() 預設最多只轉 4300 位數，超過也會拋 ValueError。
+    # 設錯環境變數不應該讓後端啟動失敗。
+    if raw.isascii() and raw.isdigit() and len(raw) <= _MAX_ENV_DIGITS:
+        value = int(raw)
+        if value > 0:
+            return value
     return DEFAULT_MAX_BODY_BYTES
 
 

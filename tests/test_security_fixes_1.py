@@ -114,7 +114,7 @@ class BodyLimitTests(unittest.TestCase):
                 self.assertEqual(max_body_bytes_from_env(), expected)
         # "1" * 4301 超過 Python 3.11+ int() 預設的 4300 位上限，int() 會拋 ValueError
         for bad in ("", "0", "000", "-5", "abc", "1.5", "²", "１２３", "1_000", "+5",
-                    "1" * 19, "1" * 4301):
+                    "1" * 19, "1" * 4301, '"1024"', "'1024'"):
             with self.subTest(value=bad[:20]), mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": bad}):
                 self.assertEqual(max_body_bytes_from_env(), DEFAULT_MAX_BODY_BYTES)
 

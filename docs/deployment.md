@@ -88,17 +88,22 @@ CLOUDINARY_PROJECT_FOLDER=ncu-ai-guidance/data/raw/projects
 
 - 後端在所有路由之前（`BodySizeLimitMiddleware`，位於 CORS 之內）限制每個請求 body 的位元組數，預設 65536（64 KB）。
 - 超過上限回 HTTP 413，`detail` 為 `請求內容過大。`。這發生在登入驗證之前，所以匿名請求也無法再用大型 body 消耗記憶體與 event loop 時間。
-- 只有 `Content-Length`、沒有 `Transfer-Encoding` 時，直接依宣告長度判斷，不讀 body；`Content-Length` 不是非負整數（例如負數、帶正負號、空值）時回 400。
+- 只有 `Content-Length`、沒有 `Transfer-Encoding` 時，直接依宣告長度判斷，不讀 body。
 - 沒有 `Content-Length` 的請求（chunked）由中介層邊讀邊累計，超過上限就停止讀取並回 413。
-- 不合規的標頭組合在正式部署（`uvicorn[standard]`，使用 httptools 解析 HTTP）時，會先在協定層被 uvicorn 以 400 `Invalid HTTP request received.` 拒絕，根本不會進到中介層：
-  - 重複的 `Content-Length`（兩個標頭，或 `3, 3` 這種合併寫法）
-  - `Content-Length` 與 `Transfer-Encoding` 同時出現
-- 中介層本身也會處理上述情況，作為 uvicorn 改用 `--http h11` 時的防線（h11 會拒絕不一致的重複 `Content-Length`，但會接受一致的重複值，以及 `Content-Length` 與 `Transfer-Encoding` 同時出現）：
-  - 多個不一致的 `Content-Length` 回 400；一致的重複值依該值判斷。
+- 不合規的 `Content-Length`／`Transfer-Encoding` 會先在協定層被 uvicorn 以 400 拒絕，根本不會進到中介層。這時回應是 uvicorn 的純文字錯誤（httptools 為 `Invalid HTTP request received.`），不是中介層的 JSON。
+  - 正式部署（`uvicorn[standard]`，使用 httptools 解析 HTTP）時，以下都會在協定層回 400：
+    - `Content-Length` 不是非負整數（例如負數、帶正負號、空值、非數字）
+    - 重複的 `Content-Length`（兩個標頭，或 `3, 3` 這種合併寫法）
+    - `Content-Length` 與 `Transfer-Encoding` 同時出現
+  - 改用 `--http h11` 時，h11 同樣會在協定層拒絕格式錯誤或不一致的 `Content-Length`，但會接受一致的重複值，以及 `Content-Length` 與 `Transfer-Encoding` 同時出現。
+- 中介層本身也會檢查這些情況，作為協定層沒擋下時的防線（例如上述 h11 會接受的組合）：
+  - `Content-Length` 格式錯誤或多個值不一致時，回 400 JSON：`{"detail": "Content-Length 格式錯誤。"}`；一致的重複值依該值判斷。
   - 同時帶 `Transfer-Encoding` 時忽略 `Content-Length`，改為邊讀邊累計，避免用很小的 `Content-Length` 搭配 chunked body 繞過上限。
 - 目前所有端點的正常 body 都遠小於 64 KB（最大的是量表作答清單）。只有之後新增需要上傳大量資料的端點時才需要調高。
-- `MAX_REQUEST_BODY_BYTES` 只接受最多 18 位 ASCII 數字組成的正整數，前後空白會先去掉（例如 `" 1024 "` 視為 1024，`0010` 視為 10）。
-  - 未設定、空字串、0、負數、非整數、超過 18 位，或含其他字元（例如 `²`、全形數字、`1_000`、`+5`）時，都使用預設值，不會讓後端啟動失敗。
+- `MAX_REQUEST_BODY_BYTES` 只接受最多 18 位 ASCII 數字組成的正整數，例如 `MAX_REQUEST_BODY_BYTES=131072`。
+  - 值前後的空白會先去掉，前導零也可以（`0010` 視為 10）。
+  - 在 `--env-file` 或 `backend.env` 裡不要加引號：引號會被當成值的一部分，結果退回預設值。
+  - 未設定、空字串、0、負數、非整數、超過 18 位，或含其他字元（例如 `²`、全形數字、`1_000`、`+5`、引號）時，都使用預設值，不會讓後端啟動失敗。
 
 ### 前端環境變數
 

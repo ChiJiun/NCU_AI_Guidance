@@ -19,7 +19,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 DEFAULT_MAX_BODY_BYTES = 64 * 1024
 _TOO_LARGE_DETAIL = "請求內容過大。"
-# MAX_REQUEST_BODY_BYTES 最多接受的位數（18 位已超過 1 EB，足夠任何實際設定）
+# MAX_REQUEST_BODY_BYTES 最多接受的位數（18 位最大約 10^18 bytes，接近 1 EB，足夠任何實際設定）
 _MAX_ENV_DIGITS = 18
 
 

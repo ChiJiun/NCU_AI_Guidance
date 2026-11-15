@@ -110,7 +110,7 @@ class BodyLimitTests(unittest.TestCase):
         from app.body_limit import max_body_bytes_from_env
         with mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": "1024"}):
             self.assertEqual(max_body_bytes_from_env(), 1024)
-        for bad in ("", "0", "-5", "abc", "1.5"):
+        for bad in ("", "0", "-5", "abc", "1.5", "²", "１２３", "1_000", "+5"):
             with mock.patch.dict("os.environ", {"MAX_REQUEST_BODY_BYTES": bad}):
                 self.assertEqual(max_body_bytes_from_env(), DEFAULT_MAX_BODY_BYTES)
 

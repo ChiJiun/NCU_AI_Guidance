@@ -24,7 +24,9 @@ _TOO_LARGE_DETAIL = "請求內容過大。"
 def max_body_bytes_from_env() -> int:
     """讀取 MAX_REQUEST_BODY_BYTES；未設定或不是正整數時使用預設 64 KB。"""
     raw = os.getenv("MAX_REQUEST_BODY_BYTES", "").strip()
-    if raw.isdigit() and int(raw) > 0:
+    # 只接受 ASCII 數字：str.isdigit() 對 "²" 這類 Unicode 數字也回 True，但 int() 會拋 ValueError，
+    # 設錯環境變數就會讓後端啟動失敗
+    if raw.isascii() and raw.isdigit() and int(raw) > 0:
         return int(raw)
     return DEFAULT_MAX_BODY_BYTES
 

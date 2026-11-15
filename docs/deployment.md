@@ -87,9 +87,13 @@ CLOUDINARY_PROJECT_FOLDER=ncu-ai-guidance/data/raw/projects
 ### Request body 上限（`MAX_REQUEST_BODY_BYTES`）
 
 - 後端在所有路由之前（`BodySizeLimitMiddleware`，位於 CORS 之內）限制每個請求 body 的位元組數，預設 65536（64 KB）。
-- 超過上限回 HTTP 413，`detail` 為 `請求內容過大。`；`Content-Length` 不是整數時回 400。這發生在登入驗證之前，所以匿名請求也無法再用大型 body 消耗記憶體與 event loop 時間。
-- 沒有 `Content-Length` 的請求（chunked）由中介層邊讀邊累計，超過上限就停止讀取並回 413。
-- 目前所有端點的正常 body 都遠小於 64 KB（最大的是量表作答清單）；未設定、空字串、0、負數或非整數都會使用預設值。只有之後新增需要上傳大量資料的端點時才需要調高。
+- 超過上限回 HTTP 413，`detail` 為 `請求內容過大。`。這發生在登入驗證之前，所以匿名請求也無法再用大型 body 消耗記憶體與 event loop 時間。
+- 只有 `Content-Length`、沒有 `Transfer-Encoding` 時，直接依宣告長度判斷，不讀 body。
+  - `Content-Length` 不是非負整數（例如負數、帶正負號、空值），或有多個不一致的值時，回 400。
+  - 一致的重複值（例如 `3, 3`）照常放行。
+- 沒有 `Content-Length`，或帶了 `Transfer-Encoding` 的請求（即使同時有 `Content-Length`），由中介層邊讀邊累計，超過上限就停止讀取並回 413。這是為了避免用很小的 `Content-Length` 搭配 chunked body 繞過上限。
+- 目前所有端點的正常 body 都遠小於 64 KB（最大的是量表作答清單）。只有之後新增需要上傳大量資料的端點時才需要調高。
+- `MAX_REQUEST_BODY_BYTES` 只接受 ASCII 數字組成的正整數。未設定、空字串、0、負數、非整數或其他字元（例如 `²`、`1_000`）都會使用預設值，不會讓後端啟動失敗。
 
 ### 前端環境變數
 

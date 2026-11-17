@@ -85,7 +85,9 @@ STEPS: tuple[Step, ...] = (
         tags=frozenset({NETWORK}),
         cost="免費；每頁間隔約 1.2～1.5 秒，每門課再等 0.8 秒",
         note="連續 10 筆出錯（例如瀏覽器掛掉）或錯誤率超過 20% 會以非 0 結束，管線停在 fetch、不往下 build；"
-             "此時 data/raw 已是新爬的課程，修好後可用 --fetch --apply --only fetch_course_content 續補",
+             "此時 data/raw 已是新爬的課程，修好後可用 --fetch --apply --only fetch_course_content 續補。"
+             "新課程換進 data/raw 時學期目錄會留下 .content_fix_pending，補課綱成功跑完才刪除；"
+             "標記存在時讀原始課程的 build 步驟會被擋下（--allow-incomplete-content 可略過）",
     ),
     Step(
         name="fetch_requirement_pdfs",

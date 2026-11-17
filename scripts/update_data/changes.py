@@ -104,6 +104,21 @@ def _shrunk(old: int, new: int, limits: Limits) -> bool:
     return (not limits.allow_shrink) and old > 0 and new < old * (1 - limits.max_shrink)
 
 
+# 每筆都必須有值的文字欄位：空白筆數比現有多就視為失敗（筆數不變，前面的筆數檢查擋不住）。
+# communities.json：compute_communities 會先把所有 label 清空，再由 label_communities 呼叫 Azure 命名；
+# 命名失敗時檔案仍會寫出，不能讓清空 label 的版本被套用。
+REQUIRED_TEXT_FIELDS = {
+    "data/processed/graph/communities.json": "label",
+}
+
+
+def blank_field_count(obj: Any, field_name: str) -> int:
+    """list[dict] 中該欄位缺少或只有空白的筆數；不是 list 時回傳 0。"""
+    if not isinstance(obj, list):
+        return 0
+    return sum(1 for d in obj if isinstance(d, dict) and not str(d.get(field_name) or "").strip())
+
+
 def validate_file(rel: str, new_path: Path, old_path: Path | None, limits: Limits) -> list[str]:
     """回傳錯誤訊息清單；空清單代表通過。"""
     errors: list[str] = []
@@ -135,6 +150,14 @@ def validate_file(rel: str, new_path: Path, old_path: Path | None, limits: Limit
         old_raw, new_raw = raw_course_nodes(old), raw_course_nodes(new)
         if _shrunk(old_raw, new_raw, limits):
             errors.append(f"{rel}：有原始資料的課程節點從 {old_raw} 掉到 {new_raw}，可能是原始課程資料缺漏")
+
+    field_name = REQUIRED_TEXT_FIELDS.get(rel)
+    if field_name:
+        new_blank = blank_field_count(new, field_name)
+        old_blank = blank_field_count(old, field_name) if old is not None else 0
+        if new_blank > old_blank:
+            errors.append(f"{rel}：空白的 {field_name} 從 {old_blank} 筆增加到 {new_blank} 筆"
+                          f"（產生名稱的步驟可能失敗，例如缺少 Azure 憑證或 API 錯誤）")
 
     if rel.startswith("data/processed/courses_deduped/") and isinstance(new, list):
         keys = [c.get("課號-班別", "") for c in new if isinstance(c, dict)]

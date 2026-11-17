@@ -28,6 +28,7 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
    任何系所翻頁或存檔失敗，爬蟲都會以非 0 結束、該系所不存檔，整個 fetch 視為失敗、不動 `data/raw`；重跑會補爬失敗的系所。
    補課綱（`fetch_course_content`）的斷點放在各學期目錄的 `.content_fix_done.txt`，重新爬課程換掉學期目錄時一起清空；載入或解析失敗的課程不記斷點，下次重試。
    頁面能載入但找不到課號／流水號／課程名稱（例如「系統忙碌」錯誤頁）也算失敗。連續 10 筆出錯（通常是瀏覽器掛掉）或錯誤率超過 20%，補課綱會以非 0 結束，管線停在 fetch、不往下 build，避免把課綱空白的課程套用進 `data/processed`。這時 `data/raw` 已經是新爬的課程，修好後用 `--fetch --apply --only fetch_course_content` 續補，再跑一次完整的 `--apply`。
+   新課程換進 `data/raw` 時，學期目錄會留下 `.content_fix_pending` 標記，補課綱成功跑完才會刪除。標記還在時，之後任何一次 `--apply`（即使沒加 `--fetch`）都會在 build 前停下（報告裡的 `content_fix_check`），不會把課綱空白的課程帶進 `data/processed`。每次都卡在同一批課時，見下面的「補課綱一直卡住」。
 3. **看報告**：`logs/data_update/<時間>/summary.md` 會列出每個檔案的筆數變化、新增／移除的項目。
 4. **重啟後端**：後端多數 JSON 有快取（`lru_cache`），重啟後才會讀到新資料。
 5. **需要時再更新外部服務**（會花錢或寫入正式環境，請確認後再跑）：
@@ -50,6 +51,27 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 > 但 `scripts/nlp/run_agent*.py` 讀原始課程的學期寫死 114；用新學期跑時，NLP 欄位仍是 114 課程的標註，
 > 要先改 agent 腳本才會標到新學期的課。
 
+## 補課綱一直卡住
+
+補課綱遇到錯誤的課程不會記進斷點，下次會重試，而且這些課仍排在最前面。如果某些課的課綱頁每次都是錯誤頁
+（例如學校網站對那幾門課一直回「系統忙碌」，或頁面已下架），每次續補都會在同樣的地方連續出錯 10 筆而中止，
+`--only fetch_course_content` 重跑幾次都一樣。管線不能傳參數給補課綱腳本，可以這樣處理：
+
+1. **先確認是不是永久性的錯誤**：看 `logs/data_update/<時間>/steps/fetch_course_content.log` 裡出錯的課，
+   用瀏覽器打開課程 JSON 裡的 `課程綱要_連結`。如果是網站暫時故障，等一段時間再續補即可。
+2. **確定是永久錯誤、要把其餘課程補完**：直接執行補課綱腳本，放寬錯誤上限。學期要用 `NCU_DATA_TERMS` 指定，
+   和管線的 `--terms` 相同：
+   ```bash
+   NCU_DATA_TERMS=114_1,114_2 python scripts/scrapers/scrape_content_by_url.py --headless --max-consecutive-errors 0 --max-error-rate 1
+   ```
+   `--max-consecutive-errors 0` 代表不因為連續出錯而中止，`--max-error-rate 1` 代表不因為錯誤率而失敗。
+   跑完結束碼是 0，會刪除 `.content_fix_pending`；出錯的那幾門課的課綱仍是空白。之後再照常跑 `--apply`。
+   Windows PowerShell 要先 `$env:NCU_DATA_TERMS = "114_1,114_2"`，再執行同一行指令，但不要加前面的 `NCU_DATA_TERMS=`。
+3. **不想再補、接受目前的課綱**：在 `--apply` 加上 `--allow-incomplete-content`，略過這個檢查。標記會留著，
+   之後每次 build 都要加這個旗標，直到補課綱成功跑完為止。
+
+不建議用 `--skip fetch_course_content` 加 `--allow-incomplete-content` 當成常態：課綱空白的課程在課程卡片與聊天裡會缺少課程目標與授課內容。
+
 ## 旗標
 
 | 旗標 | 允許什麼 |
@@ -65,6 +87,7 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 | `--terms 114_1,114_2` | 學期清單，舊到新（後者覆蓋前者） |
 | `--max-shrink 0.1` / `--allow-shrink` | 輸出筆數比現有少超過 10% 視為失敗；確定資料本來就變少時放寬（只跑單一學期時通常需要） |
 | `--fresh-fetch` | 不續爬，把上次沒爬完的暫存目錄移開後從頭爬 |
+| `--allow-incomplete-content` | 補課綱沒有成功跑完（學期目錄留著 `.content_fix_pending`）時，仍用目前的原始課程 build |
 | `--keep-sandbox` | 保留暫存沙盒（預設成功就刪，失敗才保留） |
 
 會連網、花錢或寫外部服務的步驟，即使加了旗標，**沒有 `--apply` 也只會列出計畫**。
@@ -112,7 +135,12 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 - **沙盒**：build／check 步驟在暫存目錄的 repo 副本裡跑（不複製 `.env`、`data/raw/projects`、`qdrant*` 等）。
   正式的 `data/processed` 在全部步驟與驗證通過前完全不會被動到。
 - **驗證**：每個輸出檔要能解析、不能是空的、筆數不能比現有少超過 `--max-shrink`；課程檔不能有重複的
-  `課號-班別`；圖譜裡有原始資料的課程節點數不能大幅下降（原始課程缺漏時會擋下）。
+  `課號-班別`；圖譜裡有原始資料的課程節點數不能大幅下降（原始課程缺漏時會擋下）；`communities.json` 空白的
+  `label` 不能比現有多（`label_communities` 缺 Azure 憑證或 API 失敗時也會以非 0 結束）。
+- **補課綱未完成就不 build**：新課程換進 `data/raw` 後，學期目錄留著 `.content_fix_pending` 直到補課綱成功跑完；
+  標記存在時，讀原始課程的 build 步驟一律擋下（跨次執行也有效），除非加 `--allow-incomplete-content`。
+- **報告的結果列**：有步驟失敗時，若 `data/raw` 已被 fetch 步驟改寫、build 輸出已套用、或外部服務已寫入，
+  結果列會逐項寫出，不會只寫「正式資料未變更」。
 - **只套用宣告過的輸出**：沙盒裡被改到、但不在步驟宣告輸出內的檔案會列在報告的「未宣告的變動」，不會套用。
 - **備份與原子替換**：套用前把原檔備份到 `logs/data_update/<時間>/backup/`，逐檔寫暫存檔再 `os.replace`；
   任何一檔失敗就還原已替換的檔案。管線不會刪除正式目錄的檔案。

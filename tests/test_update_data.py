@@ -174,6 +174,20 @@ class Validation(unittest.TestCase):
         errors = ch.validate_file("data/processed/courses_deduped/undergrad.json", n, o, self.limits)
         self.assertTrue(any("重複" in e for e in errors))
 
+    def test_communities_with_more_blank_labels_fail(self):
+        rel = "data/processed/graph/communities.json"
+        old = [{"id": 1, "label": "工程數學"}, {"id": 2, "label": "程式設計"}, {"id": 3, "label": ""}]
+        cleared = [{"id": 1, "label": ""}, {"id": 2, "label": "  "}, {"id": 3, "label": ""}]
+        errors = ch.validate_file(rel, *self._pair(old, cleared), self.limits)
+        self.assertTrue(any("空白的 label 從 1 筆增加到 3 筆" in e for e in errors), errors)
+
+        same = [{"id": 1, "label": "新名稱"}, {"id": 2, "label": "程式設計"}, {"id": 3}]
+        self.assertEqual(ch.validate_file(rel, *self._pair(old, same), self.limits), [])
+        # 沒有舊檔時，任何空白 label 都算失敗
+        self.assertTrue(ch.validate_file(rel, *self._pair(None, [{"id": 1, "label": ""}]), self.limits))
+        # 其他檔案不套用這條規則
+        self.assertEqual(ch.validate_file("data/processed/x.json", *self._pair(old, cleared), self.limits), [])
+
     def test_describe_change_reports_added_and_removed_keys(self):
         old = [{"課號-班別": "A-1"}, {"課號-班別": "B-1"}]
         new = [{"課號-班別": "A-1"}, {"課號-班別": "C-1"}, {"課號-班別": "D-1"}]
@@ -288,10 +302,24 @@ class FetchSplit(unittest.TestCase):
             _write_json(staging / "理學院_統計研究所碩士班.json", [{}])
             counts = fetch.promote_term(staging, root, "114_1", backup, set(), set())
             self.assertEqual(counts, {"courses": 1, "graduate_courses": 1})
-            self.assertEqual([p.name for p in (root / "data/raw/courses/114_1").iterdir()], ["理學院_物理學系.json"])
+            self.assertEqual([p.name for p in (root / "data/raw/courses/114_1").glob("*.json")],
+                             ["理學院_物理學系.json"])
             self.assertTrue((root / "data/raw/graduate_courses/114_1/理學院_統計研究所碩士班.json").exists())
             self.assertTrue((backup / "raw/courses/114_1/old_舊系.json").exists())
             self.assertFalse(staging.exists())
+
+    def test_promote_term_marks_content_fix_pending(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            staging = root / "logs/data_update/incoming/114_1"
+            _write_json(staging / "理學院_物理學系.json", [{}])   # 只有大學部，研究所目錄是空的
+            self.assertEqual(fetch.content_pending_markers(root, ["114_1"]), [])
+            fetch.promote_term(staging, root, "114_1", root / "logs/run", set(), set())
+            self.assertEqual(fetch.content_pending_markers(root, ["114_1", "114_2"]),
+                             ["data/raw/courses/114_1/.content_fix_pending",
+                              "data/raw/graduate_courses/114_1/.content_fix_pending"])
+            # 標記不是 .json，不算系所檔
+            self.assertEqual(fetch.count_courses([root / "data/raw/courses/114_1"]), (1, 1))
 
     def test_fetch_failure_leaves_raw_untouched(self):
         with tempfile.TemporaryDirectory() as d:
@@ -539,6 +567,96 @@ class EndToEnd(unittest.TestCase):
         rep = self._run([self._build("fail"), pub], apply=True, allow_external=True)
         self.assertEqual([r.status for r in rep.results], ["failed", "not_run"])
         self.assertFalse((self.root / "published.txt").exists())
+        self.assertIn("結果：有步驟失敗，正式資料未變更", self._summary(rep))
+
+    # ── 補課綱未完成標記（跨次執行）──
+
+    def _summary(self, rep):
+        return (rep.run_dir / "summary.md").read_text(encoding="utf-8")
+
+    def _raw_reader(self, name="reads_raw"):
+        return self._build("grow", name=name, requires=("data/raw/courses/{term}",))
+
+    def _mark_pending(self, term="114_1"):
+        _write_json(self.root / f"data/raw/courses/{term}/a_甲學系.json", [{}])
+        (self.root / f"data/raw/courses/{term}/{fetch.CONTENT_PENDING_NAME}").write_text("x", encoding="utf-8")
+
+    def test_pending_content_fix_blocks_build_across_runs(self):
+        self._mark_pending()
+        later = self._build("grow", name="later")
+        rep = self._run([self._raw_reader(), later], apply=True, terms=("114_1",))
+        self.assertTrue(rep.failed)
+        self.assertFalse(rep.promoted)
+        self.assertEqual([(r.name, r.status) for r in rep.results],
+                         [("content_fix_check", "failed"), ("reads_raw", "not_run"), ("later", "not_run")])
+        self.assertIn("data/raw/courses/114_1/.content_fix_pending", rep.results[0].detail)
+        self.assertIn("--allow-incomplete-content", rep.results[0].detail)
+        self.assertEqual(len(self._items()), 2)
+        self.assertIsNone(rep.sandbox)   # 沒有建沙盒就停下
+        self.assertIn("content_fix_check", self._summary(rep))
+
+    def test_pending_marker_of_other_terms_does_not_block(self):
+        self._mark_pending("113_2")
+        _write_json(self.root / "data/raw/courses/114_1/a_甲學系.json", [{}])
+        rep = self._run([self._raw_reader()], apply=True, terms=("114_1",))
+        self.assertFalse(rep.failed)
+        self.assertTrue(rep.promoted)
+
+    def test_allow_incomplete_content_overrides_marker(self):
+        self._mark_pending()
+        rep = self._run([self._raw_reader()], apply=True, terms=("114_1",), allow_incomplete_content=True)
+        self.assertFalse(rep.failed)
+        self.assertTrue(rep.promoted)
+        self.assertEqual(len(self._items()), 3)
+
+    def test_marker_only_blocks_steps_that_read_raw_courses(self):
+        self._mark_pending()
+        rep = self._run([self._build("grow")], apply=True, terms=("114_1",))
+        self.assertFalse(rep.failed)
+        self.assertTrue(rep.promoted)
+
+    # ── 報告的結果列 ──
+
+    def test_result_line_when_publish_fails_after_promote(self):
+        pub = Step("pub", PUBLISH, "t", commands=(("scripts/fake/w.py", "fail"),), tags=frozenset({EXTERNAL}))
+        rep = self._run([self._build("grow"), pub], apply=True, allow_external=True)
+        self.assertTrue(rep.failed)
+        self.assertTrue(rep.promoted)
+        summary = self._summary(rep)
+        self.assertNotIn("正式資料未變更", summary)
+        self.assertIn("build 的輸出已套用到正式目錄", summary)
+        self.assertIn("外部服務已寫入或可能已部分寫入（pub）", summary)
+        self.assertEqual(len(self._items()), 3)
+
+    def test_result_line_when_fetch_command_fails(self):
+        fetch_step = Step("fetch_x", pipeline.FETCH, "t", commands=(("scripts/fake/w.py", "fail"),),
+                          outputs=("data/raw/x",), tags=frozenset({pipeline.NETWORK}))
+        rep = self._run([fetch_step, self._build("grow")], apply=True, fetch=True)
+        self.assertTrue(rep.failed)
+        self.assertEqual([r.status for r in rep.results], ["failed", "not_run"])
+        summary = self._summary(rep)
+        self.assertNotIn("正式資料未變更", summary)
+        self.assertIn("fetch_x 失敗前可能已直接寫入 data/raw/x", summary)
+        self.assertEqual(json.loads((rep.run_dir / "summary.json").read_text(encoding="utf-8"))["raw_changes"],
+                         ["fetch_x 失敗前可能已直接寫入 data/raw/x"])
+
+    def test_result_line_when_raw_replaced_then_content_fix_fails(self):
+        courses = Step("fetch_courses", pipeline.FETCH, "t", runner="fetch_courses", tags=frozenset({pipeline.NETWORK}))
+        content = Step("fetch_course_content", pipeline.FETCH, "t", commands=(("scripts/fake/w.py", "fail"),),
+                       outputs=("data/raw/courses",), tags=frozenset({pipeline.NETWORK}))
+        with mock.patch.object(pipeline, "fetch_courses", return_value=(True, "換進 1 檔")):
+            rep = self._run([courses, content], apply=True, fetch=True)
+        summary = self._summary(rep)
+        self.assertIn("fetch_courses 已把新爬的課程換進 data/raw", summary)
+        self.assertIn("fetch_course_content 失敗前可能已直接寫入 data/raw/courses", summary)
+        self.assertNotIn("正式資料未變更", summary)
+
+    def test_failed_fetch_courses_does_not_claim_raw_changed(self):
+        courses = Step("fetch_courses", pipeline.FETCH, "t", runner="fetch_courses", tags=frozenset({pipeline.NETWORK}))
+        with mock.patch.object(pipeline, "fetch_courses", return_value=(False, "爬蟲結束碼 1")):
+            rep = self._run([courses], apply=True, fetch=True)
+        self.assertEqual(rep.raw_changes, [])
+        self.assertIn("結果：有步驟失敗，正式資料未變更", self._summary(rep))
 
 
 class RealCoursesStep(unittest.TestCase):
@@ -947,10 +1065,134 @@ class ContentScraperCheckpoint(unittest.TestCase):
         self.assertTrue(self.mod.is_outline_page({"課號": "CE1001", "課程目標": ""}))
         self.assertFalse(self.mod.is_outline_page({"核心能力": []}))
 
+    # ── 「補課綱未完成」標記 ──
+
+    def _marker(self):
+        d = self.root / "data/raw/courses/114_1"
+        d.mkdir(parents=True, exist_ok=True)
+        m = d / self.mod.PENDING_MARKER_NAME
+        m.write_text("x", encoding="utf-8")
+        return m
+
+    def test_marker_name_matches_pipeline(self):
+        self.assertEqual(self.mod.PENDING_MARKER_NAME, fetch.CONTENT_PENDING_NAME)
+
+    def test_successful_run_clears_marker(self):
+        m = self._marker()
+        rc, calls, _ = self._main([_course("A"), _course("B")], scrape=lambda drv, c, dry_run: (True, False))
+        self.assertEqual((rc, len(calls)), (0, 2))
+        self.assertFalse(m.exists())
+
+    def test_nothing_pending_clears_marker(self):
+        m = self._marker()
+        rc, _, _ = self._main([_course("A", filled=True)], scrape=lambda *a, **k: (True, False))
+        self.assertEqual(rc, 0)
+        self.assertFalse(m.exists())
+
+    def test_failed_run_keeps_marker(self):
+        m = self._marker()
+        rc, _, _ = self._main([_course(f"C{i:02d}") for i in range(12)],
+                              scrape=lambda drv, c, dry_run: (False, True))
+        self.assertEqual(rc, 1)
+        self.assertTrue(m.exists())
+
+    def test_limited_or_dry_run_keeps_marker(self):
+        m = self._marker()
+        ok = lambda drv, c, dry_run: (True, False)  # noqa: E731
+        rc, calls, _ = self._main([_course("A"), _course("B")], scrape=ok, argv=("--headless", "--limit", "1"))
+        self.assertEqual((rc, len(calls)), (0, 1))
+        self.assertTrue(m.exists())      # 還有課沒處理到，不算補完
+        rc, _, _ = self._main([_course("A"), _course("B")], scrape=ok, argv=("--headless", "--dry-run"))
+        self.assertEqual(rc, 0)
+        self.assertTrue(m.exists())      # dry-run 不改任何檔案
+
+    def test_relaxed_limits_finish_despite_permanent_error_pages(self):
+        """README「補課綱一直卡住」的做法：放寬錯誤上限後能跑完並清掉標記。"""
+        m = self._marker()
+        bad_first = lambda drv, c, dry_run: (False, int(c["課號-班別"][1:]) < 12)  # noqa: E731
+        courses = [_course(f"C{i:02d}") for i in range(15)]
+        rc, calls, _ = self._main(courses, scrape=bad_first)
+        self.assertEqual((rc, len(calls)), (1, 10))
+        self.assertTrue(m.exists())
+        rc, calls, done = self._main(courses, scrape=bad_first,
+                                     argv=("--headless", "--max-consecutive-errors", "0", "--max-error-rate", "1"))
+        self.assertEqual((rc, len(calls)), (0, 15))
+        self.assertEqual(len(done), 3)
+        self.assertFalse(m.exists())
+
     def test_legacy_checkpoint_file_is_ignored(self):
         self.assertFalse(hasattr(self.mod, "CHECKPOINT_PATH"))
         text = (ROOT / "scripts/scrapers/scrape_content_by_url.py").read_text(encoding="utf-8")
         self.assertNotIn("CHECKPOINT_PATH", text)
+
+
+class LabelCommunitiesExitCode(unittest.TestCase):
+    """label_communities 失敗時要以非 0 結束，管線才不會套用 label 被清空的 communities.json。
+
+    不讀 .env、不連 Azure：dotenv 與 openai 都換成假模組。
+    """
+
+    def setUp(self):
+        self.mod = _load_script("label_communities_t", "scripts/graph/label_communities.py")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "communities.json"
+        _write_json(self.path, [{"id": i, "size": 3, "label": "", "courses": [], "top_concepts": []}
+                                for i in range(2)])
+
+    def _run(self, argv=(), env=None, create=None):
+        fake_dotenv = mock.MagicMock()
+        fake_openai = mock.MagicMock()
+        fake_openai.AzureOpenAI.return_value.chat.completions.create.side_effect = create
+        clean = {k: v for k, v in os.environ.items() if not k.startswith("AZURE_OPENAI")}
+        with mock.patch.object(self.mod, "COMMUNITIES_JSON", self.path), \
+                mock.patch.object(self.mod, "ROOT", Path(self.tmp.name)), \
+                mock.patch.object(self.mod, "GRAPH_JSON", Path(self.tmp.name) / "none.json"), \
+                mock.patch.object(self.mod.time, "sleep", lambda s: None), \
+                mock.patch.dict(sys.modules, {"dotenv": fake_dotenv, "openai": fake_openai}), \
+                mock.patch.dict(os.environ, {**clean, **(env or {})}, clear=True), \
+                mock.patch("sys.stdout"):
+            rc = self.mod.main(list(argv))
+        return rc, json.loads(self.path.read_text(encoding="utf-8"))
+
+    _ENV = {"AZURE_OPENAI_API_KEY": "fake", "AZURE_OPENAI_ENDPOINT": "https://example.invalid"}
+
+    @staticmethod
+    def _reply(text):
+        resp = mock.MagicMock()
+        resp.choices[0].message.content = text
+        return resp
+
+    def test_missing_credentials_exit_nonzero(self):
+        rc, data = self._run()
+        self.assertEqual(rc, 1)
+        self.assertEqual([c["label"] for c in data], ["", ""])
+
+    def test_api_failure_exits_nonzero(self):
+        rc, data = self._run(env=self._ENV, create=RuntimeError("429 Too Many Requests"))
+        self.assertEqual(rc, 1)
+        self.assertEqual([c["label"] for c in data], ["", ""])
+
+    def test_partial_parse_failure_exits_nonzero_but_keeps_names(self):
+        rc, data = self._run(env=self._ENV, create=lambda **kw: self._reply("社群A名稱：工程數學與訊號"))
+        self.assertEqual(rc, 1)
+        self.assertEqual([c["label"] for c in data], ["工程數學與訊號", ""])
+
+    def test_success_and_noop_exit_zero(self):
+        rc, data = self._run(env=self._ENV,
+                             create=lambda **kw: self._reply("社群A名稱：工程數學與訊號\n社群B名稱：程式設計與軟體"))
+        self.assertEqual(rc, 0)
+        self.assertEqual([c["label"] for c in data], ["工程數學與訊號", "程式設計與軟體"])
+        rc, _ = self._run()   # 全部已有名稱，不需要憑證
+        self.assertEqual(rc, 0)
+
+    def test_dry_run_exits_zero(self):
+        self.assertEqual(self._run(argv=("--dry-run",))[0], 0)
+
+    def test_missing_file_exits_nonzero(self):
+        self.path.unlink()
+        with mock.patch.object(self.mod, "COMMUNITIES_JSON", self.path), mock.patch("sys.stdout"):
+            self.assertEqual(self.mod.main([]), 1)
 
 
 class CommandLine(unittest.TestCase):

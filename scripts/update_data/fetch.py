@@ -19,6 +19,14 @@ TERM_RE = re.compile(r"^(\d{3})_([12])$")
 
 SCRAPER = "scripts/scrapers/ncu_course_scraper_v2.py"
 
+# 「補課綱未完成」標記：新爬的課程換進 data/raw 時寫進學期目錄，補課綱（scrape_content_by_url）
+# 成功跑完才刪除。標記存在時 build 會拒絕讀原始課程，避免把課綱空白的課程帶進 data/processed。
+# 檔名必須與 scripts/scrapers/scrape_content_by_url.py 的 PENDING_MARKER_NAME 相同（爬蟲是獨立腳本，不 import 管線）。
+CONTENT_PENDING_NAME = ".content_fix_pending"
+CONTENT_PENDING_TEXT = ("這個學期目錄的課程是新爬的，補課綱（fetch_course_content）還沒有成功跑完，"
+                        "部分課程的課綱可能是空白的。\n"
+                        "補課綱成功跑完會自動刪除這個檔案；在這之前資料更新管線不會用這些課程 build。\n")
+
 
 def parse_term(term: str) -> tuple[str, str]:
     m = TERM_RE.match(term)
@@ -108,6 +116,7 @@ def promote_term(staging: Path, root: Path, term: str, backup_dir: Path,
 
     整個學期目錄被換掉，舊目錄裡的補課綱斷點（scrape_content_by_url 的 .content_fix_done.txt）
     也一起移走，所以重爬後課綱空白的課會重新補齊。只複製 *.json，不會帶入暫存檔或斷點。
+    換進後在兩個學期目錄寫入「補課綱未完成」標記（CONTENT_PENDING_NAME）。
     """
     split_root = staging.parent / f"{term}.split"
     if split_root.exists():
@@ -132,6 +141,7 @@ def promote_term(staging: Path, root: Path, term: str, backup_dir: Path,
             shutil.move(str(src), str(target))
         else:
             target.mkdir(parents=True, exist_ok=True)
+        (target / CONTENT_PENDING_NAME).write_text(CONTENT_PENDING_TEXT, encoding="utf-8")
 
     # 暫存目錄已完整複製進 data/raw，移進本次 run 目錄留存（不刪除）
     done = backup_dir / "incoming_done" / term
@@ -139,6 +149,17 @@ def promote_term(staging: Path, root: Path, term: str, backup_dir: Path,
     shutil.move(str(staging), str(done))
     shutil.rmtree(split_root, ignore_errors=True)
     return counts
+
+
+def content_pending_markers(root: Path, terms: list[str] | tuple[str, ...]) -> list[str]:
+    """回傳仍留著「補課綱未完成」標記的學期目錄標記檔（repo 相對路徑）。"""
+    out = []
+    for level in ("courses", "graduate_courses"):
+        for term in terms:
+            marker = root / "data" / "raw" / level / term / CONTENT_PENDING_NAME
+            if marker.is_file():
+                out.append(marker.relative_to(root).as_posix())
+    return out
 
 
 def fetch_courses(*, root: Path, run_dir: Path, terms: list[str], python: str,

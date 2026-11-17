@@ -201,9 +201,28 @@ def watched_changes(sandbox: Path, root: Path) -> list[str]:
     return sorted(out)
 
 
+REPLACE_RETRIES = 5
+REPLACE_RETRY_DELAY = 0.5  # 秒
+
+
+def _replace_with_retry(src: Path, dst: Path) -> None:
+    """os.replace；Windows 上目標檔被其他程式（例如後端）短暫開著時會 PermissionError，稍等重試。"""
+    import time
+    retries, delay = REPLACE_RETRIES, REPLACE_RETRY_DELAY
+    for attempt in range(retries):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(delay)
+
+
 def promote(files: list[str], sandbox: Path, root: Path, backup_dir: Path, run_id: str) -> None:
-    """先備份，再逐檔原子替換；任何一檔失敗就還原已替換的檔案。"""
+    """先備份，再逐檔原子替換；任何一檔失敗就還原已替換的檔案，並清掉暫存檔。"""
     done: list[tuple[Path, Path | None]] = []
+    tmp: Path | None = None
     try:
         for rel in files:
             src, dst = sandbox / rel, root / rel
@@ -215,9 +234,12 @@ def promote(files: list[str], sandbox: Path, root: Path, backup_dir: Path, run_i
             dst.parent.mkdir(parents=True, exist_ok=True)
             tmp = dst.with_name(f"{dst.name}.update-{run_id}.tmp")
             shutil.copy2(src, tmp)
-            os.replace(tmp, dst)
+            _replace_with_retry(tmp, dst)
+            tmp = None
             done.append((dst, backup))
     except Exception:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
         for dst, backup in reversed(done):
             if backup is not None:
                 shutil.copy2(backup, dst)

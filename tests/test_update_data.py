@@ -245,6 +245,8 @@ class FetchSplit(unittest.TestCase):
             "管理學院_國際經營管理碩士學位學程": "graduate_courses",
             "中心、處室_體育室": "courses",
             "理學院_理學院學士班": "courses",
+            # 假想的未來系所：名稱含「學位學程」但是大學部
+            "理學院_數據科學學士學位學程": "courses",
         }
         for stem, level in cases.items():
             self.assertEqual(fetch.classify_dept_file(stem, ug, grad), level, stem)
@@ -349,6 +351,37 @@ class SandboxAndPromote(unittest.TestCase):
             pipeline.promote(["data/a.json", "data/b.json"], sb, root, backup, "t")
             self.assertEqual(json.loads((root / "data/a.json").read_text(encoding="utf-8")), ["new"])
             self.assertEqual(json.loads((backup / "data/a.json").read_text(encoding="utf-8")), ["old"])
+
+    def test_promote_cleans_temp_file_when_replace_fails(self):
+        with tempfile.TemporaryDirectory() as d:
+            root, sb, backup = Path(d) / "root", Path(d) / "sb", Path(d) / "backup"
+            _write_json(root / "data/a.json", ["old"])
+            _write_json(sb / "data/a.json", ["new"])
+            with mock.patch.object(pipeline, "REPLACE_RETRY_DELAY", 0), \
+                    mock.patch.object(pipeline.os, "replace", side_effect=PermissionError("locked")):
+                with self.assertRaises(PermissionError):
+                    pipeline.promote(["data/a.json"], sb, root, backup, "t")
+            self.assertEqual([p.name for p in (root / "data").iterdir()], ["a.json"])
+            self.assertEqual(json.loads((root / "data/a.json").read_text(encoding="utf-8")), ["old"])
+
+    def test_promote_retries_when_target_briefly_locked(self):
+        with tempfile.TemporaryDirectory() as d:
+            root, sb, backup = Path(d) / "root", Path(d) / "sb", Path(d) / "backup"
+            _write_json(root / "data/a.json", ["old"])
+            _write_json(sb / "data/a.json", ["new"])
+            real_replace, calls = os.replace, []
+
+            def locked_twice(src, dst):
+                calls.append(dst)
+                if len(calls) <= 2:
+                    raise PermissionError("locked")
+                real_replace(src, dst)
+
+            with mock.patch.object(pipeline, "REPLACE_RETRY_DELAY", 0), \
+                    mock.patch.object(pipeline.os, "replace", side_effect=locked_twice):
+                pipeline.promote(["data/a.json"], sb, root, backup, "t")
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(json.loads((root / "data/a.json").read_text(encoding="utf-8")), ["new"])
 
 
 # ── 端對端：假 repo ───────────────────────────────────────────────────────
@@ -568,6 +601,26 @@ class ExistingScriptFixes(unittest.TestCase):
         self.assertEqual(p["delete"], [1])
         self.assertEqual(p["add"], [4])
 
+    def test_sync_graph_nodes_deletes_only_stale_community_points(self):
+        try:
+            mod = _load_script("sync_graph_nodes_t2", "scripts/rag/sync_graph_nodes.py")
+        except ImportError as e:
+            self.skipTest(f"缺少依賴：{e}")
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "communities.json"
+            _write_json(path, [{"id": 0}, {"id": 1}])
+            keep = mod.current_community_ids(path)
+            self.assertIsNone(mod.current_community_ids(Path(d) / "missing.json"))
+        live = mod.bq._node_id_to_int("community::0")
+        stale = mod.bq._node_id_to_int("community::99")
+        self.assertIn(live, keep)
+        existing = {live: {"node_type": "Community"}, stale: {"node_type": "Community"},
+                    7: {"node_type": "Concept"}}
+        p = mod.plan(existing, {}, keep)
+        self.assertEqual(sorted(p["delete"]), sorted([stale, 7]))
+        # 讀不到 communities.json（keep_ids=None）時全部保留，不刪任何社群點
+        self.assertEqual(mod.plan(existing, {}, None)["delete"], [7])
+
     def test_content_scraper_checkpoint_uses_course_identity(self):
         try:
             mod = _load_script("scrape_content_t", "scripts/scrapers/scrape_content_by_url.py")
@@ -582,6 +635,210 @@ class ExistingScriptFixes(unittest.TestCase):
     def test_vector_payload_only_requires_force_flag(self):
         text = (ROOT / "scripts/rag/build_vector_index.py").read_text(encoding="utf-8")
         self.assertIn("if args.payload_only and not args.force_payload_only", text)
+
+
+# ── 課程爬蟲：失敗要回報失敗 ───────────────────────────────────────────────
+
+class _El:
+    """假的 Selenium 元素：children 依 tag 名稱回傳子元素。"""
+
+    def __init__(self, text="", children=None, on_click=None):
+        self.text, self.children, self.on_click = text, children or {}, on_click
+
+    def find_elements(self, _by, tag):
+        return self.children.get(tag, [])
+
+    def find_element(self, _by, tag):
+        return self.children[tag][0]
+
+    def click(self):
+        if self.on_click:
+            self.on_click()
+
+
+class _DeptListDriver:
+    """只有系所清單頁的假瀏覽器；點系所連結只記錄目前在哪個系所。"""
+
+    current_url = "dept-list"
+
+    def __init__(self, depts):
+        self.page = None
+        rows = [_El()]  # 表頭
+        for college, dept in depts:
+            link = _El(on_click=lambda dept=dept: setattr(self, "page", dept))
+            rows.append(_El(children={"td": [_El(college), _El(dept), _El(children={"a": [link]})]}))
+        self.table = _El(children={"tr": rows})
+
+    def find_elements(self, _by, tag):
+        return [self.table] if tag == "table" else []
+
+    def get(self, url):
+        self.page = None
+
+    def quit(self):
+        pass
+
+
+class _BoomDriver:
+    current_url = "x"
+
+    def find_elements(self, *a, **k):
+        raise RuntimeError("stale element / timeout 模擬")
+
+    def get(self, url):
+        pass
+
+    def quit(self):
+        pass
+
+
+class CourseScraperFailures(unittest.TestCase):
+    def setUp(self):
+        try:
+            self.mod = _load_script("ncu_scraper_v2_t", "scripts/scrapers/ncu_course_scraper_v2.py")
+        except ImportError as e:
+            self.skipTest(f"缺少依賴：{e}")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = Path(self.tmp.name)
+        sleep = mock.patch.object(self.mod.time, "sleep", lambda s: None)
+        sleep.start()
+        self.addCleanup(sleep.stop)
+        self.addCleanup(self.tmp.cleanup)
+
+    def _scraper(self, driver, results=None):
+        s = object.__new__(self.mod.NCUCourseScraperV2)
+        s.driver, s.output_dir, s.data_dir = driver, str(self.out), str(self.out)
+        s.year, s.semester = "115", "1"
+        s.navigate_to_course_page = lambda: True
+        if results is not None:
+            def fake(college, dept):
+                r = results[dept]
+                if isinstance(r, Exception):
+                    raise r
+                return r
+            s.scrape_courses_with_pagination = fake
+        return s
+
+    def test_unreadable_dept_list_fails_run_and_main(self):
+        with mock.patch("sys.stdout"):
+            self.assertFalse(self._scraper(_BoomDriver()).run())
+            inst = self._scraper(_BoomDriver())
+            with mock.patch.object(self.mod, "NCUCourseScraperV2", return_value=inst):
+                self.assertEqual(self.mod.main(["--semesters", "1", "--output-dir", str(self.out)]), 1)
+
+    def test_incomplete_or_crashed_dept_is_not_saved_and_run_fails(self):
+        depts = [("理學院", "物理學系"), ("理學院", "數學系"), ("理學院", "化學系")]
+        results = {"物理學系": ([{"課號": "PH1"}], True),
+                   "數學系": ([{"課號": "MA1"}], False),  # 翻頁到一半出錯
+                   "化學系": RuntimeError("點擊逾時")}
+        s = self._scraper(_DeptListDriver(depts), results)
+        with mock.patch("sys.stdout"):
+            self.assertFalse(s.run())
+        self.assertEqual(sorted(p.name for p in self.out.iterdir()), ["理學院_物理學系.json"])
+        self.assertEqual(sorted(n for n, _ in s.failed_depts), ["理學院_化學系", "理學院_數學系"])
+
+        # 續爬：已成功的跳過，失敗的重爬，全部成功才回傳 True
+        results.update({"數學系": ([{"課號": "MA1"}], True), "化學系": ([{"課號": "CH1"}], True)})
+        s2 = self._scraper(_DeptListDriver(depts), results)
+        with mock.patch("sys.stdout"):
+            self.assertTrue(s2.run())
+        self.assertEqual(len(list(self.out.glob("*.json"))), 3)
+        self.assertEqual(list(self.out.glob("*.tmp")), [])
+
+    def test_pagination_error_marks_result_incomplete(self):
+        s = self._scraper(_BoomDriver())
+        with mock.patch("sys.stdout"):
+            courses, complete = s.scrape_courses_with_pagination("理學院", "物理學系")
+        self.assertEqual(courses, [])
+        self.assertFalse(complete)
+
+    def test_empty_dept_list_is_a_failure(self):
+        s = self._scraper(_DeptListDriver([]), {})
+        with mock.patch("sys.stdout"):
+            self.assertFalse(s.run())
+
+
+# ── 補課綱：斷點在重爬後重置、出錯不記斷點 ─────────────────────────────────
+
+def _course(code, filled=False):
+    return {"課號-班別": code, "學年度": "114", "學期": "1", "系所": "物理學系",
+            "課程名稱(中文)": code, "課程綱要_連結": f"https://example.invalid/{code}",
+            "課程綱要": {"課程目標": "這門課的目標說明文字很長" if filled else ""}}
+
+
+class ContentScraperCheckpoint(unittest.TestCase):
+    def setUp(self):
+        try:
+            self.mod = _load_script("scrape_content_t2", "scripts/scrapers/scrape_content_by_url.py")
+        except ImportError as e:
+            self.skipTest(f"缺少依賴：{e}")
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def test_errors_are_not_checkpointed(self):
+        d = self.root / "data/raw/courses/114_1"
+        f = d / "理學院_物理學系.json"
+        _write_json(f, [_course("A"), _course("B"), _course("C")])
+
+        def fake(driver, course, dry_run):
+            code = course["課號-班別"]
+            if code == "A":
+                course["課程綱要"]["課程目標"] = "補回來的課程目標說明文字"
+                return True, False
+            if code == "B":
+                return False, True  # 頁面載入失敗
+            raise RuntimeError("driver 掛掉")
+
+        done: set[str] = set()
+        with mock.patch("sys.stdout"):
+            counts = self.mod.process_file(None, f, [0, 1, 2], done, dry_run=False, scrape=fake, pause=0)
+        self.assertEqual(counts, {"processed": 3, "updated": 1, "errors": 2})
+        self.assertEqual(done, {self.mod.checkpoint_key(f, _course("A"))})
+        saved = json.loads(f.read_text(encoding="utf-8"))
+        self.assertIn("補回來", saved[0]["課程綱要"]["課程目標"])
+        self.assertEqual(list(d.glob("*.tmp")), [])
+
+        self.mod.save_checkpoint(d, done)
+        pending, _ = self.mod.pending_targets([d])
+        # A 已補齊（不再是待補）、B 與 C 出錯沒記斷點，下次重試
+        self.assertEqual([i for _, i in pending], [1, 2])
+
+    def test_dry_run_does_not_checkpoint_or_write(self):
+        d = self.root / "data/raw/courses/114_1"
+        f = d / "a.json"
+        _write_json(f, [_course("A")])
+        before = f.read_text(encoding="utf-8")
+        done: set[str] = set()
+        with mock.patch("sys.stdout"):
+            self.mod.process_file(None, f, [0], done, dry_run=True,
+                                  scrape=lambda drv, c, dry_run: (True, False), pause=0)
+        self.assertEqual(done, set())
+        self.assertEqual(f.read_text(encoding="utf-8"), before)
+
+    def test_checkpoint_resets_after_rescrape(self):
+        term_dir = self.root / "data/raw/courses/114_1"
+        f = term_dir / "理學院_物理學系.json"
+        _write_json(f, [_course("A")])
+        # 上一輪補課綱時「無新資料」的課也會記進斷點
+        self.mod.save_checkpoint(term_dir, {self.mod.checkpoint_key(f, _course("A"))})
+        self.assertEqual(self.mod.pending_targets([term_dir])[0], [])
+        self.assertEqual(fetch.count_courses([term_dir]), (1, 1))  # 斷點檔不算系所檔
+
+        # 定期 --fetch --apply：重爬後課綱又是空的，整個學期目錄被換掉
+        staging = self.root / "logs/data_update/incoming/114_1"
+        _write_json(staging / "理學院_物理學系.json", [_course("A")])
+        fetch.promote_term(staging, self.root, "114_1", self.root / "logs/run", set(), set())
+
+        self.assertFalse((term_dir / self.mod.CHECKPOINT_NAME).exists())
+        pending, done = self.mod.pending_targets([term_dir])
+        self.assertEqual(pending, [(f, 0)])
+        self.assertEqual(done[term_dir], set())
+
+    def test_legacy_checkpoint_file_is_ignored(self):
+        self.assertFalse(hasattr(self.mod, "CHECKPOINT_PATH"))
+        text = (ROOT / "scripts/scrapers/scrape_content_by_url.py").read_text(encoding="utf-8")
+        self.assertNotIn("CHECKPOINT_PATH", text)
 
 
 class CommandLine(unittest.TestCase):

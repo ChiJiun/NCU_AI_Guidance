@@ -58,6 +58,9 @@ def classify_dept_file(stem: str, ug_depts: set[str], grad_depts: set[str]) -> s
         return "graduate_courses"
     if in_ug and not in_grad:
         return "courses"
+    # 「學士學位學程」「學士班」等是大學部，名稱也可能含「學位學程」，先排除
+    if "學士" in dept:
+        return "courses"
     return "graduate_courses" if GRAD_NAME_RE.search(dept) else "courses"
 
 
@@ -101,7 +104,11 @@ def check_term(staging: Path, root: Path, term: str, max_shrink: float, allow_sh
 
 def promote_term(staging: Path, root: Path, term: str, backup_dir: Path,
                  ug_depts: set[str], grad_depts: set[str]) -> dict[str, int]:
-    """把暫存目錄分流後換進 data/raw/{courses,graduate_courses}/<term>；舊目錄移到 backup_dir。"""
+    """把暫存目錄分流後換進 data/raw/{courses,graduate_courses}/<term>；舊目錄移到 backup_dir。
+
+    整個學期目錄被換掉，舊目錄裡的補課綱斷點（scrape_content_by_url 的 .content_fix_done.txt）
+    也一起移走，所以重爬後課綱空白的課會重新補齊。只複製 *.json，不會帶入暫存檔或斷點。
+    """
     split_root = staging.parent / f"{term}.split"
     if split_root.exists():
         shutil.rmtree(split_root)

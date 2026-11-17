@@ -30,8 +30,11 @@ BASE = Path(__file__).parent.parent.parent
 TERMS = [t.strip() for t in os.environ.get('NCU_DATA_TERMS', '114_1,114_2').split(',') if t.strip()]
 COURSE_DIRS = [BASE / 'data' / 'raw' / level / term
                for level in ('courses', 'graduate_courses') for term in TERMS]
-# 斷點續爬：記錄已處理的課程鍵（檔案 + 課號-班別 + 學期，不用索引，重爬後索引會變）
-CHECKPOINT_PATH = BASE / 'data' / 'raw' / 'scraped_missing' / 'content_fix_checkpoint.json'
+# 斷點續爬：每個學期目錄裡放一個斷點檔（不是 .json，不會被當成系所檔讀進去），
+# 記錄已處理的課程鍵（檔名 + 課號-班別 + 學期）。重新爬課程時整個學期目錄會被換掉，
+# 斷點也跟著清空，重爬後課綱空白的課會重新補齊。
+# 舊版的 data/raw/scraped_missing/content_fix_checkpoint.json 不再讀取。
+CHECKPOINT_NAME = '.content_fix_done.txt'
 
 SYLLABUS_FIELDS = [
     '課程目標', '授課內容', '課程領域', '授課方式',
@@ -165,10 +168,11 @@ def parse_condition_page(driver) -> dict:
 
 # ─── 爬取單筆課程 ─────────────────────────────────────────────────────────────
 
-def scrape_course(driver, course: dict, dry_run: bool) -> bool:
+def scrape_course(driver, course: dict, dry_run: bool) -> tuple[bool, bool]:
     """
     爬取 course 的課程綱要（與分發條件若也空白）。
-    回傳 True 表示有更新。
+    回傳 (updated, error)：updated 表示有補到資料；error 表示途中有頁面載入或解析失敗，
+    這門課不能記進斷點（下次要重試）。
     dry_run=True 時只解析但不寫回。
     """
     綱要_url = course.get('課程綱要_連結', '')
@@ -178,6 +182,7 @@ def scrape_course(driver, course: dict, dry_run: bool) -> bool:
     existing_綱要 = course['課程綱要']
 
     updated = False
+    error = False
 
     # ── 課程綱要 ──
     if 綱要_url:
@@ -185,6 +190,9 @@ def scrape_course(driver, course: dict, dry_run: bool) -> bool:
             driver.get(綱要_url)
             time.sleep(1.5)
             outline = parse_outline_page(driver)
+            if outline.get('_parse_error'):
+                error = True
+                print(f"    [綱要解析錯誤] {str(outline['_parse_error'])[:60]}")
 
             # 補回文字欄位
             for field in SYLLABUS_FIELDS:
@@ -200,6 +208,7 @@ def scrape_course(driver, course: dict, dry_run: bool) -> bool:
                 updated = True
 
         except Exception as e:
+            error = True
             print(f'    [綱要錯誤] {str(e)[:60]}')
 
     # ── 分發條件（只在空白時補）──
@@ -210,22 +219,27 @@ def scrape_course(driver, course: dict, dry_run: bool) -> bool:
             driver.get(分發_url)
             time.sleep(1.2)
             condition = parse_condition_page(driver)
-            if condition and not dry_run:
-                course['分發條件'] = condition
-            if condition:
-                updated = True
+            if condition.get('_parse_error'):
+                error = True
+                print(f"    [分發解析錯誤] {str(condition['_parse_error'])[:60]}")
+            else:
+                if condition and not dry_run:
+                    course['分發條件'] = condition
+                if condition:
+                    updated = True
         except Exception as e:
+            error = True
             print(f'    [分發錯誤] {str(e)[:60]}')
 
-    return updated
+    return updated, error
 
 
 # ─── 收集所有待爬課程（file_path, index）─────────────────────────────────────
 
-def collect_targets() -> list[tuple[Path, int]]:
+def collect_targets(dirs=None) -> list[tuple[Path, int]]:
     """回傳 [(file_path, course_index), ...]，只收集目標+內容皆空的課程"""
     targets = []
-    for d in COURSE_DIRS:
+    for d in (COURSE_DIRS if dirs is None else dirs):
         for f in sorted(d.glob('*.json')):
             data = json.loads(f.read_text(encoding='utf-8'))
             for i, course in enumerate(data):
@@ -237,26 +251,90 @@ def collect_targets() -> list[tuple[Path, int]]:
 # ─── 斷點續爬 ─────────────────────────────────────────────────────────────────
 
 def checkpoint_key(file_path: Path, course: dict) -> str:
-    """斷點鍵：'file_path::課號-班別::學年度學期'。"""
+    """斷點鍵：'檔名::課號-班別::學年度學期'（斷點檔放在該學期目錄裡）。"""
     ident = course.get('課號-班別') or course.get('流水號') or ''
     term = f"{course.get('學年度', '')}{course.get('學期', '')}"
-    return f'{file_path}::{ident}::{term}'
+    return f'{file_path.name}::{ident}::{term}'
 
 
-def load_checkpoint() -> set[str]:
-    """回傳已完成的 key 集合，格式見 checkpoint_key()"""
-    if CHECKPOINT_PATH.exists():
-        data = json.loads(CHECKPOINT_PATH.read_text(encoding='utf-8'))
-        return set(data.get('done', []))
+def checkpoint_path(course_dir: Path) -> Path:
+    return course_dir / CHECKPOINT_NAME
+
+
+def load_checkpoint(course_dir: Path) -> set[str]:
+    """回傳該學期目錄已完成的 key 集合，格式見 checkpoint_key()"""
+    p = checkpoint_path(course_dir)
+    if p.is_file():
+        return {line for line in p.read_text(encoding='utf-8').splitlines() if line.strip()}
     return set()
 
 
-def save_checkpoint(done: set[str]):
-    CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CHECKPOINT_PATH.write_text(
-        json.dumps({'done': sorted(done)}, ensure_ascii=False, indent=2),
-        encoding='utf-8'
-    )
+def save_checkpoint(course_dir: Path, done: set[str]):
+    if not course_dir.is_dir():
+        return
+    p = checkpoint_path(course_dir)
+    tmp = p.with_name(p.name + '.tmp')
+    tmp.write_text(''.join(f'{k}\n' for k in sorted(done)), encoding='utf-8')
+    os.replace(tmp, p)
+
+
+def pending_targets(dirs=None) -> tuple[list[tuple[Path, int]], dict[Path, set[str]]]:
+    """回傳 (待爬清單, {學期目錄: 已完成鍵})；已記進斷點的課程不列入待爬。"""
+    dirs = COURSE_DIRS if dirs is None else dirs
+    done_by_dir = {d: load_checkpoint(d) for d in dirs}
+    pending = []
+    cache: dict[Path, list] = {}
+    for f, i in collect_targets(dirs):
+        if f not in cache:
+            cache[f] = json.loads(f.read_text(encoding='utf-8'))
+        if checkpoint_key(f, cache[f][i]) not in done_by_dir.get(f.parent, set()):
+            pending.append((f, i))
+    return pending, done_by_dir
+
+
+def process_file(driver, file_path: Path, indices: list[int], done: set[str], *,
+                 dry_run: bool, scrape=None, pause: float = 0.8,
+                 start: int = 0, total: int = 0) -> dict[str, int]:
+    """處理同一個檔案裡的待爬課程，回傳 {'processed', 'updated', 'errors'}。
+
+    只有沒發生錯誤、且不是 dry-run 的課程才會加進 done（出錯的下次重試）。
+    有更新時以暫存檔＋os.replace 寫回，避免中斷留下半個 JSON。
+    """
+    scrape = scrape or scrape_course
+    data = json.loads(file_path.read_text(encoding='utf-8'))
+    counts = {'processed': 0, 'updated': 0, 'errors': 0}
+
+    for i in indices:
+        course = data[i]
+        name = course.get('課程名稱(中文)', '')
+        dept = course.get('系所', '')
+        print(f'[{start + counts["processed"] + 1}/{total}] {dept} | {name}', end=' ... ')
+
+        try:
+            updated, error = scrape(driver, course, dry_run=dry_run)
+        except Exception as e:
+            updated, error = False, True
+            print(f'❌ {str(e)[:50]}', end=' ')
+        if updated:
+            counts['updated'] += 1
+        if error:
+            counts['errors'] += 1
+            print('⚠ 有錯誤，下次重試' + ('（已補到部分資料）' if updated else ''))
+        else:
+            print('✅ 補齊' if updated else '– 無新資料')
+            # dry-run 不記斷點，否則之後正式跑會跳過這些課程
+            if not dry_run:
+                done.add(checkpoint_key(file_path, course))
+        counts['processed'] += 1
+        if pause:
+            time.sleep(pause)
+
+    if counts['updated'] > 0 and not dry_run:
+        tmp = file_path.with_name(file_path.name + '.tmp')
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+        os.replace(tmp, file_path)
+        print(f'  → 已儲存 {file_path.name}（更新 {counts["updated"]} 門課）')
+    return counts
 
 
 # ─── 主程式 ──────────────────────────────────────────────────────────────────
@@ -269,24 +347,12 @@ def main():
                         help='只解析，不寫回檔案（測試用）')
     args = parser.parse_args()
 
-    # 收集目標
     print('掃描待補課程...')
     targets = collect_targets()
     print(f'找到 {len(targets)} 筆待補課程（目標+內容皆空且有連結）')
 
-    # 載入斷點
-    done_keys = load_checkpoint()
-    _cache: dict[Path, list] = {}
-
-    def _course_at(f: Path, i: int) -> dict:
-        if f not in _cache:
-            _cache[f] = json.loads(f.read_text(encoding='utf-8'))
-        return _cache[f][i]
-
-    pending = [(f, i) for f, i in targets
-               if checkpoint_key(f, _course_at(f, i)) not in done_keys]
-    _cache.clear()
-    print(f'已完成 {len(done_keys)} 筆，待爬 {len(pending)} 筆')
+    pending, done_by_dir = pending_targets()
+    print(f'已完成 {sum(len(v) for v in done_by_dir.values())} 筆，待爬 {len(pending)} 筆')
 
     if args.limit:
         pending = pending[:args.limit]
@@ -296,7 +362,6 @@ def main():
         print('無待處理項目，結束。')
         return
 
-    # 啟動 Selenium
     driver = make_driver(headless=args.headless)
 
     # 按檔案分組，避免同一檔案多次讀寫
@@ -305,60 +370,29 @@ def main():
     for f, i in pending:
         file_groups[f].append(i)
 
-    total_updated = 0
-    processed = 0
-
+    totals = {'processed': 0, 'updated': 0, 'errors': 0}
     try:
         for file_path, indices in file_groups.items():
-            data = json.loads(file_path.read_text(encoding='utf-8'))
-            file_updated = 0
-
-            for i in indices:
-                course = data[i]
-                name = course.get('課程名稱(中文)', '')
-                dept = course.get('系所', '')
-                print(f'[{processed+1}/{len(pending)}] {dept} | {name}', end=' ... ')
-
-                try:
-                    updated = scrape_course(driver, course, dry_run=args.dry_run)
-                    if updated:
-                        file_updated += 1
-                        total_updated += 1
-                        print('✅ 補齊')
-                    else:
-                        print('– 無新資料')
-                except Exception as e:
-                    print(f'❌ {str(e)[:50]}')
-
-                # dry-run 不記斷點，否則之後正式跑會跳過這些課程
-                if not args.dry_run:
-                    done_keys.add(checkpoint_key(file_path, course))
-                processed += 1
-                time.sleep(0.8)
-
-            # 寫回檔案
-            if file_updated > 0 and not args.dry_run:
-                file_path.write_text(
-                    json.dumps(data, ensure_ascii=False, indent=2),
-                    encoding='utf-8'
-                )
-                print(f'  → 已儲存 {file_path.name}（更新 {file_updated} 門課）')
-
+            counts = process_file(driver, file_path, indices, done_by_dir[file_path.parent],
+                                  dry_run=args.dry_run, start=totals['processed'], total=len(pending))
+            for k in totals:
+                totals[k] += counts[k]
             # 每個檔案處理完存一次斷點
             if not args.dry_run:
-                save_checkpoint(done_keys)
-
+                save_checkpoint(file_path.parent, done_by_dir[file_path.parent])
     finally:
         driver.quit()
         if not args.dry_run:
-            save_checkpoint(done_keys)
+            for d, done in done_by_dir.items():
+                save_checkpoint(d, done)
         prefix = '[DRY-RUN] ' if args.dry_run else ''
-        print(f'\n{prefix}完成：處理 {processed} 筆，實際補齊 {total_updated} 筆')
+        print(f"\n{prefix}完成：處理 {totals['processed']} 筆，實際補齊 {totals['updated']} 筆，"
+              f"錯誤 {totals['errors']} 筆")
         if args.dry_run:
             print('（dry-run 模式，未寫回，去掉 --dry-run 重跑）')
         else:
-            print(f'斷點記錄：{CHECKPOINT_PATH}')
-            print('重新跑可繼續未完成的部分。若想從頭跑，刪除上述斷點檔案即可。')
+            print(f'斷點記錄：各學期目錄下的 {CHECKPOINT_NAME}（重新爬課程時會隨目錄一起換掉）')
+            print('重新跑可繼續未完成的部分（出錯的課程會重試）。若想從頭跑，刪除斷點檔即可。')
 
 
 if __name__ == '__main__':

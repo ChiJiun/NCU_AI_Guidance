@@ -25,6 +25,8 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
    python -m scripts.update_data --fetch --apply --terms 114_1,114_2
    ```
    爬課程要數小時（每門課開 2 個彈窗、每次點擊間隔 2～3 秒）。中斷後重跑同一個指令會從暫存目錄續爬。
+   任何系所翻頁或存檔失敗，爬蟲都會以非 0 結束、該系所不存檔，整個 fetch 視為失敗、不動 `data/raw`；重跑會補爬失敗的系所。
+   補課綱（`fetch_course_content`）的斷點放在各學期目錄的 `.content_fix_done.txt`，重新爬課程換掉學期目錄時一起清空；載入或解析失敗的課程不記斷點，下次重試。
 3. **看報告**：`logs/data_update/<時間>/summary.md` 會列出每個檔案的筆數變化、新增／移除的項目。
 4. **重啟後端**：後端多數 JSON 有快取（`lru_cache`），重啟後才會讀到新資料。
 5. **需要時再更新外部服務**（會花錢或寫入正式環境，請確認後再跑）：
@@ -37,6 +39,15 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 6. 確認 `git diff data/` 沒問題後再 commit。
 
 新學年度（例如 115）只要改 `--terms 115_1,115_2`；課程去重、圖譜、課綱補爬都會跟著換學期。
+
+> **只跑一個學期時要加 `--allow-shrink`。** `--terms` 決定 `courses_deduped` 等輸出要納入哪些學期，
+> 例如 `--terms 115_1` 只會用 115_1 的課程重建，筆數通常比現有（兩個學期合併）少很多，
+> 會被「筆數少超過 10%」的驗證擋下。確認這是預期的再加 `--allow-shrink`（或調高 `--max-shrink`），
+> 並看報告裡的筆數變化。
+>
+> **NLP 標註（`nlp_local_llm`）的學期不會跟著 `--terms` 換。** 管線用 `--terms` 檢查這個步驟的輸入是否存在，
+> 但 `scripts/nlp/run_agent*.py` 讀原始課程的學期寫死 114；用新學期跑時，NLP 欄位仍是 114 課程的標註，
+> 要先改 agent 腳本才會標到新學期的課。
 
 ## 旗標
 
@@ -51,7 +62,7 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 | `--allow-destructive` | 刪除外部服務裡的資料（Qdrant 的點或 collection） |
 | `--only a,b` / `--include a,b` / `--skip a,b` | 只跑／加跑／跳過指定步驟 |
 | `--terms 114_1,114_2` | 學期清單，舊到新（後者覆蓋前者） |
-| `--max-shrink 0.1` / `--allow-shrink` | 輸出筆數比現有少超過 10% 視為失敗；確定資料本來就變少時放寬 |
+| `--max-shrink 0.1` / `--allow-shrink` | 輸出筆數比現有少超過 10% 視為失敗；確定資料本來就變少時放寬（只跑單一學期時通常需要） |
 | `--fresh-fetch` | 不續爬，把上次沒爬完的暫存目錄移開後從頭爬 |
 | `--keep-sandbox` | 保留暫存沙盒（預設成功就刪，失敗才保留） |
 
@@ -126,7 +137,7 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
 | `build_graph.py --enrich-only` | 只新增不刪除，舊名稱節點會殘留 |
 | `migrate_qdrant_to_cloud.py` | 不會複製 bm25 sparse 設定與 payload index |
 
-`sync_graph_nodes.py` 原本每次 `--apply` 都會刪掉 Community 點，已修正為保留。
+`sync_graph_nodes.py` 原本每次 `--apply` 都會刪掉 Community 點，已修正為只保留 `communities.json` 目前還有的社群（重算社群後消失的舊社群點會刪除；讀不到 `communities.json` 時全部保留）。
 
 ## 仍需人工處理的部分
 
@@ -142,7 +153,8 @@ python -m scripts.update_data --list     # 列出所有步驟、權限需求、�
   `glossary_manual.json`；完成後用 `--only glossary_frontend` 匯出前端檔。
 - **step2/step3 摘要快照**（`data/raw/step2_step3_summaries.jsonl`）：在其他環境產生後放進來，再跑 `projects_summaries`。
 - **應修科目表網址**：`scripts/scrapers/scrape_requirements.py` 的網址清單與 `_114` 檔名寫死，換學年要手動更新。
-- **NLP agent 的學期**：`scripts/nlp/run_agent*.py` 讀原始課程的學期仍寫死 114。
+- **NLP agent 的學期**：`scripts/nlp/run_agent*.py` 讀原始課程的學期仍寫死 114；管線對 `nlp_local_llm` 的輸入檢查
+  依 `--terms`，所以用 115 學期跑時檢查會通過，但 agent 實際讀的還是 114。
 
 ## 輸出位置
 

@@ -33,6 +33,17 @@ SCROLL_PAGE = 1000
 # Community 點來自 scripts/rag/add_communities_to_qdrant.py（graph/communities.json），
 # knowledge_graph.json 裡沒有 Community 節點，若不排除，每次 --apply 都會把它們全部刪掉。
 PRESERVED_TYPES = frozenset({"Community"})
+COMMUNITIES = ROOT / "data" / "processed" / "graph" / "communities.json"
+
+
+def current_community_ids(path: Path = COMMUNITIES):
+    """communities.json 目前有的社群對應的 point id；檔案不存在或讀不了回傳 None（全部保留）。"""
+    try:
+        communities = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return frozenset(bq._node_id_to_int(f"community::{c['id']}") for c in communities
+                     if isinstance(c, dict) and "id" in c)
 
 
 def expected_points(graph: dict) -> dict[int, dict]:
@@ -52,9 +63,15 @@ def expected_points(graph: dict) -> dict[int, dict]:
     return out
 
 
-def plan(existing: dict[int, dict], expected: dict[int, dict]) -> dict:
-    to_delete = sorted(i for i in set(existing) - set(expected)
-                       if (existing[i] or {}).get("node_type") not in PRESERVED_TYPES)
+def plan(existing: dict[int, dict], expected: dict[int, dict], keep_ids=None) -> dict:
+    """keep_ids：PRESERVED_TYPES 點中要保留的 id（通常是 communities.json 現有的社群）；
+    None 表示不知道現況，全部保留。不在 keep_ids 裡的舊社群點（重算社群後已消失）會被刪除。"""
+    def preserved(i):
+        if (existing[i] or {}).get("node_type") not in PRESERVED_TYPES:
+            return False
+        return keep_ids is None or i in keep_ids
+
+    to_delete = sorted(i for i in set(existing) - set(expected) if not preserved(i))
     to_add = sorted(set(expected) - set(existing))
     to_update = sorted(i for i in set(existing) & set(expected) if existing[i] != expected[i])
     return {"delete": to_delete, "add": to_add, "update": to_update}
@@ -84,7 +101,10 @@ def main() -> int:
     expected = expected_points(graph)
     client = bq._create_qdrant_client(os.environ.get("QDRANT_URL", "http://localhost:6333"), os.environ.get("QDRANT_API_KEY"))
     existing = fetch_existing(client, bq.COLLECTION)
-    p = plan(existing, expected)
+    keep_ids = current_community_ids()
+    if keep_ids is None:
+        print(f"警告：讀不到 {COMMUNITIES}，保留 Qdrant 裡所有 Community 點")
+    p = plan(existing, expected, keep_ids)
 
     print(f"圖譜應有 {len(expected):,} 點｜Qdrant 現有 {len(existing):,} 點")
     print(f"  刪除 {len(p['delete'])}｜新增 {len(p['add'])}｜更新 payload {len(p['update'])}")
@@ -124,7 +144,7 @@ def main() -> int:
         print(f"已更新 {len(p['update'])} 點的 payload")
 
     after = fetch_existing(client, bq.COLLECTION)
-    left = plan(after, expected)
+    left = plan(after, expected, keep_ids)
     print(f"驗證：Qdrant 現有 {len(after):,} 點｜與圖譜差異 刪除 {len(left['delete'])}／新增 {len(left['add'])}／更新 {len(left['update'])}")
     return 0 if not any(left.values()) else 1
 

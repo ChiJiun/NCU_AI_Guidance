@@ -124,7 +124,8 @@ STEPS: tuple[Step, ...] = (
         requires=("data/raw/courses/{term}", "data/raw/114_ulistteacher.csv"),
         tags=frozenset({LOCAL_LLM}),
         cost="免費（本機 GPU）；約 3,000＋3,100＋120＋2,200 次本機 LLM 呼叫，已處理的課程會跳過",
-        note="需先啟動本機 vLLM；Agent 1～4 讀原始課程的學期目前寫死 114。"
+        note="需先啟動本機 vLLM。注意：輸入檢查依 --terms，但 Agent 1～4 讀原始課程的學期寫死 114，"
+             "用新學期跑時標註的仍是 114 的課。"
              "normalize_teacher_specialties 會蓋掉別名合併結果，所以最後一定接 normalize_aliases --apply",
     ),
     Step(

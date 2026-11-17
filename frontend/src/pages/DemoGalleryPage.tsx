@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { HiAcademicCap, HiArrowRight, HiDocumentText, HiSparkles } from 'react-icons/hi';
 import {
   ASSISTANT_DESCRIPTIONS,
@@ -9,49 +8,16 @@ import {
   DEMO_CASES,
   SHOW_UNREVIEWED,
 } from '../demo/cases';
-import type { DemoAssistant, DemoCategory } from '../demo/types';
+import type { DemoAssistant } from '../demo/types';
+import { useDemoGallery } from '../features/demo/useDemoGallery';
 
 const ASSISTANT_ICONS: Record<DemoAssistant, typeof HiAcademicCap> = {
   course: HiAcademicCap,
   research: HiDocumentText,
 };
 
-function isAssistant(v: string | null): v is DemoAssistant {
-  return v === 'course' || v === 'research';
-}
-
-function isCategory(v: string | null): v is DemoCategory {
-  return v !== null && v in CATEGORY_LABELS;
-}
-
 export default function DemoGalleryPage() {
-  const [params, setParams] = useSearchParams();
-  const assistantParam = params.get('assistant');
-  const categoryParam = params.get('category');
-  const assistant = isAssistant(assistantParam) ? assistantParam : null;
-  const category = isCategory(categoryParam) ? categoryParam : null;
-
-  const counts = useMemo(() => {
-    const c: Record<DemoAssistant, number> = { course: 0, research: 0 };
-    for (const d of DEMO_CASES) c[d.assistant] += 1;
-    return c;
-  }, []);
-
-  const categoriesPresent = useMemo(
-    () => (Object.keys(CATEGORY_LABELS) as DemoCategory[]).filter((k) => DEMO_CASES.some((c) => c.category === k)),
-    [],
-  );
-
-  const visible = DEMO_CASES.filter(
-    (c) => (!assistant || c.assistant === assistant) && (!category || c.category === category),
-  );
-
-  const setFilter = (key: 'assistant' | 'category', value: string | null) => {
-    const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    setParams(next, { replace: true });
-  };
+  const { assistant, category, counts, categoriesPresent, visible, setFilter } = useDemoGallery();
 
   return (
     <div className="space-y-8">

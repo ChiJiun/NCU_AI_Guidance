@@ -8,6 +8,10 @@ label_communities.py — 用 LLM 批次命名 Leiden 社群
   python scripts/graph/label_communities.py           # 只補空白 label
   python scripts/graph/label_communities.py --reset   # 全部重新命名
   python scripts/graph/label_communities.py --dry-run # 只印 prompt，不呼叫 API
+
+結束碼：0 全部命名成功（或沒有需要命名的社群）；1 找不到 communities.json、缺少 Azure 環境變數，
+或有社群命名失敗（API 錯誤、回應解析不到）。命名失敗時仍會寫回已成功的名稱，重跑會只補空白的 label。
+資料更新管線靠這個結束碼判斷，避免把 label 被清空的 communities.json 套用到正式目錄。
 """
 
 import argparse
@@ -115,15 +119,15 @@ def call_llm(prompt: str, client, deployment: str) -> str:
     return resp.choices[0].message.content.strip()
 
 
-def main():
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset",   action="store_true", help="重新命名所有社群")
     parser.add_argument("--dry-run", action="store_true", help="只印 prompt，不呼叫 API")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if not COMMUNITIES_JSON.exists():
         print(f"找不到 {COMMUNITIES_JSON}，請先執行 compute_communities.py")
-        return
+        return 1
 
     communities: list[dict] = json.loads(COMMUNITIES_JSON.read_text(encoding="utf-8"))
     dept_map = load_graph_dept_map()
@@ -133,7 +137,7 @@ def main():
 
     if not to_label:
         print("所有社群已有名稱，使用 --reset 重新命名。")
-        return
+        return 0
 
     if args.dry_run:
         batch = to_label[:BATCH_SIZE]
@@ -142,7 +146,7 @@ def main():
         print(prompt)
         print(f"\n[dry-run] 共 {len(to_label)} 個社群，"
               f"分 {-(-len(to_label) // BATCH_SIZE)} 批命名。")
-        return
+        return 0
 
     # 載入環境變數
     from dotenv import load_dotenv
@@ -155,7 +159,7 @@ def main():
                if not os.environ.get(k)]
     if missing:
         print(f"[錯誤] 缺少環境變數：{missing}")
-        return
+        return 1
 
     from openai import AzureOpenAI
     client = AzureOpenAI(
@@ -199,7 +203,11 @@ def main():
         encoding="utf-8",
     )
     print(f"\n完成！成功 {done} 個，失敗 {errors} 個 → {COMMUNITIES_JSON}")
+    if errors:
+        print(f"[錯誤] 有 {errors} 個社群沒有命名成功，以結束碼 1 結束；重跑會只補空白的 label。")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

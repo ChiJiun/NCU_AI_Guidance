@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import changes as ch
-from .fetch import fetch_courses, parse_term
+from .fetch import content_pending_markers, fetch_courses, parse_term
 from .proc import build_env, load_env_files, run_logged
 from .steps import (BLOCKED, BUILD, CHECK, EXTERNAL, FETCH, FLAG_FOR_TAG, LIVE_TAGS, LOCAL_LLM, NETWORK, PAID,
                     DESTRUCTIVE, PUBLISH, RUN_DIR_TOKEN, STEPS, Step)
@@ -57,6 +57,7 @@ class Options:
     allow_shrink: bool = False
     keep_sandbox: bool = False
     fresh_fetch: bool = False
+    allow_incomplete_content: bool = False
 
 
 @dataclass
@@ -77,6 +78,7 @@ class RunReport:
     changes: list[ch.FileChange] = field(default_factory=list)
     undeclared: list[str] = field(default_factory=list)
     promoted: bool = False
+    raw_changes: list[str] = field(default_factory=list)   # fetch 步驟直接改到 data/raw 的說明（不經沙盒、不會還原）
     sandbox: Path | None = None
     messages: list[str] = field(default_factory=list)
 
@@ -135,6 +137,11 @@ def expand_requires(step: Step, terms: tuple[str, ...]) -> list[str]:
         else:
             out.append(r)
     return out
+
+
+def reads_raw_courses(step: Step) -> bool:
+    """步驟是否讀原始課程（data/raw/courses 或 graduate_courses）。"""
+    return any(r.startswith(("data/raw/courses", "data/raw/graduate_courses")) for r in step.requires)
 
 
 def missing_inputs(step: Step, base: Path, terms: tuple[str, ...]) -> list[str]:
@@ -325,12 +332,18 @@ class Pipeline:
                     log=self.echo, max_shrink=self.opts.max_shrink, allow_shrink=self.opts.allow_shrink,
                     fresh=self.opts.fresh_fetch,
                 )
+                if ok:   # 失敗時只動暫存目錄，data/raw 不變
+                    self.report.raw_changes.append(
+                        f"{step.name} 已把新爬的課程換進 data/raw（舊目錄在 {(self.run_dir / 'raw').as_posix()}）")
             else:
                 missing = missing_inputs(step, self.root, self.opts.terms)
                 if missing:
                     self._add(StepResult(step.name, step.stage, "skipped", f"缺少輸入：{', '.join(missing)}"))
                     continue
                 ok, detail = self._run_commands(step, self.root)
+                # 這類腳本直接改寫 data/raw（例如補課綱逐檔寫回），失敗前可能已寫入一部分
+                self.report.raw_changes.append(
+                    f"{step.name} {'已' if ok else '失敗前可能已'}直接寫入 {'、'.join(step.outputs)}")
             self._add(StepResult(step.name, step.stage, "ok" if ok else "failed", detail))
             if not ok:
                 return False
@@ -351,6 +364,9 @@ class Pipeline:
             for step in steps:
                 self._add(self._gate(step))   # type: ignore[arg-type]
             return True
+
+        if self._content_fix_blocked(steps):
+            return False
 
         sandbox = self._ensure_sandbox()
         limits = ch.Limits(self.opts.max_shrink, self.opts.allow_shrink)
@@ -410,6 +426,27 @@ class Pipeline:
                                      promotable))
                 return False
             self.report.promoted = True
+        return True
+
+    def _content_fix_blocked(self, steps: list[Step]) -> bool:
+        """上次換進新課程後補課綱沒有成功跑完（學期目錄留著標記），就拒絕跑讀原始課程的 build 步驟。
+
+        這個檢查跨次執行有效：補課綱失敗那次管線停在 fetch；之後任何一次不帶 --fetch 的 --apply
+        也會在這裡擋下，不會把課綱空白的課程帶進 data/processed。
+        """
+        if self.opts.allow_incomplete_content:
+            return False
+        if not any(reads_raw_courses(s) for s in steps if self._gate(s) is None):
+            return False
+        markers = content_pending_markers(self.root, self.opts.terms)
+        if not markers:
+            return False
+        self._add(StepResult(
+            "content_fix_check", BUILD, "failed",
+            f"補課綱尚未完成（{', '.join(markers)}）：上次把新爬的課程換進 data/raw 後，fetch_course_content "
+            "沒有成功跑完，部分課程的課綱可能是空白的。請先用 --fetch --apply --only fetch_course_content 續補"
+            "（每次都卡在同一批課時見 README「補課綱一直卡住」）；確定要用目前的課綱 build 時加 --allow-incomplete-content"))
+        self._mark_not_run(steps)
         return True
 
     def _mark_not_run(self, steps: list[Step]) -> None:
@@ -477,12 +514,27 @@ class Pipeline:
 _STATUS_ZH = {"ok": "完成", "failed": "失敗", "skipped": "跳過", "planned": "計畫（dry-run）", "not_run": "未執行"}
 
 
+def result_line(rep: RunReport) -> str:
+    """報告的「結果」列；有步驟失敗時要說清楚哪些正式資料其實已經變了。"""
+    if not rep.failed:
+        return "全部通過"
+    touched = list(rep.raw_changes)
+    if rep.promoted:
+        touched.append("build 的輸出已套用到正式目錄（見「資料變更」）")
+    published = [r.name for r in rep.results if r.stage == PUBLISH and r.status in ("ok", "failed")]
+    if published:
+        touched.append(f"外部服務已寫入或可能已部分寫入（{'、'.join(published)}）")
+    if not touched:
+        return "有步驟失敗，正式資料未變更"
+    return "有步驟失敗，但下列正式資料已經（或可能已經）變更：" + "；".join(touched)
+
+
 def render_report(rep: RunReport) -> str:
     o = rep.options
     lines = [f"# 資料更新報告 {rep.run_id}", "",
              f"- 模式：{'套用' if o.apply else 'dry-run'}",
              f"- 學期：{', '.join(o.terms)}",
-             f"- 結果：{'有步驟失敗，正式資料未變更' if rep.failed else '全部通過'}", "",
+             f"- 結果：{result_line(rep)}", "",
              "## 步驟", "", "| 步驟 | 階段 | 狀態 | 說明 |", "|---|---|---|---|"]
     for r in rep.results:
         detail = r.detail.replace("|", "\\|").replace("\n", " ")
@@ -519,6 +571,7 @@ def report_json(rep: RunReport) -> dict:
         "terms": list(rep.options.terms),
         "failed": rep.failed,
         "promoted": rep.promoted,
+        "raw_changes": rep.raw_changes,
         "steps": [r.__dict__ for r in rep.results],
         "changes": [c.to_dict() for c in rep.changes],
         "undeclared": rep.undeclared,

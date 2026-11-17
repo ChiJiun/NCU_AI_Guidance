@@ -35,6 +35,10 @@ COURSE_DIRS = [BASE / 'data' / 'raw' / level / term
 # 斷點也跟著清空，重爬後課綱空白的課會重新補齊。
 # 舊版的 data/raw/scraped_missing/content_fix_checkpoint.json 不再讀取。
 CHECKPOINT_NAME = '.content_fix_done.txt'
+# 「補課綱未完成」標記：資料更新管線把新爬的課程換進學期目錄時寫入，這支腳本成功跑完
+# （結束碼 0、不是 dry-run、沒有用 --limit 截斷）才刪除；標記存在時管線不會用這些課程 build。
+# 檔名必須與 scripts/update_data/fetch.py 的 CONTENT_PENDING_NAME 相同。
+PENDING_MARKER_NAME = '.content_fix_pending'
 
 SYLLABUS_FIELDS = [
     '課程目標', '授課內容', '課程領域', '授課方式',
@@ -291,6 +295,17 @@ def save_checkpoint(course_dir: Path, done: set[str]):
     os.replace(tmp, p)
 
 
+def clear_pending_markers(dirs=None) -> list[Path]:
+    """刪除各學期目錄的「補課綱未完成」標記，回傳實際刪掉的檔案。"""
+    removed = []
+    for d in (COURSE_DIRS if dirs is None else dirs):
+        marker = d / PENDING_MARKER_NAME
+        if marker.is_file():
+            marker.unlink()
+            removed.append(marker)
+    return removed
+
+
 def pending_targets(dirs=None) -> tuple[list[tuple[Path, int]], dict[Path, set[str]]]:
     """回傳 (待爬清單, {學期目錄: 已完成鍵})；已記進斷點的課程不列入待爬。"""
     dirs = COURSE_DIRS if dirs is None else dirs
@@ -407,13 +422,21 @@ def main(argv=None) -> int:
     pending, done_by_dir = pending_targets()
     print(f'已完成 {sum(len(v) for v in done_by_dir.values())} 筆，待爬 {len(pending)} 筆')
 
+    truncated = bool(args.limit) and len(pending) > args.limit
     if args.limit:
         pending = pending[:args.limit]
         print(f'（限制 {args.limit} 筆）')
 
+    def finish_ok() -> int:
+        # 全部待補課程都處理過才算補完；dry-run 不改任何檔案
+        if not args.dry_run and not truncated:
+            for marker in clear_pending_markers():
+                print(f'補課綱已完成，移除標記 {marker}')
+        return 0
+
     if not pending:
         print('無待處理項目，結束。')
-        return 0
+        return finish_ok()
 
     driver = make_driver(headless=args.headless)
 
@@ -460,7 +483,7 @@ def main(argv=None) -> int:
                   else f'錯誤率 {budget.errors}/{budget.processed} 超過 {budget.max_rate:.0%}')
         print(f'補課綱失敗：{reason}。以結束碼 1 結束，資料更新管線不會往下 build；修好後重跑會從斷點續爬。')
         return 1
-    return 0
+    return finish_ok()
 
 
 if __name__ == '__main__':

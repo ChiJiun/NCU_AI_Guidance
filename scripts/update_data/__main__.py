@@ -38,6 +38,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--max-shrink", type=float, default=0.10,
                    help="輸出筆數比現有少超過這個比例就視為失敗（預設 0.10）")
     p.add_argument("--allow-shrink", action="store_true", help="不檢查筆數減少（確定資料本來就變少時使用）")
+    p.add_argument("--allow-incomplete-content", action="store_true",
+                   help="補課綱沒有成功跑完（學期目錄留著 .content_fix_pending）時仍用目前的原始課程 build")
     p.add_argument("--fresh-fetch", action="store_true", help="不續爬，先把上次沒爬完的暫存目錄移開再從頭爬")
     p.add_argument("--keep-sandbox", action="store_true", help="跑完保留暫存沙盒（預設成功就刪除，失敗才保留）")
     p.add_argument("--list", action="store_true", help="列出所有步驟、權限需求與被擋下的腳本後結束")
@@ -85,6 +87,7 @@ def main(argv: list[str] | None = None) -> int:
         only=args.only, include=args.include, skip=args.skip, terms=args.terms,
         max_shrink=args.max_shrink, allow_shrink=args.allow_shrink,
         keep_sandbox=args.keep_sandbox, fresh_fetch=args.fresh_fetch,
+        allow_incomplete_content=args.allow_incomplete_content,
     )
     try:
         report = Pipeline(opts).run()

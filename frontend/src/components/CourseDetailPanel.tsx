@@ -341,7 +341,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
       >
         <div className="h-12 w-0.5 rounded-full bg-slate-200 transition-colors group-hover:bg-primary-400" />
       </div>
-      <div className="hidden md:flex shrink-0 flex-col self-start sticky top-4 max-h-[calc(100vh-6rem)] rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden" style={{ width: aiPanelWidth }}>
+      <div className="hidden md:flex shrink-0 flex-col self-start sticky top-4 max-h-[calc(100vh-6rem-var(--legacy-nav-strip))] rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden" style={{ width: aiPanelWidth }}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <HiChatAlt2 className="h-5 w-5" />

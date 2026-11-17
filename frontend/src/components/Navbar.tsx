@@ -184,8 +184,9 @@ export default function Navbar() {
           768–1279px 的新版入口：導覽列這個寬度沒有多餘空間，改放在導覽列頂端的細橫條。
           它是 sticky 導覽列的一部分，不會疊在頁面內容上；舊版彈窗（後出現的 z-50）也會把它一起蓋住。
         */}
-        <div className="hidden border-b border-white/70 md:block xl:hidden">
-          <div className="page-container-wide flex h-7 items-center justify-end">
+        {/* 高度（含下框線）由 index.css 的 --legacy-nav-strip 決定，依賴視窗高度的舊版版面會扣掉同一個值 */}
+        <div className="box-border hidden h-[var(--legacy-nav-strip)] border-b border-white/70 md:block xl:hidden">
+          <div className="page-container-wide flex h-full items-center justify-end">
             <Link to={v2Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900">
               切換到新版 →
             </Link>

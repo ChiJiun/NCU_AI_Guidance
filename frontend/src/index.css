@@ -5,6 +5,17 @@
 @layer base {
   :root {
     color-scheme: light;
+    /*
+     * 導覽列頂端「切換到新版」細橫條的高度（含 1px 下框線），只在 768–1279px 顯示。
+     * 舊版以視窗高度計算版面的地方（CourseDetailPanel 的 AI 面板、課程助理的對話列表抽屜）要扣掉它。
+     */
+    --legacy-nav-strip: 0px;
+  }
+
+  @media (min-width: 768px) and (max-width: 1279.98px) {
+    :root {
+      --legacy-nav-strip: 29px;
+    }
   }
 
   body {

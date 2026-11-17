@@ -185,7 +185,7 @@ export default function CourseSearchPage() {
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Mobile 對話列表 */}
         {isMobileConversationOpen && (
-          <div className="fixed inset-y-0 left-0 z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
+          <div className="fixed bottom-0 left-0 top-[var(--legacy-nav-strip)] z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
             <div className="flex h-full">
               <div className="card flex min-w-0 flex-1 flex-col overflow-hidden rounded-l-none rounded-r-2xl border-l-0 shadow-xl">
                 <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-3">

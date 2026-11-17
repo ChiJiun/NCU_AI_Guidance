@@ -658,7 +658,8 @@ export default function MonitorV2() {
         </p>
       )}
 
-      <div className="v2-scroll mt-8 overflow-x-auto">
+      {/* 手機寬度放不下五個分頁：延伸到螢幕邊緣橫向捲動，讓被切到的分頁看得出可以往右滑 */}
+      <div className="v2-scroll -mx-5 mt-8 overflow-x-auto px-5 md:mx-0 md:px-0">
         <RovingGroup role="tablist" aria-label="監控項目" className="v2-seg">
           {TABS.map((tab) => (
             <button

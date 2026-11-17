@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { HiArrowLeft, HiArrowRight } from 'react-icons/hi';
 import { useAssessment } from '../../features/assessment/useAssessment';
 import type { AssessmentMode } from '../../types';
-import { collegeHex } from '../colleges';
-import { v2Link } from '../paths';
+import { useSite } from '../site';
 import RovingGroup from '../components/RovingGroup';
 
 const MODES: { id: AssessmentMode; label: string }[] = [
@@ -50,6 +49,7 @@ function Loading() {
 }
 
 export default function AssessmentV2() {
+  const { link, collegeHex } = useSite();
   const [error, setError] = useState('');
   const {
     mode, setMode,
@@ -322,7 +322,7 @@ export default function AssessmentV2() {
         </div>
 
         <div className="mt-14 flex flex-wrap gap-3">
-          <Link to={v2Link('/curriculum')} className="v2-btn">
+          <Link to={link('/curriculum')} className="v2-btn">
             看系所修課
             <HiArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>

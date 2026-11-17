@@ -6,7 +6,7 @@ import logo from '../assets/NCULogo.png';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useAuth, type AuthUser } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
-import { toV2Path } from '../v2/paths';
+import { switchVersionHref } from '../v3/paths';
 
 const navItems = [
   { path: '/', label: '首頁' },
@@ -32,14 +32,17 @@ function Avatar({ picture, name }: { picture: string; name: string }) {
 function MobileMenuOverlay({
   pathname,
   v2Href,
+  v3Href,
   onClose,
   user,
   isDev,
   onLogout,
 }: {
   pathname: string;
-  /** 新版（/v2）的對應頁面 */
+  /** v2（/v2）的對應頁面 */
   v2Href: string;
+  /** v3（/v3）的對應頁面 */
+  v3Href: string;
   onClose: () => void;
   user: AuthUser | null;
   isDev: boolean;
@@ -84,7 +87,14 @@ function MobileMenuOverlay({
               onClick={onClose}
               className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
             >
-              切換到新版
+              切換到新版 v2
+            </Link>
+            <Link
+              to={v3Href}
+              onClick={onClose}
+              className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
+            >
+              切換到 v3
             </Link>
 
             {/* 使用者區塊 */}
@@ -162,7 +172,8 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const isDev = isDeveloper(user?.email);
-  const v2Href = `${toV2Path(location.pathname)}${location.search}`;
+  const v2Href = switchVersionHref(location.pathname, location.search, 'v2');
+  const v3Href = switchVersionHref(location.pathname, location.search, 'v3');
 
   useEffect(() => {
     void (async () => { await Promise.resolve(); setIsMobileMenuOpen(false); })();
@@ -189,6 +200,9 @@ export default function Navbar() {
           <div className="page-container-wide flex h-full items-center justify-end">
             <Link to={v2Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900">
               切換到新版 →
+            </Link>
+            <Link to={v3Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900" title="切換到 v3 介面">
+              v3 →
             </Link>
           </div>
         </div>
@@ -217,6 +231,9 @@ export default function Navbar() {
               <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
                 新版
               </Link>
+              <Link to={v3Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到 v3 介面">
+                v3
+              </Link>
               <GoogleLoginButton />
             </div>
 
@@ -238,6 +255,7 @@ export default function Navbar() {
         <MobileMenuOverlay
           pathname={location.pathname}
           v2Href={v2Href}
+          v3Href={v3Href}
           onClose={() => setIsMobileMenuOpen(false)}
           user={user}
           isDev={isDev}

@@ -7,7 +7,7 @@ import { CATEGORIES_ORDER, REQUIRED_COURSE_FIELDS, findCrossMatches, groupBySem 
 import type { CourseEntry, DeptDetail, ElectiveGroup, GraduationRule, NotesEntry } from '../../features/curriculum/types';
 import { useCurriculumData } from '../../features/curriculum/useCurriculumData';
 import type { CourseCard } from '../../types';
-import { collegeHex } from '../colleges';
+import { useSite } from '../site';
 import V2Dialog from '../components/V2Dialog';
 import RovingGroup from '../components/RovingGroup';
 
@@ -294,6 +294,7 @@ function NotesDrawer({ deptId, onClose }: { deptId: string; onClose: () => void 
 }
 
 export default function CurriculumV2() {
+  const { collegeHex } = useSite();
   const {
     tree, childDeptIds,
     expandedColleges, toggleCollege,

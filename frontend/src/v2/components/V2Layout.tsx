@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { isDeveloper } from '../../auth/developerUtils';
 import { GoogleMark } from '../../components/GoogleLoginButton';
 import { toLegacyPath, v2Link } from '../paths';
+import { switchVersionHref } from '../../v3/paths';
 
 /** 新版已有的頁面 */
 const PRIMARY_LINKS = [
@@ -139,6 +140,7 @@ export default function V2Layout() {
   const legacyPath = toLegacyPath(pathname);
   const isApp = APP_PAGES.includes(legacyPath);
   const legacyHref = `${legacyPath}${search}`;
+  const v3Href = switchVersionHref(pathname, search, 'v3');
 
   return (
     <div className={`v2 ${isApp ? 'v2--app' : ''}`}>
@@ -171,6 +173,10 @@ export default function V2Layout() {
             <Link to={legacyHref} className="v2-navlink" title="切換到舊版介面">
               舊版
             </Link>
+            {/* < 640px 導覽列放不下（會把左側站名擠成兩行），改放在手機選單；!hidden 才蓋得過 .v2-navlink 的 display */}
+            <Link to={v3Href} className="v2-navlink max-sm:!hidden" title="切換到第三版介面（v2 版面、舊版風格）">
+              v3
+            </Link>
             <Account />
             <button
               type="button"
@@ -202,6 +208,9 @@ export default function V2Layout() {
                 {item.label}
               </NavLink>
             ))}
+            <Link to={v3Href} className="v2-row v2-muted !min-h-12 !px-5 sm:!hidden">
+              切換到 v3
+            </Link>
           </nav>
         )}
       </header>

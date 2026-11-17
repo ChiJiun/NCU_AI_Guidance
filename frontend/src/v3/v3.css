@@ -1,0 +1,437 @@
+/*
+ * 第三版（/v3）的外觀：版面與元件沿用 v2（v2.css 的 .v2-* 元件 class），這裡把它們換成舊版（v1）的風格。
+ * 所有規則都限定在 .v3 之下（.v3 只出現在 V3Layout 的根元素），不會影響 v1 與 v2；這個檔案只會隨 /v3 的 chunk 載入。
+ *
+ * 對照：
+ * - 色彩：紙色／墨色 → 舊版的 slate 灰階、primary 深藍（#102a43）；朱紅標記 → 舊版選取用的 indigo。
+ * - 字型：v2 的 serif 標題 → 舊版的無襯線粗體；只有首頁大標題沿用舊版首頁的 Noto Serif TC。
+ * - 形狀：細線與小圓角 → 舊版的膠囊按鈕、rounded-xl 輸入框、rounded-2xl 卡片與柔和陰影，hover 時微微浮起。
+ * - 底色：紙色 → 舊版的粉彩漸層（index.css 的 bg-theme-1）。
+ *
+ * 權重：.v3 .v2-xxx 比 v2.css 的 .v2-xxx 高一級，所以會蓋過 v2 的設定。
+ * 這裡只改 v2 元件 class 原本就有設定的屬性，或 v2 頁面上不會和 utility 搭配的屬性（陰影、位移），
+ * 避免把 v2 頁面上和元件 class 一起使用的 Tailwind utility 蓋掉。
+ */
+
+.v2.v3 {
+  --v2-paper: #f8fafc; /* slate-50 */
+  --v2-paper-2: #f1f5f9; /* slate-100 */
+  --v2-surface: #ffffff;
+  --v2-ink: #102a43; /* primary-900 */
+  --v2-ink-2: #475569; /* slate-600 */
+  --v2-ink-3: #64748b; /* slate-500 */
+  --v2-line: #e2e8f0; /* slate-200 */
+  --v2-line-2: #cbd5e1; /* slate-300 */
+  --v2-accent: #4f46e5; /* indigo-600：舊版選取狀態用的顏色 */
+  --v2-accent-soft: #eef2ff; /* indigo-50 */
+  --v2-ok: #047857;
+  --v2-danger: #b91c1c;
+  --v2-focus: #6366f1; /* indigo-500 */
+  --v2-radius: 0.75rem; /* rounded-xl */
+  --v3-shadow-soft: 0 2px 8px rgb(0 0 0 / 0.04);
+  --v3-shadow-medium: 0 4px 12px rgb(0 0 0 / 0.08);
+  --v3-serif: 'Noto Serif TC', Georgia, serif;
+
+  /* 舊版 Layout 的 bg-theme-1：左上薄荷、右上奶油黃、底部淡藍 */
+  background-color: #f8fbff;
+  background-image:
+    radial-gradient(circle at 14% 18%, rgb(196 244 233 / 0.92) 0%, rgb(196 244 233 / 0) 34%),
+    radial-gradient(circle at 84% 18%, rgb(252 241 182 / 0.88) 0%, rgb(252 241 182 / 0) 32%),
+    linear-gradient(180deg, #fbfdff 0%, #eef5ff 100%);
+  background-attachment: fixed;
+  color: var(--v2-ink);
+}
+
+/* ── 字型：舊版只在首頁大標題用 serif，其他標題是無襯線粗體 ── */
+.v3 .v2-serif {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.v3 .v2-num {
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.v3 .v3-display {
+  font-family: var(--v3-serif);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #020617; /* slate-950 */
+}
+
+/* 首頁「位置」底下的漸層底線（舊版首頁 AI 字樣的琥珀色底線） */
+.v3 .v3-underline {
+  position: relative;
+  display: inline-block;
+  color: #243b53; /* primary-800 */
+}
+
+.v3 .v3-underline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.02em;
+  height: 0.12em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fbbf24, #fb923c);
+  transform-origin: left;
+  animation: v3-underline 550ms 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes v3-underline {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ── 導覽列（舊版 Navbar：白色毛玻璃、h-16） ── */
+.v3 .v3-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex: none;
+  height: 4rem;
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgb(226 232 240 / 0.8);
+}
+
+/* 三版切換（分段膠囊） */
+.v3 .v3-versions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  padding: 0.1875rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+
+.v3 .v3-versions > a,
+.v3 .v3-versions > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+.v3 .v3-versions > a:hover {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: var(--v3-shadow-soft);
+}
+
+.v3 .v3-versions > [aria-current='page'] {
+  background: #102a43;
+  color: #fff;
+  box-shadow: var(--v3-shadow-soft);
+}
+
+.v3 .v3-menubtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border-radius: 0.75rem;
+  color: #64748b;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.v3 .v3-menubtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* 手機選單（舊版 MobileMenuOverlay 的樣式，改成導覽列下方的下拉面板） */
+.v3 .v3-mobile-menu {
+  position: absolute;
+  inset-inline: 0;
+  top: 100%;
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+}
+
+.v3 .v3-menu-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border-radius: 0.75rem;
+  color: #1e293b;
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color 150ms ease;
+}
+
+.v3 .v3-menu-row:hover {
+  background: #f8fafc;
+}
+
+.v3 .v3-menu-row[aria-current='page'] {
+  background: #102a43;
+  color: #fff;
+}
+
+/* ── 按鈕（舊版 btn-primary／btn-secondary：膠囊、柔和陰影、hover 浮起） ── */
+.v3 .v2-btn {
+  border-color: transparent;
+  border-radius: 999px;
+  background: #102a43;
+  color: #fff;
+  font-weight: 500;
+  box-shadow: var(--v3-shadow-soft);
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.v3 .v2-btn:not(:disabled):hover {
+  background: #243b53;
+  box-shadow: var(--v3-shadow-medium);
+  transform: translateY(-2px);
+}
+
+.v3 .v2-btn:not(:disabled):active {
+  transform: translateY(0) scale(0.98);
+}
+
+.v3 .v2-btn:disabled {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #64748b;
+  box-shadow: none;
+  transform: none;
+}
+
+.v3 .v2-btn--ghost {
+  border-color: #e2e8f0;
+  background: rgb(255 255 255 / 0.9);
+  color: #334155;
+}
+
+.v3 .v2-btn--ghost:not(:disabled):hover {
+  border-color: #bcccdc; /* primary-200 */
+  background: #fff;
+  color: #102a43;
+}
+
+.v3 .v2-btn--ghost:disabled {
+  background: rgb(255 255 255 / 0.6);
+}
+
+.v3 .v2-iconbtn {
+  border-radius: 999px;
+  color: #64748b;
+}
+
+.v3 .v2-iconbtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ── 選項膠囊（舊版的篩選 pill） ── */
+.v3 .v2-chip {
+  border-color: #e2e8f0;
+  background: rgb(255 255 255 / 0.9);
+  color: #334155;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+}
+
+.v3 .v2-chip:hover {
+  border-color: #bcccdc;
+  box-shadow: var(--v3-shadow-soft);
+  transform: translateY(-1px);
+}
+
+.v3 .v2-chip[aria-checked='true'],
+.v3 .v2-chip[aria-pressed='true'] {
+  border-color: #102a43;
+  background: #102a43;
+  color: #fff;
+  box-shadow: var(--v3-shadow-soft);
+}
+
+/* 分段切換：灰底膠囊軌道，選取項是白色浮起的膠囊 */
+.v3 .v2-seg {
+  border-color: transparent;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+
+.v3 .v2-seg > button {
+  border-radius: 999px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.v3 .v2-seg > button[aria-checked='true'],
+.v3 .v2-seg > button[aria-selected='true'] {
+  background: #fff;
+  color: #102a43;
+  font-weight: 600;
+  box-shadow: var(--v3-shadow-medium);
+}
+
+/* ── 輸入框（舊版 rounded-xl、slate 邊框、focus 時 primary 色框） ── */
+.v3 .v2-input {
+  border-color: #e2e8f0;
+  background: #fff;
+  box-shadow: var(--v3-shadow-soft);
+}
+
+.v3 .v2-input:focus {
+  border-color: #829ab1; /* primary-400 */
+}
+
+/* ── 清單列：選取項比照舊版課程清單（indigo 左側色條＋淡 indigo 底） ── */
+.v3 .v2-row:hover {
+  background: rgb(248 250 252 / 0.9);
+}
+
+.v3 .v2-row[aria-current='true'],
+.v3 .v2-row[aria-current='page'] {
+  background: #eef2ff;
+  box-shadow: inset 4px 0 0 #6366f1;
+}
+
+/* ── 卡片、標籤、長條 ── */
+.v3 .v2-panel {
+  border-color: #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: var(--v3-shadow-soft);
+}
+
+.v3 .v2-tag {
+  border-radius: 999px;
+  background: #f0f4f8; /* primary-50 */
+  color: #334e68; /* primary-700 */
+  font-weight: 500;
+}
+
+.v3 .v2-bar {
+  background: #e5e7eb; /* 舊版進度條的 gray-200 軌道 */
+}
+
+.v3 .v2-bar > span {
+  background: #334e68; /* 舊版進度條的 primary-700 */
+}
+
+.v3 .v2-bar--accent > span {
+  background: #6366f1;
+}
+
+.v3 .v2-skeleton {
+  background: #e2e8f0;
+}
+
+.v3 .v2-spinner {
+  border-color: #e2e8f0;
+  border-top-color: #334e68;
+}
+
+.v3 .v2-prose a {
+  color: #4f46e5;
+}
+
+/* ── 首頁 hero（舊版首頁：粉彩漸層底＋細點格紋＋底部淡出） ── */
+.v3 .v3-hero-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 靜態後備：沒有 WebGPU、偏好減少動態、或小螢幕時顯示；顏色與 .v2.v3 的底色相同 */
+.v3 .v3-hero-static {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 14% 18%, rgb(196 244 233 / 0.92) 0%, rgb(196 244 233 / 0) 34%),
+    radial-gradient(circle at 84% 18%, rgb(252 241 182 / 0.88) 0%, rgb(252 241 182 / 0) 32%),
+    linear-gradient(180deg, #fbfdff 0%, #eef5ff 100%);
+}
+
+.v3 .v3-hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.v3 .v3-hero-canvas.is-ready {
+  opacity: 0.85;
+}
+
+.v3 .v3-hero-dots {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: radial-gradient(circle, #64748b 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+.v3 .v3-hero-fade {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 6rem;
+  background: linear-gradient(to top, rgb(255 255 255 / 0.7), transparent);
+}
+
+/* 首頁探索路線的每一站 */
+.v3 .v3-stop {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.5rem;
+  padding: 0 0.75rem;
+  margin-inline: -0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 0.75rem;
+  color: #1e293b;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.v3 .v3-stop:hover {
+  background: #f0f4f8;
+  color: #102a43;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v3 .v2-btn:not(:disabled):hover,
+  .v3 .v2-btn:not(:disabled):active,
+  .v3 .v2-chip:hover {
+    transform: none;
+  }
+}
+
+/* v2 頁面空狀態的等高線裝飾 → 舊版首頁的細點格紋 */
+.v3 .v2-hero-static {
+  background-image: radial-gradient(circle, #64748b 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+  opacity: 0.25;
+}

@@ -6,6 +6,7 @@ import logo from '../assets/NCULogo.png';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useAuth, type AuthUser } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
+import { toV2Path } from '../v2/paths';
 
 const navItems = [
   { path: '/', label: '首頁' },
@@ -30,12 +31,15 @@ function Avatar({ picture, name }: { picture: string; name: string }) {
 
 function MobileMenuOverlay({
   pathname,
+  v2Href,
   onClose,
   user,
   isDev,
   onLogout,
 }: {
   pathname: string;
+  /** 新版（/v2）的對應頁面 */
+  v2Href: string;
   onClose: () => void;
   user: AuthUser | null;
   isDev: boolean;
@@ -75,6 +79,13 @@ function MobileMenuOverlay({
                 {item.label}
               </Link>
             ))}
+            <Link
+              to={v2Href}
+              onClick={onClose}
+              className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
+            >
+              切換到新版
+            </Link>
 
             {/* 使用者區塊 */}
             {user ? (
@@ -151,6 +162,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const isDev = isDeveloper(user?.email);
+  const v2Href = `${toV2Path(location.pathname)}${location.search}`;
 
   useEffect(() => {
     void (async () => { await Promise.resolve(); setIsMobileMenuOpen(false); })();
@@ -168,6 +180,18 @@ export default function Navbar() {
   return (
     <>
       <nav className="sticky top-0 z-50 border-b border-white/70 bg-white/80 backdrop-blur-xl">
+        {/*
+          768–1279px 的新版入口：導覽列這個寬度沒有多餘空間，改放在導覽列頂端的細橫條。
+          它是 sticky 導覽列的一部分，不會疊在頁面內容上；舊版彈窗（後出現的 z-50）也會把它一起蓋住。
+        */}
+        {/* 高度（含下框線）由 index.css 的 --legacy-nav-strip 決定，依賴視窗高度的舊版版面會扣掉同一個值 */}
+        <div className="box-border hidden h-[var(--legacy-nav-strip)] border-b border-white/70 md:block xl:hidden">
+          <div className="page-container-wide flex h-full items-center justify-end">
+            <Link to={v2Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900">
+              切換到新版 →
+            </Link>
+          </div>
+        </div>
         <div className="page-container-wide">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center space-x-3 transition duration-200 hover:-translate-y-0.5">
@@ -189,6 +213,10 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
+              {/* 1280px 以下導覽列沒有多餘寬度（已登入時更窄），放進來會讓其他項目換行，改用上面的細橫條 */}
+              <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
+                新版
+              </Link>
               <GoogleLoginButton />
             </div>
 
@@ -209,6 +237,7 @@ export default function Navbar() {
       {isMobileMenuOpen ? (
         <MobileMenuOverlay
           pathname={location.pathname}
+          v2Href={v2Href}
           onClose={() => setIsMobileMenuOpen(false)}
           user={user}
           isDev={isDev}

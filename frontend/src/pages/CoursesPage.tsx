@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, Dispatch, SetStateAction } from 'react';
 import {
   HiBeaker,
@@ -18,17 +17,16 @@ import {
   HiX,
 } from 'react-icons/hi';
 import { FaHeartbeat, FaLandmark, FaLeaf } from 'react-icons/fa';
-import { courseAPI } from '../api/services';
-import { sortDeptsInCollege } from '../constants/colleges';
 import CourseCompareModal from '../components/CourseCompareModal';
 import CourseDetailPanel from '../components/CourseDetailPanel';
 import HighlightText from '../components/HighlightText';
 import type { Course } from '../types';
-
-const COLLEGE_ORDER = ['文學院', '理學院', '工學院', '管理學院', '資訊電機學院', '地球科學學院', '客家學院', '生醫理工學院', '永續與綠能科技研究學院', '中心、處室'] as const;
-const FALLBACK_COLLEGE = '中心、處室';
-const FALLBACK_DEPARTMENT = '未分類單位';
-const COMPARE_LIMIT = 3;
+import {
+  COMPARE_LIMIT, FALLBACK_COLLEGE,
+  courseKey, formatScore, getDetailPreview, metadataPreview, normalize, sameStringArray,
+} from '../features/courses/catalog';
+import type { SearchMode } from '../features/courses/catalog';
+import { useCourseCatalog } from '../features/courses/useCourseCatalog';
 
 const COLLEGE_CONFIG: Record<string, { icon: ComponentType<{ className?: string }>; color: string; badge: string; surface: string; headerSurface: string; border: string; selectedBorder: string }> = {
   文學院: { icon: HiBookOpen, color: 'bg-violet-500', badge: 'bg-violet-50 text-violet-700', surface: 'bg-violet-500/[0.045]', headerSurface: 'bg-violet-500/[0.09]', border: 'border-violet-200/50', selectedBorder: 'border-violet-500' },
@@ -42,52 +40,6 @@ const COLLEGE_CONFIG: Record<string, { icon: ComponentType<{ className?: string 
   永續與綠能科技研究學院: { icon: FaLeaf, color: 'bg-lime-500', badge: 'bg-lime-50 text-lime-700', surface: 'bg-lime-500/[0.05]', headerSurface: 'bg-lime-500/[0.10]', border: 'border-lime-200/50', selectedBorder: 'border-lime-500' },
   永續與綠能學院: { icon: FaLeaf, color: 'bg-lime-500', badge: 'bg-lime-50 text-lime-700', surface: 'bg-lime-500/[0.05]', headerSurface: 'bg-lime-500/[0.10]', border: 'border-lime-200/50', selectedBorder: 'border-lime-500' },
   '中心、處室': { icon: FaLandmark, color: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600', surface: 'bg-slate-400/[0.06]', headerSurface: 'bg-slate-400/[0.12]', border: 'border-slate-200/60', selectedBorder: 'border-slate-400' },
-};
-
-type NavigationLevel = 'colleges' | 'departments' | 'courses';
-type ResultTab = 'course_name' | 'detail_info';
-type SearchMode = 'semantic' | 'keyword';
-type SemanticSearchMode = 'idle' | 'semantic' | 'fallback';
-type GroupedCourses = Record<string, Record<string, Course[]>>;
-
-const normalize = (value?: string | null) => (value ?? '').trim();
-const splitFields = (value?: string | null) => (value ?? '').split(/[、,;；／/]/).map((s) => s.trim()).filter(Boolean);
-const courseKey = (course: Course) => `${course.serial_no}-${course.course_id}`;
-const formatScore = (score?: number) => (typeof score === 'number' ? `${Math.round(score * 100)}%` : null);
-const sameStringArray = (left: string[], right: string[]) => {
-  if (left.length !== right.length) return false;
-  const rightSet = new Set(right);
-  return left.every((value) => rightSet.has(value));
-};
-const metadataPreview = (course: Course) =>
-  Array.from(new Set([...(course.tools ?? []), ...(course.concepts ?? []), ...(course.topic_tags ?? [])].map((item) => item.trim()).filter(Boolean))).slice(0, 3);
-
-const getDetailPreview = (course: Course, keyword: string) => {
-  const text = [
-    course.semantic_summary,
-    course.course_objective,
-    course.course_content,
-    course.course_field,
-    course.textbooks,
-    course.note,
-    course.instructor,
-    course.eligibility_summary,
-    ...(course.tools ?? []),
-    ...(course.concepts ?? []),
-    ...(course.topic_tags ?? []),
-    ...(course.domain_tags ?? []),
-    ...(course.languages ?? []),
-    ...(course.simplified_concepts ?? []),
-    ...(course.core_questions ?? []),
-  ].filter(Boolean).join(' ');
-  if (!text) return '';
-  const query = keyword.trim().toLowerCase();
-  if (!query) return text.slice(0, 80);
-  const hit = text.toLowerCase().indexOf(query);
-  if (hit === -1) return text.slice(0, 80);
-  const start = Math.max(0, hit - 18);
-  const end = Math.min(text.length, hit + query.length + 36);
-  return `${start > 0 ? '...' : ''}${text.slice(start, end)}${end < text.length ? '...' : ''}`;
 };
 
 function FilterPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -105,67 +57,41 @@ function FilterPill({ label, active, onClick }: { label: string; active: boolean
 }
 
 export default function CoursesPage() {
-  const location = useLocation();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    loading,
+    searchQuery, setSearchQuery,
+    selectedTypes, setSelectedTypes,
+    selectedCredits, setSelectedCredits,
+    selectedSemesters, setSelectedSemesters,
+    selectedCollege,
+    selectedDepartment, setSelectedDepartment,
+    selectedCourse, setSelectedCourse,
+    navigationLevel, setNavigationLevel,
+    resultTab, setResultTab,
+    searchMode, setSearchMode,
+    semanticLoading, semanticMode, semanticMessage,
+    compareCourses, compareOpen, setCompareOpen, compareNotice,
+    selectedFieldFilters, setSelectedFieldFilters,
+    courseLevel, setCourseLevel,
+    groupedCourses, sortedColleges, currentDepartments,
+    departmentFieldOptions, currentCourses, filteredCourses, groupedSearchResults,
+    typeOptions, creditOptions, semesterOptions,
+    hasActiveFilters, hasSearchQuery, activeTags,
+    isCourseCompared, toggleCompareCourse, removeCompareCourse, clearCompareCourses,
+    selectSearchResult, selectFlatSearchResult, selectCollege, selectDepartment,
+  } = useCourseCatalog();
   const [isMobileNavigatorOpen, setIsMobileNavigatorOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [selectedCredits, setSelectedCredits] = useState<string[]>([]);
-  const [selectedSemesters, setSelectedSemesters] = useState<string[]>([]);
-  const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
-  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showSearchPanel, setShowSearchPanel] = useState(false);
-  const [navigationLevel, setNavigationLevel] = useState<NavigationLevel>('colleges');
-  const [resultTab, setResultTab] = useState<ResultTab>('course_name');
-  const [searchMode, setSearchMode] = useState<SearchMode>('semantic');
   const [draftSearchQuery, setDraftSearchQuery] = useState('');
   const [draftSelectedTypes, setDraftSelectedTypes] = useState<string[]>([]);
   const [draftSelectedCredits, setDraftSelectedCredits] = useState<string[]>([]);
   const [draftSelectedSemesters, setDraftSelectedSemesters] = useState<string[]>([]);
   const [draftSearchMode, setDraftSearchMode] = useState<SearchMode>('semantic');
   const [expandedDepartments, setExpandedDepartments] = useState<string[]>([]);
-  const [semanticCourses, setSemanticCourses] = useState<Course[]>([]);
-  const [semanticLoading, setSemanticLoading] = useState(false);
-  const [semanticMode, setSemanticMode] = useState<SemanticSearchMode>('idle');
-  const [semanticMessage, setSemanticMessage] = useState('');
-  const [compareCourses, setCompareCourses] = useState<Course[]>([]);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [compareNotice, setCompareNotice] = useState('');
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
-  const [selectedFieldFilters, setSelectedFieldFilters] = useState<string[]>([]);
   const [isFieldDropdownOpen, setIsFieldDropdownOpen] = useState(false);
-  const [courseLevel, setCourseLevel] = useState<'undergrad' | 'grad'>('undergrad');
   const fieldDropdownRef = useRef<HTMLDivElement>(null);
   const contentPanelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const q = params.get('search');
-    if (q && q.trim()) {
-      setSearchQuery(q.trim());
-      setDraftSearchQuery(q.trim());
-      setSearchMode('keyword');
-      setDraftSearchMode('keyword');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    setCourses([]);
-    setSelectedCollege(null);
-    setSelectedDepartment(null);
-    setSelectedCourse(null);
-    setNavigationLevel('colleges');
-    setSelectedFieldFilters([]);
-    courseAPI
-      .getCourses({ level: courseLevel })
-      .then(setCourses)
-      .catch((error) => console.error('Failed to load courses:', error))
-      .finally(() => setLoading(false));
-  }, [courseLevel]);
 
   useEffect(() => {
     if (!showSearchPanel) return;
@@ -176,44 +102,6 @@ export default function CoursesPage() {
     };
   }, [showSearchPanel]);
 
-  const groupedCourses = useMemo(() => {
-    const grouped: GroupedCourses = {};
-    courses.forEach((course) => {
-      const college = normalize(course.college) || FALLBACK_COLLEGE;
-      const department = normalize(course.department) || FALLBACK_DEPARTMENT;
-      grouped[college] ??= {};
-      grouped[college][department] ??= [];
-      grouped[college][department].push(course);
-    });
-    return grouped;
-  }, [courses]);
-
-  const sortedColleges = useMemo(
-    () =>
-      Object.keys(groupedCourses).sort((a, b) => {
-        const ai = COLLEGE_ORDER.indexOf(a as (typeof COLLEGE_ORDER)[number]);
-        const bi = COLLEGE_ORDER.indexOf(b as (typeof COLLEGE_ORDER)[number]);
-        if (ai === -1 && bi === -1) return a.localeCompare(b, 'zh-Hant');
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      }),
-    [groupedCourses]
-  );
-
-  const currentDepartments = useMemo(
-    () => (!selectedCollege ? [] : sortDeptsInCollege(Object.keys(groupedCourses[selectedCollege] || {}))),
-    [groupedCourses, selectedCollege]
-  );
-
-  const departmentCourses = useMemo(() => {
-    const list = !selectedCollege || !selectedDepartment ? [] : groupedCourses[selectedCollege]?.[selectedDepartment] ?? [];
-    return [...list].sort((a, b) => (a.course_id ?? '').localeCompare(b.course_id ?? ''));
-  }, [groupedCourses, selectedCollege, selectedDepartment]);
-
-  const hasActiveFilters =
-    Boolean(searchQuery.trim()) || selectedTypes.length > 0 || selectedCredits.length > 0 || selectedSemesters.length > 0;
-  const hasSearchQuery = Boolean(searchQuery.trim());
   const hasDraftSearchQuery = Boolean(draftSearchQuery.trim());
   const hasDraftChanges =
     draftSearchMode !== searchMode ||
@@ -221,213 +109,6 @@ export default function CoursesPage() {
     !sameStringArray(draftSelectedTypes, selectedTypes) ||
     !sameStringArray(draftSelectedCredits, selectedCredits) ||
     !sameStringArray(draftSelectedSemesters, selectedSemesters);
-
-  useEffect(() => {
-    const query = searchQuery.trim();
-    if (!query || searchMode !== 'semantic') {
-      void (async () => {
-        await Promise.resolve();
-        setSemanticCourses([]);
-        setSemanticLoading(false);
-        setSemanticMode('idle');
-        setSemanticMessage('');
-      })();
-      return;
-    }
-
-    let cancelled = false;
-    void (async () => { await Promise.resolve(); setSemanticLoading(true); })();
-
-    const runSearch = async () => {
-      try {
-        const response = await courseAPI.semanticSearch({
-          query,
-          selected_types: selectedTypes,
-          selected_credits: selectedCredits,
-          selected_semesters: selectedSemesters,
-          limit: 50,
-        });
-        if (cancelled) return;
-
-        if (response.mode === 'semantic') {
-          setSemanticCourses(response.results);
-          setSemanticMode('semantic');
-          setSemanticMessage(response.message ?? '');
-          return;
-        }
-
-        setSemanticCourses([]);
-        setSemanticMode('fallback');
-        setSemanticMessage(response.message || '關鍵字向量搜尋暫時不可用，已自動改用一般文字搜尋。');
-      } catch (error) {
-        if (cancelled) return;
-        console.warn('Semantic course search failed, using keyword fallback:', error);
-        setSemanticCourses([]);
-        setSemanticMode('fallback');
-        setSemanticMessage('關鍵字向量搜尋暫時不可用，已自動改用一般文字搜尋。');
-      } finally {
-        if (!cancelled) setSemanticLoading(false);
-      }
-    };
-
-    void runSearch();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchMode, searchQuery, selectedTypes, selectedCredits, selectedSemesters]);
-
-  const searchableFields = useCallback((course: Course) =>
-    resultTab === 'course_name'
-      ? [course.course_name_zh, course.course_name_en]
-      : [
-          course.course_name_zh,
-          course.course_name_en,
-          course.course_objective,
-          course.course_content,
-          course.course_field,
-          course.textbooks,
-          course.grading,
-          course.note,
-          course.instructor,
-          course.department,
-          course.college,
-          course.semantic_summary,
-          course.eligibility_summary,
-          ...(course.tools ?? []),
-          ...(course.concepts ?? []),
-          ...(course.topic_tags ?? []),
-          ...(course.domain_tags ?? []),
-          ...(course.languages ?? []),
-          ...(course.simplified_concepts ?? []),
-          ...(course.core_questions ?? []),
-        ], [resultTab]);
-
-  const matchesStructuredFilters = useCallback((course: Course) => {
-    const matchesType = selectedTypes.length === 0 || selectedTypes.includes(normalize(course.required_elective));
-    const matchesCredits = selectedCredits.length === 0 || selectedCredits.includes(String(course.credits));
-    const matchesSemester = selectedSemesters.length === 0 || selectedSemesters.includes(normalize(course.semester_display));
-    return matchesType && matchesCredits && matchesSemester;
-  }, [selectedTypes, selectedCredits, selectedSemesters]);
-
-  const matchesKeywordFilters = useCallback((course: Course) => {
-    const query = searchQuery.trim().toLowerCase();
-    const matchesQuery = !query || searchableFields(course).filter(Boolean).some((value) => value!.toLowerCase().includes(query));
-    return matchesStructuredFilters(course) && matchesQuery;
-  }, [searchQuery, matchesStructuredFilters, searchableFields]);
-
-  const departmentFieldOptions = useMemo(
-    () => Array.from(new Set(departmentCourses.flatMap((course) => splitFields(course.course_field)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'zh-Hant')),
-    [departmentCourses]
-  );
-
-  const currentCourses = useMemo(() => {
-    let list = departmentCourses.filter(matchesKeywordFilters);
-    if (selectedFieldFilters.length > 0) {
-      list = list.filter((course) => splitFields(course.course_field).some((f) => selectedFieldFilters.includes(f)));
-    }
-    return list;
-  }, [departmentCourses, matchesKeywordFilters, selectedFieldFilters]);
-
-  const filteredCourses = useMemo(
-    () => {
-      if (hasSearchQuery && searchMode === 'semantic') {
-        if (semanticMode === 'semantic') return semanticCourses.filter(matchesStructuredFilters);
-        if (semanticMode === 'fallback') return courses.filter(matchesKeywordFilters);
-        return [];
-      }
-      return courses.filter(matchesKeywordFilters);
-    },
-    [courses, hasSearchQuery, searchMode, semanticCourses, semanticMode, matchesKeywordFilters, matchesStructuredFilters]
-  );
-
-  const groupedSearchResults = useMemo(() => {
-    const map = new Map<string, Map<string, Course[]>>();
-    filteredCourses.forEach((course) => {
-      const college = normalize(course.college) || FALLBACK_COLLEGE;
-      const department = normalize(course.department) || FALLBACK_DEPARTMENT;
-      if (!map.has(college)) map.set(college, new Map<string, Course[]>());
-      const deptMap = map.get(college)!;
-      if (!deptMap.has(department)) deptMap.set(department, []);
-      deptMap.get(department)!.push(course);
-    });
-
-    return Array.from(map.entries())
-      .sort((a, b) => {
-        const ai = COLLEGE_ORDER.indexOf(a[0] as (typeof COLLEGE_ORDER)[number]);
-        const bi = COLLEGE_ORDER.indexOf(b[0] as (typeof COLLEGE_ORDER)[number]);
-        if (ai === -1 && bi === -1) return a[0].localeCompare(b[0], 'zh-Hant');
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      })
-      .map(([college, departments]) => ({
-        college,
-        count: Array.from(departments.values()).reduce((sum, list) => sum + list.length, 0),
-        departments: Array.from(departments.entries())
-          .sort((a, b) => a[0].localeCompare(b[0], 'zh-Hant'))
-          .map(([name, list]) => ({ name, count: list.length, courses: [...list].sort((a, b) => (a.course_id ?? '').localeCompare(b.course_id ?? '')) })),
-      }));
-  }, [filteredCourses]);
-
-  const typeOptions = useMemo(
-    () => Array.from(new Set(courses.map((course) => normalize(course.required_elective)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'zh-Hant')),
-    [courses]
-  );
-
-  const creditOptions = useMemo(
-    () => Array.from(new Set(courses.map((course) => String(course.credits)).filter(Boolean))).sort((a, b) => Number(a) - Number(b)),
-    [courses]
-  );
-
-  const semesterOptions = useMemo(
-    () => Array.from(new Set(courses.map((course) => normalize(course.semester_display)).filter(Boolean))).sort((a, b) => a.localeCompare(b, 'zh-Hant')),
-    [courses]
-  );
-
-  useEffect(() => {
-    if (!selectedCollege && sortedColleges.length > 0) {
-      void (async () => {
-        await Promise.resolve();
-        setSelectedCollege(sortedColleges[0]);
-      })();
-    }
-  }, [sortedColleges, selectedCollege]);
-
-  useEffect(() => {
-    if (!selectedCollege) return;
-    const departments = Object.keys(groupedCourses[selectedCollege] || {});
-    const selectedCourseInFilteredResults =
-      hasActiveFilters &&
-      selectedCourse &&
-      filteredCourses.some((course) => courseKey(course) === courseKey(selectedCourse));
-
-    if (!departments.length) {
-      void (async () => {
-        await Promise.resolve();
-        setSelectedDepartment(null);
-      })();
-      return;
-    }
-    if (selectedDepartment && departments.includes(selectedDepartment)) return;
-    void (async () => {
-      await Promise.resolve();
-      setSelectedDepartment(null);
-      if (!selectedCourseInFilteredResults) {
-        setSelectedCourse(null);
-      }
-    })();
-  }, [filteredCourses, groupedCourses, hasActiveFilters, selectedCollege, selectedCourse, selectedDepartment]);
-
-  useEffect(() => {
-    const source = hasActiveFilters ? filteredCourses : currentCourses;
-    if (!selectedCourse) return;
-    if (selectedCourse && source.some((course) => courseKey(course) === courseKey(selectedCourse))) return;
-    void (async () => {
-      await Promise.resolve();
-      setSelectedCourse(null);
-    })();
-  }, [currentCourses, filteredCourses, hasActiveFilters, selectedCourse]);
 
   useEffect(() => {
     contentPanelRef.current?.scrollTo({ top: 0, behavior: 'instant' });
@@ -446,35 +127,6 @@ export default function CoursesPage() {
 
   const toggleValue = (value: string, setter: Dispatch<SetStateAction<string[]>>) =>
     setter((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]));
-
-  const isCourseCompared = (course: Course) => compareCourses.some((item) => courseKey(item) === courseKey(course));
-
-  const toggleCompareCourse = (course: Course) => {
-    if (isCourseCompared(course)) {
-      setCompareCourses((current) => current.filter((item) => courseKey(item) !== courseKey(course)));
-      setCompareNotice('');
-      return;
-    }
-
-    if (compareCourses.length >= COMPARE_LIMIT) {
-      setCompareNotice(`最多只能同時對比 ${COMPARE_LIMIT} 門課。`);
-      return;
-    }
-
-    setCompareCourses((current) => [...current, course]);
-    setCompareNotice('');
-  };
-
-  const removeCompareCourse = (course: Course) => {
-    setCompareCourses((current) => current.filter((item) => courseKey(item) !== courseKey(course)));
-    setCompareNotice('');
-  };
-
-  const clearCompareCourses = () => {
-    setCompareCourses([]);
-    setCompareOpen(false);
-    setCompareNotice('');
-  };
 
   const openSearchPanel = () => {
     setDraftSearchMode(searchMode);
@@ -504,13 +156,6 @@ export default function CoursesPage() {
   const toggleExpandedDepartment = (key: string) => {
     setExpandedDepartments((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
-
-  const activeTags = [
-    ...(searchQuery.trim() ? [{ key: `search-${searchQuery}`, label: `${searchMode === 'semantic' ? '關鍵字向量搜尋' : '一般文字搜尋'}：${searchQuery.trim()}`, onRemove: () => setSearchQuery('') }] : []),
-    ...selectedTypes.map((value) => ({ key: `type-${value}`, label: value, onRemove: () => setSelectedTypes((current) => current.filter((item) => item !== value)) })),
-    ...selectedCredits.map((value) => ({ key: `credit-${value}`, label: `${value} 學分`, onRemove: () => setSelectedCredits((current) => current.filter((item) => item !== value)) })),
-    ...selectedSemesters.map((value) => ({ key: `semester-${value}`, label: value, onRemove: () => setSelectedSemesters((current) => current.filter((item) => item !== value)) })),
-  ];
 
   const navigationTitle = navigationLevel === 'colleges' ? '選擇學院' : navigationLevel === 'departments' ? selectedCollege || '選擇系所' : selectedDepartment || '選擇課程';
   const navigationHint = navigationLevel === 'colleges' ? '從學院開始瀏覽' : navigationLevel === 'departments' ? '查看各系所課程' : '選擇一門課程查看詳情';
@@ -546,31 +191,23 @@ export default function CoursesPage() {
   const openMobileNavigator = () => setIsMobileNavigatorOpen(true);
 
   const handleSelectSearchResult = (college: string, department: string, course: Course) => {
-    setSelectedCollege(college);
-    setSelectedDepartment(department);
-    setSelectedCourse(course);
-    setNavigationLevel('courses');
+    selectSearchResult(college, department, course);
     closeMobileNavigator();
   };
 
   const handleSelectFlatSearchResult = (course: Course) => {
-    handleSelectSearchResult(normalize(course.college) || FALLBACK_COLLEGE, normalize(course.department) || FALLBACK_DEPARTMENT, course);
+    selectFlatSearchResult(course);
+    closeMobileNavigator();
   };
 
   const handleSelectCollege = (college: string) => {
-    setSelectedCollege(college);
-    setSelectedDepartment(null);
-    setSelectedCourse(null);
-    setNavigationLevel('departments');
+    selectCollege(college);
     openMobileNavigator();
   };
 
   const handleSelectDepartment = (department: string) => {
-    setSelectedDepartment(department);
-    setSelectedCourse(null);
-    setSelectedFieldFilters([]);
+    selectDepartment(department);
     setIsFieldDropdownOpen(false);
-    setNavigationLevel('courses');
     openMobileNavigator();
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -18,13 +18,11 @@ import {
   HiUserGroup,
   HiX,
 } from 'react-icons/hi';
-import { courseAPI } from '../api/services';
-import { apiErrorDisplayMessage, liveAiRestrictedMessageFromError } from '../api/liveAi';
-import { useLiveAiAccess } from '../hooks/useLiveAiAccess';
 import type { Course } from '../types';
 import CoreAbilityTable from './CoreAbilityTable';
 import HighlightText from './HighlightText';
 import LiveAiDisabledNotice, { LiveAiPendingSlot } from './LiveAiDisabledNotice';
+import { QUICK_ACTIONS, useCourseAsk } from '../features/courses/useCourseAsk';
 
 interface CourseDetailPanelProps {
   course: Course | null;
@@ -42,74 +40,19 @@ const splitFields = (value?: string | null) =>
 const uniqueFields = (values?: string[]) =>
   Array.from(new Set((values ?? []).map((item) => item.trim()).filter(Boolean)));
 
-// detail 可能是物件或陣列，統一轉成字串，避免把物件當成 React child 渲染而讓頁面崩潰
-const getApiErrorMessage = (error: unknown) =>
-  apiErrorDisplayMessage(error, 'AI 課程助理暫時無法回答，請稍後再試。');
-
-const QUICK_ACTIONS = [
-  { id: 'translate', label: '翻成中文', prompt: '請把這門課的課程目標與課程內容翻譯成繁體中文，保持原本的架構。' },
-  { id: 'simplify', label: '高中生版本', prompt: '請用高中生能理解的語言，整理這門課在學什麼、有什麼實際用途。' },
-  { id: 'connect', label: '連結高中知識', prompt: '這門課的核心概念可以對應到高中哪些科目的哪些單元？請舉例說明。' },
-  { id: 'fit', label: '我適合修嗎', prompt: '這門課適合什麼樣背景的學生？需要哪些先備知識？有推薦先修的課程嗎？' },
-];
-
 const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKeyword = '', isCompared = false, onToggleCompare }) => {
-  const [askOpen, setAskOpen] = useState(false);
-  const [askQuestion, setAskQuestion] = useState('');
-  const [askLastQuestion, setAskLastQuestion] = useState('');
-  const [askAnswer, setAskAnswer] = useState('');
-  const [askError, setAskError] = useState('');
-  const [askLoading, setAskLoading] = useState(false);
+  const {
+    askOpen, setAskOpen,
+    askQuestion, setAskQuestion,
+    askLastQuestion, askAnswer,
+    askError, setAskError,
+    askLoading,
+    liveAi,
+    resetAskState, closeAsk, submitQuestion,
+  } = useCourseAsk(course);
   const [aiPanelWidth, setAiPanelWidth] = useState(360);
   const [quickActionsOpen, setQuickActionsOpen] = useState(true);
-  const liveAi = useLiveAiAccess();
-  const courseIdentity = course ? `${course.serial_no}-${course.course_id}` : '';
 
-  const resetAskState = () => {
-    setAskQuestion('');
-    setAskLastQuestion('');
-    setAskAnswer('');
-    setAskError('');
-    setAskLoading(false);
-  };
-
-  useEffect(() => {
-    void (async () => {
-      await Promise.resolve();
-      setAskOpen(false);
-      resetAskState();
-    })();
-  }, [courseIdentity]);
-
-  const closeAsk = () => {
-    setAskOpen(false);
-    resetAskState();
-  };
-
-  const submitQuestion = async (question: string) => {
-    if (!course || !liveAi.allowed) return;
-    setAskLoading(true);
-    setAskError('');
-    setAskAnswer('');
-    setAskLastQuestion(question);
-    try {
-      const response = await courseAPI.askCourse(course.course_id, question);
-      setAskAnswer(response.answer);
-      if (response.warnings.length > 0) {
-        setAskError(response.warnings.join(' '));
-      }
-    } catch (error) {
-      const restricted = liveAiRestrictedMessageFromError(error);
-      if (restricted !== null) {
-        // 後端判定目前帳號不能使用即時 AI：輸入區換成說明元件（說明裡已有同一句話，不再另外顯示錯誤）
-        liveAi.markRestricted(restricted);
-      } else {
-        setAskError(getApiErrorMessage(error));
-      }
-    } finally {
-      setAskLoading(false);
-    }
-  };
 
   const handleQuickAction = (prompt: string) => {
     setQuickActionsOpen(false);
@@ -398,7 +341,7 @@ const CourseDetailPanel: React.FC<CourseDetailPanelProps> = ({ course, searchKey
       >
         <div className="h-12 w-0.5 rounded-full bg-slate-200 transition-colors group-hover:bg-primary-400" />
       </div>
-      <div className="hidden md:flex shrink-0 flex-col self-start sticky top-4 max-h-[calc(100vh-6rem)] rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden" style={{ width: aiPanelWidth }}>
+      <div className="hidden md:flex shrink-0 flex-col self-start sticky top-4 max-h-[calc(100vh-6rem-var(--legacy-nav-strip))] rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden" style={{ width: aiPanelWidth }}>
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <HiChatAlt2 className="h-5 w-5" />

@@ -16,7 +16,7 @@
 import pdfplumber, json, re
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[3]
 PDF_DIR  = BASE_DIR / "data" / "raw" / "應修科目表"
 OUT_HTML = BASE_DIR / "tables_editor.html"
 SEMESTER_MAP_PATH = BASE_DIR / "data" / "processed" / "requirements_semester_map.json"

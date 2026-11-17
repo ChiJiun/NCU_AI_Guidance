@@ -29,6 +29,11 @@ _spec.loader.exec_module(bq)
 
 SCROLL_PAGE = 1000
 
+# 不由圖譜節點產生、而是由其他腳本寫入的點類型；差異同步時不可刪除。
+# Community 點來自 scripts/rag/add_communities_to_qdrant.py（graph/communities.json），
+# knowledge_graph.json 裡沒有 Community 節點，若不排除，每次 --apply 都會把它們全部刪掉。
+PRESERVED_TYPES = frozenset({"Community"})
+
 
 def expected_points(graph: dict) -> dict[int, dict]:
     """依圖譜算出 Qdrant 應有的 {point_id: payload}（與建索引使用同一個 node_payload）。"""
@@ -48,7 +53,8 @@ def expected_points(graph: dict) -> dict[int, dict]:
 
 
 def plan(existing: dict[int, dict], expected: dict[int, dict]) -> dict:
-    to_delete = sorted(set(existing) - set(expected))
+    to_delete = sorted(i for i in set(existing) - set(expected)
+                       if (existing[i] or {}).get("node_type") not in PRESERVED_TYPES)
     to_add = sorted(set(expected) - set(existing))
     to_update = sorted(i for i in set(existing) & set(expected) if existing[i] != expected[i])
     return {"delete": to_delete, "add": to_add, "update": to_update}

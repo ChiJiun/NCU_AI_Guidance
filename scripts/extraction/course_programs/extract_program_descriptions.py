@@ -23,8 +23,9 @@ import json
 import os
 from pathlib import Path
 
-BASE = Path('data/raw/學分學程')
-OUTPUT = Path('data/processed/program_descriptions.json')
+ROOT = Path(__file__).resolve().parents[3]
+BASE = ROOT / 'data' / 'raw' / '學分學程'
+OUTPUT = ROOT / 'data' / 'processed' / 'program_descriptions.json'
 
 
 def extract_text_no_tables(pdf_path: Path) -> str:

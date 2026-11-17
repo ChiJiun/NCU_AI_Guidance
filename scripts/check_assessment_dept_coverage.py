@@ -33,7 +33,9 @@ SUBJECT_COMBOS = {
 
 
 def questions(mode: str):
-    return asyncio.run(assessment.get_questions(assessment.AssessmentMode(mode)))
+    """該模式的完整題庫（department 已換成大學部學系，附 tracks）。
+    不直接呼叫 get_questions：那是 FastAPI 路由，只回傳一輪抽題，直接呼叫時 Query 預設值也不會被解開。"""
+    return assessment.mode_cards(mode)
 
 
 def grade2_report():
@@ -50,7 +52,7 @@ def grade3_report(subjects):
     resp = asyncio.run(
         assessment.filter_departments_by_subjects(SubjectSelectionRequest(subjects=subjects))
     )
-    allowed = set(resp["departments"])
+    allowed = set(resp["units"])   # mode_cards 的 department 已是大學部學系
     usable = [q for q in qs if q["department"] in allowed]
     return qs, usable, resp
 

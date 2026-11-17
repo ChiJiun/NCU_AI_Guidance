@@ -1032,7 +1032,21 @@ def main():
         "--update-exclude", action="store_true",
         help="只補寫 dept_exclude / college_exclude / is_open_with_exclusions（無需 Azure 金鑰）"
     )
+    parser.add_argument(
+        "--force-payload-only", action="store_true",
+        help="確認要用 --payload-only（預設拒絕，原因見下方說明）"
+    )
     args = parser.parse_args()
+
+    # --payload-only 以「課號」篩選後 overwrite_payload，同課號不同班會全部變成最後一班的資料，
+    # 也會清掉 update_schedule_payload.py 寫的 when_* 欄位。NLP 欄位請改用
+    # scripts/rag/update_course_nlp_payload.py --apply（逐點比對），修課時間用 update_schedule_payload.py。
+    if args.payload_only and not args.force_payload_only:
+        raise SystemExit(
+            "已停用 --payload-only：同課號不同班會互相覆蓋 payload，並清掉 when_* 欄位。\n"
+            "請改用 python -m scripts.update_data --apply --allow-external（qdrant_payloads 步驟）。"
+            "確定要用請加 --force-payload-only。"
+        )
 
     load_dotenv(ROOT / ".env")
 

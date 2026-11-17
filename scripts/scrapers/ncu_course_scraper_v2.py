@@ -14,12 +14,14 @@ import re
 
 
 class NCUCourseScraperV2:
-    def __init__(self, year="114", semester="1"):
+    def __init__(self, year="114", semester="1", output_dir=None, headless=False):
         self.year = year
         self.semester = semester
         self.base_url = f"https://cis.ncu.edu.tw/Course/main/query/byYears?do=showDept&semester={year}{semester}"
 
         chrome_options = Options()
+        if headless:
+            chrome_options.add_argument('--headless=new')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--start-maximized')
@@ -27,9 +29,9 @@ class NCUCourseScraperV2:
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 15)
 
-        # 輸出與舊資料路徑（相對於 project root）
+        # 輸出與舊資料路徑（相對於 project root）；資料更新管線會指定暫存輸出目錄
         _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.output_dir = os.path.join(_root, 'data', 'raw', 'courses', f"{year}_{semester}")
+        self.output_dir = output_dir or os.path.join(_root, 'data', 'raw', 'courses', f"{year}_{semester}")
         os.makedirs(self.output_dir, exist_ok=True)
         print(f"✓ 輸出資料夾：{self.output_dir}")
 
@@ -502,39 +504,62 @@ class NCUCourseScraperV2:
         except:
             pass
 
-    def run(self):
-        """執行"""
+    def run(self, max_depts=None):
+        """執行；成功回傳 True，進不了課程查詢頁或中途例外回傳 False"""
         try:
             if not self.navigate_to_course_page():
-                return
+                return False
 
-            self.scrape_all_depts()
+            self.scrape_all_depts(max_depts=max_depts)
 
             print("\n" + "=" * 60)
             print(f"爬取完成！所有系所已儲存至 {self.output_dir}")
             print("=" * 60)
+            return True
 
         except Exception as e:
             print(f"\n錯誤: {e}")
             import traceback
             traceback.print_exc()
+            return False
         finally:
             self.close()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="NCU 課程爬蟲 v2（公開頁面，不需登入）")
+    parser.add_argument("--year", default="114", help="學年度，例如 114")
+    parser.add_argument("--semesters", default="1,2", help="學期，逗號分隔，例如 1,2")
+    parser.add_argument("--output-dir", default=None,
+                        help="輸出目錄（只爬一個學期時使用；預設 data/raw/courses/{學年}_{學期}）")
+    parser.add_argument("--headless", action="store_true", help="無頭模式（不開瀏覽器視窗）")
+    parser.add_argument("--max-depts", type=int, default=None, help="最多爬幾個系所（試跑用）")
+    args = parser.parse_args(argv)
+
+    semesters = [s.strip() for s in args.semesters.split(",") if s.strip()]
+    if args.output_dir and len(semesters) != 1:
+        parser.error("--output-dir 只能搭配單一學期")
+
     print("=" * 60)
     print("  NCU 課程爬蟲 v2 (無需登入)")
     print("=" * 60)
 
-    # 爬取兩個學期
-    for semester in ["1", "2"]:
-        print(f"\n開始爬取 114 學年度第 {semester} 學期")
+    ok = True
+    for semester in semesters:
+        print(f"\n開始爬取 {args.year} 學年度第 {semester} 學期")
         print("=" * 60)
 
-        scraper = NCUCourseScraperV2(year="114", semester=semester)
-        scraper.run()
+        scraper = NCUCourseScraperV2(year=args.year, semester=semester,
+                                     output_dir=args.output_dir, headless=args.headless)
+        ok = scraper.run(max_depts=args.max_depts) and ok
 
     print("\n" + "=" * 60)
-    print("所有學期爬取完成！")
+    print("所有學期爬取完成！" if ok else "部分學期爬取失敗，請看上方錯誤訊息")
     print("=" * 60)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

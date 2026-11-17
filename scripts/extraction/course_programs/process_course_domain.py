@@ -109,7 +109,15 @@ def process_json_file(file_path):
 
 def main():
     """主函數：處理所有 JSON 文件"""
-    base_dir = Path(__file__).parent.parent.parent / "data" / "raw" / "courses"
+    import sys
+    # 這支是修第一版爬蟲格式的一次性腳本。v2 爬蟲已把核心能力拆成獨立欄位，
+    # 再跑會把「核心能力」覆寫成空陣列。
+    if '--i-understand-this-overwrites' not in sys.argv:
+        sys.exit(
+            "已停用：這支會直接改寫 data/raw/courses/**，對 v2 爬蟲資料會把核心能力清成空陣列。\n"
+            "確定要重跑請加 --i-understand-this-overwrites。"
+        )
+    base_dir = Path(__file__).resolve().parents[3] / "data" / "raw" / "courses"
 
     # 查找所有 JSON 文件
     json_files = list(base_dir.glob("**/*.json"))

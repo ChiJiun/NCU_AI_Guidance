@@ -24,7 +24,7 @@ from collections import defaultdict
 # 路徑設定
 # ─────────────────────────────────────────
 SCRIPT_DIR    = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT  = os.path.join(SCRIPT_DIR, '..', '..')
+PROJECT_ROOT  = os.path.join(SCRIPT_DIR, '..', '..', '..')
 PDF_BASE      = os.path.join(PROJECT_ROOT, 'data', 'raw', 'projects', '104-114')
 PROJECTS_JSON = os.path.join(PROJECT_ROOT, 'data', 'processed', 'projects.json')
 OUTPUT_JSON   = os.path.join(PROJECT_ROOT, 'data', 'processed', 'pdf_sections_raw.json')

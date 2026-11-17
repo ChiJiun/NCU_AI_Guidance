@@ -32,7 +32,7 @@ import json
 import re
 from pathlib import Path
 
-BASE_DIR         = Path(__file__).parent.parent.parent
+BASE_DIR         = Path(__file__).resolve().parents[3]
 REQUIREMENTS_DIR = BASE_DIR / "data" / "raw" / "應修科目表"
 OUTPUT_PATH      = BASE_DIR / "data" / "processed" / "requirements_semester_map.json"
 

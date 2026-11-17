@@ -13,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[3]
 CURRICULUM_MAP_DIR = BASE_DIR / "data" / "raw" / "課程地圖"
 OUTPUT_DIR         = BASE_DIR / "data" / "processed" / "curriculum_maps_png"
 

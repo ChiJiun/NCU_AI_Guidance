@@ -15,6 +15,7 @@
 """
 
 import json
+import os
 import re
 import time
 import argparse
@@ -25,13 +26,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 BASE = Path(__file__).parent.parent.parent
-COURSE_DIRS = [
-    BASE / 'data' / 'raw' / 'courses' / '114_1',
-    BASE / 'data' / 'raw' / 'courses' / '114_2',
-    BASE / 'data' / 'raw' / 'graduate_courses' / '114_1',
-    BASE / 'data' / 'raw' / 'graduate_courses' / '114_2',
-]
-# 斷點續爬：記錄已成功處理的 (file_path, index) 鍵
+# 學期清單可用環境變數 NCU_DATA_TERMS 覆寫（例如 "115_1,115_2"），資料更新管線會自動帶入
+TERMS = [t.strip() for t in os.environ.get('NCU_DATA_TERMS', '114_1,114_2').split(',') if t.strip()]
+COURSE_DIRS = [BASE / 'data' / 'raw' / level / term
+               for level in ('courses', 'graduate_courses') for term in TERMS]
+# 斷點續爬：記錄已處理的課程鍵（檔案 + 課號-班別 + 學期，不用索引，重爬後索引會變）
 CHECKPOINT_PATH = BASE / 'data' / 'raw' / 'scraped_missing' / 'content_fix_checkpoint.json'
 
 SYLLABUS_FIELDS = [
@@ -237,8 +236,15 @@ def collect_targets() -> list[tuple[Path, int]]:
 
 # ─── 斷點續爬 ─────────────────────────────────────────────────────────────────
 
+def checkpoint_key(file_path: Path, course: dict) -> str:
+    """斷點鍵：'file_path::課號-班別::學年度學期'。"""
+    ident = course.get('課號-班別') or course.get('流水號') or ''
+    term = f"{course.get('學年度', '')}{course.get('學期', '')}"
+    return f'{file_path}::{ident}::{term}'
+
+
 def load_checkpoint() -> set[str]:
-    """回傳已完成的 key 集合，格式：'file_path::index'"""
+    """回傳已完成的 key 集合，格式見 checkpoint_key()"""
     if CHECKPOINT_PATH.exists():
         data = json.loads(CHECKPOINT_PATH.read_text(encoding='utf-8'))
         return set(data.get('done', []))
@@ -270,8 +276,16 @@ def main():
 
     # 載入斷點
     done_keys = load_checkpoint()
+    _cache: dict[Path, list] = {}
+
+    def _course_at(f: Path, i: int) -> dict:
+        if f not in _cache:
+            _cache[f] = json.loads(f.read_text(encoding='utf-8'))
+        return _cache[f][i]
+
     pending = [(f, i) for f, i in targets
-               if f'{f}::{i}' not in done_keys]
+               if checkpoint_key(f, _course_at(f, i)) not in done_keys]
+    _cache.clear()
     print(f'已完成 {len(done_keys)} 筆，待爬 {len(pending)} 筆')
 
     if args.limit:
@@ -316,7 +330,9 @@ def main():
                 except Exception as e:
                     print(f'❌ {str(e)[:50]}')
 
-                done_keys.add(f'{file_path}::{i}')
+                # dry-run 不記斷點，否則之後正式跑會跳過這些課程
+                if not args.dry_run:
+                    done_keys.add(checkpoint_key(file_path, course))
                 processed += 1
                 time.sleep(0.8)
 
@@ -329,11 +345,13 @@ def main():
                 print(f'  → 已儲存 {file_path.name}（更新 {file_updated} 門課）')
 
             # 每個檔案處理完存一次斷點
-            save_checkpoint(done_keys)
+            if not args.dry_run:
+                save_checkpoint(done_keys)
 
     finally:
         driver.quit()
-        save_checkpoint(done_keys)
+        if not args.dry_run:
+            save_checkpoint(done_keys)
         prefix = '[DRY-RUN] ' if args.dry_run else ''
         print(f'\n{prefix}完成：處理 {processed} 筆，實際補齊 {total_updated} 筆')
         if args.dry_run:

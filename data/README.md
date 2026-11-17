@@ -2,6 +2,10 @@
 
 本目錄包含 NCU 科系探索系統的所有資料檔案。
 
+> **更新 `data/processed` 請用 `python -m scripts.update_data`**：每個檔案由哪個步驟產生、
+> 怎麼定期執行、哪些步驟會花錢或寫外部服務，見 [`scripts/update_data/README.md`](../scripts/update_data/README.md)。
+> 下方「資料處理流程」一節是早期記錄，部分路徑與檔案（如 `courses.json`）已不再使用。
+
 ## 目錄結構
 
 ```

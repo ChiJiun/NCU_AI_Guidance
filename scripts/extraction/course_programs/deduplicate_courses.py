@@ -19,11 +19,16 @@ scraped_missing 處理：
 """
 
 import json
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent.parent
 RAW  = ROOT / "data" / "raw"
 OUT  = ROOT / "data" / "processed" / "courses_deduped"
+
+# 學期清單（舊→新，後者蓋前者）。可用環境變數 NCU_DATA_TERMS 覆寫，例如 "115_1,115_2"；
+# 資料更新管線（python -m scripts.update_data --terms ...）會自動帶入。
+TERMS = [t.strip() for t in os.environ.get("NCU_DATA_TERMS", "114_1,114_2").split(",") if t.strip()]
 
 DEPT_COLLEGE_MAP_PATH = ROOT / "data" / "processed" / "dept_college_map.json"
 
@@ -53,7 +58,7 @@ def build_grad_depts() -> set[str]:
     檔名格式：學院_系所.json，取底線後半段作為系所名稱。
     """
     grad_depts: set[str] = set()
-    for semester in ["114_1", "114_2"]:
+    for semester in TERMS:
         d = RAW / "graduate_courses" / semester
         if d.exists():
             for f in d.glob("*.json"):
@@ -133,14 +138,12 @@ def main():
 
     undergrad_sources: list[tuple[str, "Path | list[dict]"]] = [
         ("scraped_missing(學士)", sm_ug),
-        ("114_1",                 RAW / "courses" / "114_1"),
-        ("114_2",                 RAW / "courses" / "114_2"),
+        *[(term, RAW / "courses" / term) for term in TERMS],
     ]
 
     grad_sources: list[tuple[str, "Path | list[dict]"]] = [
         ("scraped_missing(研究所)", sm_grad),
-        ("114_1",                   RAW / "graduate_courses" / "114_1"),
-        ("114_2",                   RAW / "graduate_courses" / "114_2"),
+        *[(term, RAW / "graduate_courses" / term) for term in TERMS],
     ]
 
     print("=== 大學部課程去重 ===")

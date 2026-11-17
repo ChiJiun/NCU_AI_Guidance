@@ -1,122 +1,18 @@
-import { useState, useEffect, useCallback, useMemo, useContext, createContext } from 'react';
+import { useState, useEffect, useMemo, useContext, createContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
-import { COLLEGE_ORDER, deptSortKey } from '../constants/colleges';
+import { deptSortKey } from '../constants/colleges';
 import CourseDetailModal from '../components/CourseDetailModal';
 import type { CourseCard } from '../types';
-
-// ══════════════════════════════════════════════════════════════════════════
-// 型別
-// ══════════════════════════════════════════════════════════════════════════
-
-interface CourseEntry {
-  code: string;
-  name: string;
-  credits: number;
-  when?: string;
-  mandatory?: boolean;
-}
-
-interface ElectiveGroup {
-  name: string;
-  select?: number;
-  select_credits?: number;
-  group_rule?: string;
-  description?: string;
-  courses?: CourseEntry[];
-  option_a?: CourseEntry[];
-  option_b?: CourseEntry[];
-  option_c?: CourseEntry[];
-  slots?: { slot_name: string; slot_rule?: string; courses: CourseEntry[] }[];
-}
-
-interface GraduationRule {
-  type: string;
-  category: string;
-  description?: string;
-  credits?: number;
-  select?: number;
-  books?: number;
-  cert?: string;
-  course_codes?: string[];
-  courses?: CourseEntry[];
-  options?: { name: string; credits?: number }[];
-  [key: string]: unknown;
-}
-
-interface DeptNode {
-  id: string;
-  name: string;
-  program_type: string;
-  min_credits: number;
-  groups?: { id: string; name: string; group_label: string }[];
-  specialization_tracks?: { id: string; name: string }[];
-}
-
-interface CollegeNode {
-  id: string;
-  name: string;
-  departments: DeptNode[];
-  college_bachelor_programs: (DeptNode & { specialization_tracks?: { id: string; name: string }[] })[];
-}
-
-interface DeptDetail {
-  id: string;
-  name: string;
-  program_type: string;
-  min_credits: number;
-  required_credits?: number;
-  graduation_rules: GraduationRule[];
-  // 各種「必修」欄位名稱（不同系所用不同 key）
-  required_courses?: CourseEntry[];
-  foundation_courses?: CourseEntry[];
-  college_required_courses?: CourseEntry[];
-  common_required_courses?: CourseEntry[];
-  dept_required_courses?: CourseEntry[];
-  required_electives?: CourseEntry[];
-  cross_domain_required?: CourseEntry[];
-  earth_system_courses?: CourseEntry[];
-  cross_group_required?: CourseEntry[];
-  application_courses?: CourseEntry[];
-  first_domain_electives?: CourseEntry[];
-  // 領域選修（可從中選修以達到選修學分要求）
-  elective_courses?: CourseEntry[];
-  // 選修群
-  elective_groups?: ElectiveGroup[];
-  core_elective_groups?: ElectiveGroup[];
-  college_required_elective_groups?: ElectiveGroup[];
-  science_ability_groups?: ElectiveGroup[];
-  other_elective_groups?: ElectiveGroup[];
-  groups?: DeptDetail[];
-  graduation_notes?: string;
-}
-
-interface NotesEntry {
-  key: string;
-  raw_text: string;
-  source?: string;
-}
-
-interface CourseHit {
-  deptId: string;
-  deptName: string;
-  collegeName: string;
-  accentHex: string;
-  category: 'required' | 'elective';
-  groupName?: string;
-  credits: number;
-  originalName: string;
-  originalCode: string;
-}
-type CourseIndex = Map<string, CourseHit[]>;
-
-interface DeptSummary {
-  id: string;
-  name: string;
-  collegeName: string;
-  accentHex: string;
-  min_credits: number;
-}
+import {
+  CATEGORIES_ORDER, REQUIRED_COURSE_FIELDS,
+  findCrossMatches, groupBySem, normalizeCourse,
+} from '../features/curriculum/courseIndex';
+import type {
+  CourseEntry, CourseHit, CourseIndex, DeptDetail, DeptSummary,
+  ElectiveGroup, GraduationRule, NotesEntry,
+} from '../features/curriculum/types';
+import { useCurriculumData } from '../features/curriculum/useCurriculumData';
 
 // ── Context ──────────────────────────────────────────────────────────────
 
@@ -139,89 +35,6 @@ const CurriculumCtx = createContext<CurriculumContextValue>({
   navigateTo: () => {},
   openCrossSearch: () => {},
 });
-
-// ── Utilities ─────────────────────────────────────────────────────────────
-
-const normalizeCourse = (name: string): string =>
-  name
-    .replace(/[（）()【】「」『』、。，,\s]/g, '')
-    .replace(/[一二三四五六七八九十百千]+$/g, '')
-    .replace(/[上下甲乙丙丁]+$/g, '')
-    .replace(/[IVXivx]+$/g, '')
-    .replace(/\d+$/g, '')
-    .toLowerCase();
-
-// 第二層 normalize：剝前綴修飾詞 + 尾部單字母，供 similar 比對用
-const normalizeCourseDeep = (n1: string): string =>
-  n1
-    .replace(/^(高等|基礎|初等|進階|普通|概論|應用|入門|導論|近代|現代|理論|工程)/, '')
-    .replace(/[a-z]$/, '');
-
-function collectAllCoursesFromDetail(detail: DeptDetail): { course: CourseEntry; category: CourseHit['category']; groupName?: string }[] {
-  const out: { course: CourseEntry; category: CourseHit['category']; groupName?: string }[] = [];
-  const REQUIRED_KEYS = [
-    'required_courses', 'foundation_courses', 'college_required_courses', 'common_required_courses',
-    'dept_required_courses', 'required_electives', 'cross_domain_required', 'earth_system_courses',
-    'cross_group_required', 'application_courses', 'first_domain_electives',
-  ] as const;
-  for (const key of REQUIRED_KEYS) {
-    for (const c of (detail[key] as CourseEntry[] | undefined) ?? []) out.push({ course: c, category: 'required' });
-  }
-  for (const c of detail.elective_courses ?? []) out.push({ course: c, category: 'elective' });
-  const allGroups = [
-    ...(detail.elective_groups ?? []), ...(detail.core_elective_groups ?? []),
-    ...(detail.college_required_elective_groups ?? []), ...(detail.science_ability_groups ?? []),
-    ...(detail.other_elective_groups ?? []),
-  ];
-  for (const g of allGroups) {
-    const gc = [...(g.courses ?? []), ...(g.option_a ?? []), ...(g.option_b ?? []), ...(g.option_c ?? []),
-      ...(g.slots ?? []).flatMap(s => s.courses)];
-    for (const c of gc) out.push({ course: c, category: 'elective', groupName: g.name });
-  }
-  return out;
-}
-
-function buildCourseIndex(
-  allDetails: Map<string, DeptDetail>,
-  metaMap: Map<string, { collegeName: string; accentHex: string }>
-): CourseIndex {
-  const index = new Map<string, CourseHit[]>();
-  for (const [deptId, detail] of allDetails) {
-    const meta = metaMap.get(deptId);
-    if (!meta) continue;
-    for (const { course, category, groupName } of collectAllCoursesFromDetail(detail)) {
-      const key = normalizeCourse(course.name);
-      if (!key || key.length < 2) continue;
-      if (!index.has(key)) index.set(key, []);
-      const hits = index.get(key)!;
-      if (!hits.some(h => h.deptId === deptId && h.category === category)) {
-        hits.push({ deptId, deptName: detail.name, collegeName: meta.collegeName, accentHex: meta.accentHex, category, groupName, credits: course.credits, originalName: course.name, originalCode: course.code ?? '' });
-      }
-    }
-  }
-  return index;
-}
-
-function findCrossMatches(courseName: string, currentDeptId: string, index: CourseIndex) {
-  const norm = normalizeCourse(courseName);
-  const normDeep = normalizeCourseDeep(norm);
-  const exact = (index.get(norm) ?? []).filter(h => h.deptId !== currentDeptId);
-  const similar: Array<{ hits: CourseHit[] }> = [];
-  const seen = new Set([norm]);
-  for (const [key, hits] of index) {
-    if (seen.has(key) || norm.length < 3 || key.length < 3) continue;
-    const keyDeep = normalizeCourseDeep(key);
-    // 包含關係（原有邏輯）
-    const isContainment = norm.includes(key) || key.includes(norm);
-    // 深層相同 stem（前綴/字母尾碼剝除後相同），避免 A/B 變體互相找不到
-    const isDeepMatch = normDeep.length >= 3 && keyDeep.length >= 3 && normDeep === keyDeep;
-    if (isContainment || isDeepMatch) {
-      const other = hits.filter(h => h.deptId !== currentDeptId);
-      if (other.length > 0) { similar.push({ hits: other }); seen.add(key); }
-    }
-  }
-  return { exact, similar };
-}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 樹狀節點元件
@@ -282,28 +95,6 @@ function TreeNode({
 // 學期分組工具
 // ══════════════════════════════════════════════════════════════════════════
 
-const SEM_ORDER = ['大一上', '大一下', '大二上', '大二下', '大三上', '大三下', '大四上', '大四下'];
-
-function semKey(when: string): string {
-  // 範圍取起始，例如 "大一上~大二下" → "大一上"
-  return (when || '').split('~')[0].trim();
-}
-
-function groupBySem(courses: CourseEntry[]): Map<string, CourseEntry[]> {
-  const map = new Map<string, CourseEntry[]>();
-  for (const c of courses) {
-    const k = c.when ? semKey(c.when) : '未分配';
-    if (!map.has(k)) map.set(k, []);
-    map.get(k)!.push(c);
-  }
-  // 排序：依 SEM_ORDER 順序
-  const sorted = new Map<string, CourseEntry[]>();
-  for (const sem of SEM_ORDER) {
-    if (map.has(sem)) sorted.set(sem, map.get(sem)!);
-  }
-  if (map.has('未分配')) sorted.set('未分配', map.get('未分配')!);
-  return sorted;
-}
 
 // ══════════════════════════════════════════════════════════════════════════
 // 課程節點
@@ -521,22 +312,6 @@ function RuleTree({ rule, depth, dotHex = '#94a3b8' }: { rule: GraduationRule; d
 // 系所詳情樹（核心元件）
 // ══════════════════════════════════════════════════════════════════════════
 
-const CATEGORIES_ORDER = ['學分規定', '指定選課', '外部認證', '先修條件', '特殊規定', '其他規定'];
-
-// 所有可能的「必修課程」欄位，順序即顯示順序（elective_courses 獨立處理）
-const REQUIRED_COURSE_FIELDS: Array<{ key: keyof DeptDetail; label: string }> = [
-  { key: 'required_courses', label: '必修課程' },
-  { key: 'foundation_courses', label: '基礎必修' },
-  { key: 'college_required_courses', label: '院訂必修' },
-  { key: 'common_required_courses', label: '共同必修' },
-  { key: 'dept_required_courses', label: '系訂必修' },
-  { key: 'required_electives', label: '必選修' },
-  { key: 'cross_domain_required', label: '跨域必修' },
-  { key: 'earth_system_courses', label: '地球系統科學' },
-  { key: 'cross_group_required', label: '跨組必修' },
-  { key: 'application_courses', label: '應用課程' },
-  { key: 'first_domain_electives', label: '第一領域選修' },
-];
 
 function SemesterGroup({
   courses,
@@ -1709,30 +1484,28 @@ const COLLEGE_STYLES: Record<string, CollegeStyle> = {
   }
 };
 
+const collegeHexOf = (collegeName: string) => (COLLEGE_STYLES[collegeName] || COLLEGE_STYLES['default']).hex;
+
 // ══════════════════════════════════════════════════════════════════════════
 // 主頁面
 // ══════════════════════════════════════════════════════════════════════════
 
 export default function CurriculumPage() {
-  const [tree, setTree] = useState<CollegeNode[]>([]);
-  const [childDeptIds, setChildDeptIds] = useState<Set<string>>(new Set());
-  const [expandedColleges, setExpandedColleges] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<DeptDetail | null>(null);
-  const [loadingTree, setLoadingTree] = useState(true);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const {
+    tree, childDeptIds,
+    expandedColleges, toggleCollege,
+    selectedId, detail,
+    loadingTree, loadingDetail,
+    isMobileMenuOpen, setIsMobileMenuOpen,
+    selectedCollegeHex,
+    sidebarMode, setSidebarMode,
+    allDeptDetails, courseIndex, indexReady,
+    comparePool, setComparePool, toggleCompare,
+    navigateTo, selectDept,
+  } = useCurriculumData(collegeHexOf);
   const [showNotes, setShowNotes] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(true);
-  const [selectedCollegeHex, setSelectedCollegeHex] = useState<string>('#6366f1');
   const [selectedCourse, setSelectedCourse] = useState<CourseCard | null>(null);
-
-  // ── 全局功能 state ──
-  const [sidebarMode, setSidebarMode] = useState<'dept' | 'search'>('dept');
-  const [allDeptDetails, setAllDeptDetails] = useState<Map<string, DeptDetail>>(new Map());
-  const [courseIndex, setCourseIndex] = useState<CourseIndex>(new Map());
-  const [indexReady, setIndexReady] = useState(false);
-  const [comparePool, setComparePool] = useState<DeptSummary[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [crossSearchCourse, setCrossSearchCourse] = useState<CourseEntry | null>(null);
 
@@ -1744,162 +1517,6 @@ export default function CurriculumPage() {
     return () => window.removeEventListener('SHOW_COURSE_DETAIL', handleShowCourse);
   }, []);
 
-  // ── deptMetaMap: deptId → { collegeName, accentHex } ──
-  const deptMetaMap = useMemo(() => {
-    const map = new Map<string, { collegeName: string; accentHex: string }>();
-    for (const college of tree) {
-      const hex = (COLLEGE_STYLES[college.name] || COLLEGE_STYLES['default']).hex;
-      for (const dept of [...college.departments, ...college.college_bachelor_programs]) {
-        map.set(dept.id, { collegeName: college.name, accentHex: hex });
-        for (const g of dept.groups ?? []) map.set(g.id, { collegeName: college.name, accentHex: hex });
-        for (const t of (dept as { specialization_tracks?: { id: string }[] }).specialization_tracks ?? [])
-          map.set(t.id, { collegeName: college.name, accentHex: hex });
-      }
-    }
-    return map;
-  }, [tree]);
-
-  // ── 背景批次載入所有系所資料，建立課程索引 ──
-  useEffect(() => {
-    if (tree.length === 0) return;
-    const allIds: string[] = [];
-    for (const college of tree) {
-      for (const dept of [...college.departments, ...college.college_bachelor_programs]) {
-        allIds.push(dept.id);
-        for (const g of dept.groups ?? []) allIds.push(g.id);
-        for (const t of (dept as { specialization_tracks?: { id: string }[] }).specialization_tracks ?? []) allIds.push(t.id);
-      }
-    }
-    let cancelled = false;
-    (async () => {
-      const acc = new Map<string, DeptDetail>();
-      const batchSize = 6;
-      for (let i = 0; i < allIds.length; i += batchSize) {
-        if (cancelled) return;
-        const batch = allIds.slice(i, i + batchSize);
-        const results = await Promise.allSettled(batch.map(id => apiClient.get(`/curriculum/dept/${id}`)));
-        results.forEach((r, j) => { if (r.status === 'fulfilled') acc.set(batch[j], r.value.data as DeptDetail); });
-      }
-      if (!cancelled) { setAllDeptDetails(acc); setIndexReady(true); }
-    })();
-    return () => { cancelled = true; };
-  }, [tree]);
-
-  // ── 索引就緒後建立 CourseIndex ──
-  useEffect(() => {
-    if (!indexReady || allDeptDetails.size === 0) return;
-    setCourseIndex(buildCourseIndex(allDeptDetails, deptMetaMap));
-  }, [indexReady, allDeptDetails, deptMetaMap]);
-
-  // ── 比較功能 ──
-  const toggleCompare = useCallback((dept: DeptSummary) => {
-    setComparePool(prev => {
-      if (prev.some(d => d.id === dept.id)) return prev.filter(d => d.id !== dept.id);
-      if (prev.length >= 3) return prev;
-      return [...prev, dept];
-    });
-  }, []);
-
-  // ── navigateTo: 導航並展開對應學院 ──
-  const navigateTo = useCallback((deptId: string) => {
-    setIsMobileMenuOpen(false);
-    setSidebarMode('dept');
-    for (const college of tree) {
-      const allDepts = [...college.departments, ...college.college_bachelor_programs];
-      const found = allDepts.some(d => {
-        if (d.id === deptId) return true;
-        if ('groups' in d && d.groups?.some((g: { id: string }) => g.id === deptId)) return true;
-        if ('specialization_tracks' in d && (d as { specialization_tracks?: { id: string }[] }).specialization_tracks?.some(t => t.id === deptId)) return true;
-        return false;
-      });
-      if (found) {
-        setExpandedColleges(prev => { const next = new Set(prev); next.add(college.id); return next; });
-        break;
-      }
-    }
-    setSelectedId(deptId);
-    for (const college of tree) {
-      const allDepts = [...college.departments, ...college.college_bachelor_programs];
-      const found = allDepts.some(d => d.id === deptId || d.groups?.some((g: { id: string }) => g.id === deptId));
-      if (found) {
-        setSelectedCollegeHex((COLLEGE_STYLES[college.name] || COLLEGE_STYLES['default']).hex);
-        break;
-      }
-    }
-    setDetail(null);
-    setLoadingDetail(true);
-    apiClient.get(`/curriculum/dept/${deptId}`)
-      .then(res => {
-        setDetail(res.data);
-        setAllDeptDetails(prev => { if (prev.has(deptId)) return prev; const next = new Map(prev); next.set(deptId, res.data); return next; });
-      })
-      .catch(console.error)
-      .finally(() => setLoadingDetail(false));
-  }, [tree]);
-
-  useEffect(() => {
-    apiClient
-      .get('/curriculum/tree')
-      .then((res) => {
-        const sorted = [...(res.data as CollegeNode[])].sort((a, b) => {
-          const ia = COLLEGE_ORDER.indexOf(a.name as (typeof COLLEGE_ORDER)[number]);
-          const ib = COLLEGE_ORDER.indexOf(b.name as (typeof COLLEGE_ORDER)[number]);
-          if (ia === -1 && ib === -1) return a.name.localeCompare(b.name, 'zh-Hant');
-          if (ia === -1) return 1;
-          if (ib === -1) return -1;
-          return ia - ib;
-        });
-        setTree(sorted);
-        const ids = new Set<string>();
-        res.data.forEach((college: CollegeNode) => {
-          if (college.id !== 'college_liberal_arts') return;
-          college.college_bachelor_programs.forEach((cbp) => {
-            cbp.specialization_tracks?.forEach((t) => ids.add(t.id));
-          });
-        });
-        setChildDeptIds(ids);
-      })
-      .catch(console.error)
-      .finally(() => setLoadingTree(false));
-  }, []);
-
-  const selectDept = useCallback((id: string) => {
-    setSelectedId(id);
-    setIsMobileMenuOpen(false); // on mobile: switch to content view
-    // 找出所屬學院，更新 accent 顏色
-    for (const college of tree) {
-      const allDepts = [...college.departments, ...college.college_bachelor_programs];
-      const found = allDepts.some(d => {
-        if (d.id === id) return true;
-        if ('groups' in d && d.groups?.some((g: { id: string }) => g.id === id)) return true;
-        if ('specialization_tracks' in d && (d as { specialization_tracks?: { id: string }[] }).specialization_tracks?.some(t => t.id === id)) return true;
-        return false;
-      });
-      if (found) {
-        setSelectedCollegeHex((COLLEGE_STYLES[college.name] || COLLEGE_STYLES['default']).hex);
-        break;
-      }
-    }
-    setDetail(null);
-    setLoadingDetail(true);
-    apiClient
-      .get(`/curriculum/dept/${id}`)
-      .then((res) => {
-        setDetail(res.data);
-        setAllDeptDetails(prev => { if (prev.has(id)) return prev; const next = new Map(prev); next.set(id, res.data); return next; });
-      })
-      .catch(console.error)
-      .finally(() => setLoadingDetail(false));
-  }, [tree]);
-
-  const toggleCollege = (id: string) => {
-    setExpandedColleges((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   function DeptCard({
     dept,

@@ -206,7 +206,8 @@ export default function V2Layout() {
         )}
       </header>
 
-      <main id="v2-main" className={isApp ? 'min-h-0 flex-1' : ''}>
+      {/* tabIndex=-1：skip link 跳過來時焦點真的會移到主要內容 */}
+      <main id="v2-main" tabIndex={-1} className={`outline-none ${isApp ? 'min-h-0 flex-1' : ''}`}>
         <Outlet />
       </main>
     </div>

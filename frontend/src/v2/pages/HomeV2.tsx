@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { HiArrowRight, HiLockClosed } from 'react-icons/hi';
 import { useAuth } from '../../auth/AuthContext';
 import { DEMO_CASES } from '../../demo/cases';
+import LoadErrorBoundary from '../../components/LoadErrorBoundary';
 import { v2Link } from '../paths';
 
 const HeroShader = lazy(() => import('../components/HeroShader'));
@@ -87,10 +88,13 @@ export default function HomeV2() {
       <section className="relative overflow-hidden border-b" style={{ borderColor: 'var(--v2-line)' }}>
         <div className="v2-hero-art" aria-hidden="true">
           <div className="v2-hero-static" />
+          {/* shader 純裝飾：載入或初始化失敗就只留下面的靜態等高線 */}
           {animated && (
-            <Suspense fallback={null}>
-              <HeroShader />
-            </Suspense>
+            <LoadErrorBoundary fallback={null}>
+              <Suspense fallback={null}>
+                <HeroShader />
+              </Suspense>
+            </LoadErrorBoundary>
           )}
         </div>
 
@@ -129,7 +133,7 @@ export default function HomeV2() {
         <ol className="grid gap-12 md:grid-cols-3 md:gap-10">
           {STEPS.map((step) => (
             <li key={step.no}>
-              <p className="v2-num v2-accent text-sm tracking-widest">{step.no}</p>
+              <p className="v2-num v2-accent text-sm !tracking-widest">{step.no}</p>
               <h2 className="v2-serif mt-1 text-3xl">{step.title}</h2>
               <ul className="mt-5 border-t" style={{ borderColor: 'var(--v2-ink)' }}>
                 {step.stops.map((stop) => {

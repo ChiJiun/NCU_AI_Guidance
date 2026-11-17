@@ -201,8 +201,8 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
-              {/* 1024px 時導覽列只剩約 60px 空間：窄一點的 chip 才不會把其他項目擠到換行；更窄的寬度原本就很擠，不再加 */}
-              <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 lg:block" title="切換到新版介面">
+              {/* 1280px 以下導覽列沒有多餘寬度（已登入時更窄），放進來會讓其他項目換行，改用下方的浮動入口 */}
+              <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
                 新版
               </Link>
               <GoogleLoginButton />
@@ -221,6 +221,14 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
+
+      {/* 768–1279px 的新版入口：固定在左下角，不佔導覽列寬度；右下角已有搜尋按鈕與對比列 */}
+      <Link
+        to={v2Href}
+        className="fixed bottom-5 left-5 z-[60] hidden rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-medium text-slate-600 shadow-soft backdrop-blur transition hover:text-slate-900 md:block xl:hidden"
+      >
+        切換到新版
+      </Link>
 
       {isMobileMenuOpen ? (
         <MobileMenuOverlay

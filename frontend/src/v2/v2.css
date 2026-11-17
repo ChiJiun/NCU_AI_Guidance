@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@900&display=swap');
 
 /*
  * 新版（/v2）的設計 tokens 與元件樣式。
@@ -55,10 +55,10 @@
   color: inherit;
 }
 
+/* 不設 border-radius：outline 會沿著元素本身的圓角，膠囊按鈕聚焦時才不會變方角 */
 .v2 :focus-visible {
   outline: 2px solid var(--v2-focus);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
 .v2-serif {
@@ -91,6 +91,15 @@
   max-width: 76rem;
   margin-inline: auto;
   padding-inline: 1.25rem;
+}
+
+/* 閱讀型頁面（量表）用的窄版容器；不能用 max-w-* utility，會被上面的 max-width 蓋掉 */
+.v2-container--narrow {
+  max-width: 48rem;
+}
+
+.v2-container--mid {
+  max-width: 56rem;
 }
 
 @media (min-width: 768px) {
@@ -360,7 +369,9 @@
   background: var(--v2-paper-2);
 }
 
-.v2-row[aria-current='true'] {
+/* 樹狀清單的選取項設 aria-current="true"；手機選單的 NavLink 會自動設成 "page" */
+.v2-row[aria-current='true'],
+.v2-row[aria-current='page'] {
   background: var(--v2-surface);
   box-shadow: inset 3px 0 0 var(--v2-accent);
 }

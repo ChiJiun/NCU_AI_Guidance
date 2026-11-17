@@ -5,6 +5,7 @@ import { useAssessment } from '../../features/assessment/useAssessment';
 import type { AssessmentMode } from '../../types';
 import { collegeHex } from '../colleges';
 import { v2Link } from '../paths';
+import RovingGroup from '../components/RovingGroup';
 
 const MODES: { id: AssessmentMode; label: string }[] = [
   { id: 'grade1', label: '高一' },
@@ -90,11 +91,11 @@ export default function AssessmentV2() {
     const startLabel = needsTrack ? '選擇類組' : needsSubjects ? '選擇科目' : '開始';
 
     return (
-      <div className="v2-container max-w-3xl py-12 md:py-20">
+      <div className="v2-container v2-container--narrow py-12 md:py-20">
         <h1 className="v2-serif text-4xl md:text-5xl">興趣量表</h1>
 
         <div className="mt-10 space-y-8">
-          <div role="radiogroup" aria-label="年級" className="v2-seg">
+          <RovingGroup role="radiogroup" aria-label="年級" className="v2-seg">
             {MODES.map((item) => (
               <button
                 key={item.id}
@@ -111,10 +112,10 @@ export default function AssessmentV2() {
                 {item.label}
               </button>
             ))}
-          </div>
+          </RovingGroup>
 
           {mode === 'grade2' && (
-            <div role="radiogroup" aria-label="類組" className="flex flex-wrap gap-2">
+            <RovingGroup role="radiogroup" aria-label="類組" className="flex flex-wrap gap-2">
               {TRACKS.map((item) => (
                 <button
                   key={item.id}
@@ -127,7 +128,7 @@ export default function AssessmentV2() {
                   {item.label}
                 </button>
               ))}
-            </div>
+            </RovingGroup>
           )}
 
           {mode === 'grade3' && (
@@ -200,7 +201,7 @@ export default function AssessmentV2() {
     const tags = result.tagScores.slice(0, 12);
 
     return (
-      <div className="v2-container max-w-4xl py-12 md:py-16">
+      <div className="v2-container v2-container--mid py-12 md:py-16">
         <h1 ref={headingRef} tabIndex={-1} className="v2-serif text-4xl outline-none md:text-5xl">
           {track ? (
             <>
@@ -365,7 +366,7 @@ export default function AssessmentV2() {
       ].filter((section) => section.text);
 
   return (
-    <div className="v2-container max-w-3xl pb-28 pt-6 md:pt-10">
+    <div className="v2-container v2-container--narrow pb-28 pt-6 md:pt-10">
       <div className="flex items-center gap-4">
         <div
           className="v2-bar v2-bar--accent flex-1"
@@ -449,7 +450,7 @@ export default function AssessmentV2() {
         className="fixed inset-x-0 bottom-0 z-30 border-t"
         style={{ background: 'var(--v2-paper)', borderColor: 'var(--v2-line)' }}
       >
-        <div className="v2-container flex max-w-3xl items-center gap-3 py-3">
+        <div className="v2-container v2-container--narrow flex items-center gap-3 py-3">
           <button
             type="button"
             className="v2-btn v2-btn--ghost"

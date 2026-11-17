@@ -9,6 +9,7 @@ import { TOOL_LABELS } from '../../features/courseChat/toolLabels';
 import { formatTime, useCourseChat } from '../../features/courseChat/useCourseChat';
 import type { CourseCard } from '../../types';
 import LiveAiGate from '../components/LiveAiGate';
+import V2Dialog from '../components/V2Dialog';
 
 /** 推薦課程清單（右欄；手機在對話下方展開） */
 function CourseList({ courses, onPick }: { courses: CourseCard[]; onPick: (course: CourseCard) => void }) {
@@ -111,13 +112,17 @@ export default function CourseChatV2() {
               <li key={conversation.id} className="flex items-center gap-1 border-b px-2 py-1.5" style={{ borderColor: 'var(--v2-line)' }}>
                 <input
                   autoFocus
-                  className="v2-input !min-h-9 !py-1 text-sm"
+                  className="v2-input !min-h-9 !py-1 !text-sm"
                   aria-label="對話名稱"
                   value={renaming.title}
                   onChange={(event) => setRenaming({ id: conversation.id, title: event.target.value })}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') commitRename();
-                    if (event.key === 'Escape') setRenaming(null);
+                    if (event.key === 'Escape') {
+                      // 只取消重新命名，不要連手機的對話記錄抽屜一起關掉
+                      event.stopPropagation();
+                      setRenaming(null);
+                    }
                   }}
                   onBlur={commitRename}
                 />
@@ -173,10 +178,9 @@ export default function CourseChatV2() {
       {isMobileConversationOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/30" aria-hidden="true" onClick={() => setIsMobileConversationOpen(false)} />
-          <div
-            role="dialog"
-            aria-modal="true"
+          <V2Dialog
             aria-label="對話記錄"
+            onClose={() => setIsMobileConversationOpen(false)}
             className="v2-rise absolute inset-y-0 left-0 flex w-[85%] max-w-xs flex-col shadow-2xl"
             style={{ background: 'var(--v2-paper)' }}
           >
@@ -186,7 +190,7 @@ export default function CourseChatV2() {
               </button>
             </div>
             {history}
-          </div>
+          </V2Dialog>
         </div>
       )}
 
@@ -264,8 +268,9 @@ export default function CourseChatV2() {
               }
 
               const cards = message.courseCards ?? [];
+              // HighlightedAnswer 自帶 markdown 樣式，不再套 .v2-prose，避免兩套規則互相覆蓋
               return (
-                <div key={index} className="v2-prose">
+                <div key={index}>
                   <HighlightedAnswer text={message.content} courseCards={cards} onCourseClick={setOpenCourse} />
                   {message.isStreaming && (
                     <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse align-middle" style={{ background: 'var(--v2-ink)' }} aria-hidden="true" />

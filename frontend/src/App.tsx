@@ -13,6 +13,8 @@ import MonitorPage from './pages/MonitorPage';
 import DemoGalleryPage from './pages/DemoGalleryPage';
 import DemoCasePage from './pages/DemoCasePage';
 import { AuthProvider } from './auth/AuthContext';
+import LoadErrorBoundary from './components/LoadErrorBoundary';
+import V2LoadError from './v2/V2LoadError';
 
 // 新版前端（/v2/*）獨立成一個 chunk，只有進到 /v2 才會載入，不影響舊版
 const V2App = lazy(() => import('./v2/V2App'));
@@ -51,9 +53,11 @@ function App() {
           <Route
             path="/v2/*"
             element={
-              <Suspense fallback={<div className="min-h-screen" style={{ background: '#f5f2ea' }} />}>
-                <V2App />
-              </Suspense>
+              <LoadErrorBoundary fallback={<V2LoadError />}>
+                <Suspense fallback={<div className="min-h-screen" style={{ background: '#f5f2ea' }} />}>
+                  <V2App />
+                </Suspense>
+              </LoadErrorBoundary>
             }
           />
         </Routes>

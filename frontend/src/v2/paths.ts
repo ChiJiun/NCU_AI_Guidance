@@ -10,29 +10,47 @@ export const V2_BASE = '/v2';
 /** 新版已經有的頁面（以舊版路徑表示）。 */
 export const V2_PAGES = ['/', '/assessment', '/curriculum', '/courses', '/course-search'] as const;
 
-const trimTrailingSlash = (pathname: string) =>
-  pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+/**
+ * 合併連續斜線並去掉結尾斜線。
+ * react-router 會把 `//courses` 當成外部網址而丟錯，所以 `/v2//courses` 這類網址要先整理。
+ */
+export function normalizePath(pathname: string): string {
+  const collapsed = pathname.replace(/\/{2,}/g, '/') || '/';
+  return collapsed.length > 1 && collapsed.endsWith('/') ? collapsed.slice(0, -1) : collapsed;
+}
 
+/** react-router 比對路由不分大小寫，這裡也一樣（例如 `/V2/courses`）。 */
 export function isV2Path(pathname: string): boolean {
-  return pathname === V2_BASE || pathname.startsWith(`${V2_BASE}/`);
+  const lower = normalizePath(pathname).toLowerCase();
+  return lower === V2_BASE || lower.startsWith(`${V2_BASE}/`);
+}
+
+/** 舊版路徑在新版有對應頁面時，回傳該頁的標準寫法（小寫）；沒有則回傳 null。 */
+function matchV2Page(legacyPathname: string): string | null {
+  const lower = normalizePath(legacyPathname).toLowerCase();
+  return (V2_PAGES as readonly string[]).includes(lower) ? lower : null;
 }
 
 /** 舊版路徑在新版有沒有對應頁面。 */
 export function hasV2Page(legacyPathname: string): boolean {
-  return (V2_PAGES as readonly string[]).includes(trimTrailingSlash(legacyPathname));
+  return matchV2Page(legacyPathname) !== null;
 }
 
 /** 舊版路徑 → 新版路徑；新版沒有這一頁時回到新版首頁。 */
 export function toV2Path(pathname: string): string {
-  const path = trimTrailingSlash(pathname);
-  if (isV2Path(path)) return path;
-  if (!hasV2Page(path)) return V2_BASE;
-  return path === '/' ? V2_BASE : `${V2_BASE}${path}`;
+  if (isV2Path(pathname)) {
+    // 已經是新版路徑：只把前綴改成標準寫法（/V2//courses → /v2/courses）
+    const rest = toLegacyPath(pathname);
+    return rest === '/' ? V2_BASE : `${V2_BASE}${rest}`;
+  }
+  const page = matchV2Page(pathname);
+  if (!page) return V2_BASE;
+  return page === '/' ? V2_BASE : `${V2_BASE}${page}`;
 }
 
-/** 新版路徑 → 舊版路徑。 */
+/** 新版路徑 → 舊版路徑（`/v2` 之後的部分原樣保留，只整理斜線）。 */
 export function toLegacyPath(pathname: string): string {
-  const path = trimTrailingSlash(pathname);
+  const path = normalizePath(pathname);
   if (!isV2Path(path)) return path;
   const rest = path.slice(V2_BASE.length);
   return rest === '' ? '/' : rest;

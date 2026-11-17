@@ -7,6 +7,7 @@ import { QUICK_ACTIONS, useCourseAsk } from '../../features/courses/useCourseAsk
 import type { Course } from '../../types';
 import LiveAiGate from './LiveAiGate';
 import Markdown from './Markdown';
+import V2Dialog from './V2Dialog';
 
 interface CourseDetailV2Props {
   course: Course;
@@ -47,16 +48,9 @@ export default function CourseDetailV2({ course, keyword = '', isCompared = fals
   const { askOpen, closeAsk } = ask;
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // 打開問答抽屜時直接把焦點放在輸入框（Esc、focus trap、關閉後回焦點由 V2Dialog 處理）
   useEffect(() => {
-    if (!askOpen) return;
-    inputRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeAsk();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-    // closeAsk 每次 render 都是新的函式，但只會重設 state，不需要列為相依
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (askOpen) inputRef.current?.focus();
   }, [askOpen]);
 
   const send = (question: string) => {
@@ -294,10 +288,9 @@ export default function CourseDetailV2({ course, keyword = '', isCompared = fals
       {askOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div className="absolute inset-0 bg-black/30" onClick={closeAsk} aria-hidden="true" />
-          <div
-            role="dialog"
-            aria-modal="true"
+          <V2Dialog
             aria-labelledby="v2-ask-title"
+            onClose={closeAsk}
             className="v2-rise relative flex h-full w-full max-w-md flex-col border-l shadow-2xl"
             style={{ background: 'var(--v2-paper)', borderColor: 'var(--v2-line)' }}
           >
@@ -374,7 +367,7 @@ export default function CourseDetailV2({ course, keyword = '', isCompared = fals
                 </form>
               </LiveAiGate>
             </footer>
-          </div>
+          </V2Dialog>
         </div>
       )}
     </article>

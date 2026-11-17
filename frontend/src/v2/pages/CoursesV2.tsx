@@ -12,6 +12,7 @@ import { useCourseCatalog } from '../../features/courses/useCourseCatalog';
 import type { Course } from '../../types';
 import { collegeHex } from '../colleges';
 import CourseDetailV2 from '../components/CourseDetailV2';
+import RovingGroup from '../components/RovingGroup';
 
 const PAGE_SIZE = 80;
 
@@ -186,13 +187,13 @@ export default function CoursesV2() {
           </form>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div role="radiogroup" aria-label="搜尋方式" className="v2-seg flex-none">
+            <RovingGroup role="radiogroup" aria-label="搜尋方式" className="v2-seg flex-none">
               {SCOPES.map((item) => (
                 <button key={item.id} type="button" role="radio" aria-checked={scope === item.id} onClick={() => setScope(item.id)}>
                   {item.label}
                 </button>
               ))}
-            </div>
+            </RovingGroup>
             <button
               type="button"
               className="v2-iconbtn relative"
@@ -209,7 +210,7 @@ export default function CoursesV2() {
                 </span>
               )}
             </button>
-            <div role="radiogroup" aria-label="學制" className="v2-seg flex-none">
+            <RovingGroup role="radiogroup" aria-label="學制" className="v2-seg flex-none">
               {LEVELS.map((item) => (
                 <button
                   key={item.id}
@@ -224,7 +225,7 @@ export default function CoursesV2() {
                   {item.label}
                 </button>
               ))}
-            </div>
+            </RovingGroup>
           </div>
         </div>
 
@@ -286,7 +287,7 @@ export default function CoursesV2() {
                     >
                       <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: collegeHex(node.college) }} aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate">{node.college}</span>
-                      <span className="v2-faint v2-num text-sm font-normal">{node.count}</span>
+                      <span className="v2-faint text-sm tabular-nums">{node.count}</span>
                       <HiChevronDown
                         className={`v2-faint h-4 w-4 flex-none transition-transform ${open ? '' : '-rotate-90'}`}
                         aria-hidden="true"

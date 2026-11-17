@@ -8,6 +8,8 @@ import type { CourseEntry, DeptDetail, ElectiveGroup, GraduationRule, NotesEntry
 import { useCurriculumData } from '../../features/curriculum/useCurriculumData';
 import type { CourseCard } from '../../types';
 import { collegeHex } from '../colleges';
+import V2Dialog from '../components/V2Dialog';
+import RovingGroup from '../components/RovingGroup';
 
 type Tab = 'required' | 'elective' | 'rules';
 const TAB_LABELS: Record<Tab, string> = { required: '必修', elective: '選修', rules: '畢業規定' };
@@ -170,13 +172,13 @@ function DeptBody({ detail, defaultTab, actions }: { detail: DeptDetail; default
   return (
     <>
       {tabs.length > 1 && (
-        <div role="tablist" aria-label="修課內容" className="v2-seg mb-4">
+        <RovingGroup role="tablist" aria-label="修課內容" className="v2-seg mb-4">
           {tabs.map((item) => (
             <button key={item} type="button" role="tab" aria-selected={tab === item} onClick={() => setPicked(item)}>
               {TAB_LABELS[item]}
             </button>
           ))}
-        </div>
+        </RovingGroup>
       )}
 
       <div role="tabpanel" aria-label={TAB_LABELS[tab]}>
@@ -252,23 +254,14 @@ function NotesDrawer({ deptId, onClose }: { deptId: string; onClose: () => void 
     };
   }, [deptId]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const entries = result?.deptId === deptId ? result.entries : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30" aria-hidden="true" onClick={onClose} />
-      <div
-        role="dialog"
-        aria-modal="true"
+      <V2Dialog
         aria-label="原始規定"
+        onClose={onClose}
         className="v2-rise relative flex h-full w-full max-w-lg flex-col shadow-2xl"
         style={{ background: 'var(--v2-paper)' }}
       >
@@ -295,7 +288,7 @@ function NotesDrawer({ deptId, onClose }: { deptId: string; onClose: () => void 
             ))
           )}
         </div>
-      </div>
+      </V2Dialog>
     </div>
   );
 }
@@ -391,7 +384,7 @@ export default function CurriculumV2() {
                   <button type="button" className="v2-row !min-h-12 font-semibold" aria-expanded={open} onClick={() => toggleCollege(college.id)}>
                     <span className="h-2.5 w-2.5 flex-none rounded-full" style={{ background: collegeHex(college.name) }} aria-hidden="true" />
                     <span className="min-w-0 flex-1 truncate">{college.name}</span>
-                    <span className="v2-faint v2-num text-sm font-normal">{depts.length}</span>
+                    <span className="v2-faint text-sm tabular-nums">{depts.length}</span>
                     <HiChevronDown className={`v2-faint h-4 w-4 flex-none transition-transform ${open ? '' : '-rotate-90'}`} aria-hidden="true" />
                   </button>
                   {open && (
@@ -489,7 +482,7 @@ export default function CurriculumV2() {
             </header>
 
             {groups.length > 0 && (
-              <div role="radiogroup" aria-label="分組" className="mt-5 flex flex-wrap gap-1.5">
+              <RovingGroup role="radiogroup" aria-label="分組" className="mt-5 flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   role="radio"
@@ -511,7 +504,7 @@ export default function CurriculumV2() {
                     {group.name}
                   </button>
                 ))}
-              </div>
+              </RovingGroup>
             )}
 
             <div className="mt-6">
@@ -531,15 +524,11 @@ export default function CurriculumV2() {
       {crossCourse && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
           <div className="absolute inset-0 bg-black/30" aria-hidden="true" onClick={() => setCrossCourse(null)} />
-          <div
-            role="dialog"
-            aria-modal="true"
+          <V2Dialog
             aria-labelledby="v2-cross-title"
+            onClose={() => setCrossCourse(null)}
             className="v2-rise relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-t-xl shadow-2xl sm:rounded-xl"
             style={{ background: 'var(--v2-paper)' }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') setCrossCourse(null);
-            }}
           >
             <header className="flex items-center border-b py-2 pl-5 pr-2" style={{ borderColor: 'var(--v2-line)' }}>
               <h2 id="v2-cross-title" className="v2-serif min-w-0 flex-1 truncate text-lg">
@@ -584,7 +573,7 @@ export default function CurriculumV2() {
                 </ul>
               )}
             </div>
-          </div>
+          </V2Dialog>
         </div>
       )}
 

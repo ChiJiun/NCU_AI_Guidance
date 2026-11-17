@@ -54,3 +54,20 @@ test('v2Link：新版有的頁面連到 /v2，其餘連回舊版', () => {
   assert.equal(v2Link('/resources'), '/resources');
   assert.equal(v2Link('/profile'), '/profile');
 });
+
+test('連續斜線會先合併，避免 react-router 把 //courses 當成外部網址', () => {
+  assert.equal(toLegacyPath('/v2//courses'), '/courses');
+  assert.equal(toLegacyPath('//v2///projects//'), '/projects');
+  assert.equal(toV2Path('//courses'), '/v2/courses');
+  assert.equal(toV2Path('/v2//courses'), '/v2/courses');
+});
+
+test('/v2 前綴與新版頁面比對不分大小寫（和 react-router 一致）', () => {
+  assert.equal(isV2Path('/V2/projects'), true);
+  assert.equal(toLegacyPath('/V2/projects'), '/projects');
+  assert.equal(toLegacyPath('/V2'), '/');
+  assert.equal(toV2Path('/Courses'), '/v2/courses');
+  assert.equal(hasV2Page('/COURSES'), true);
+  // /v2 之後的部分原樣保留（例如 demo id 可能有大小寫）
+  assert.equal(toLegacyPath('/v2/demo/CaseA'), '/demo/CaseA');
+});

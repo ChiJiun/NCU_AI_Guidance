@@ -1,0 +1,561 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
+
+/*
+ * 新版（/v2）的設計 tokens 與元件樣式。
+ * 所有規則都限定在 .v2 之下，不會影響舊版頁面；這個檔案只會隨 /v2 的 chunk 載入。
+ *
+ * 設計原則：少用說明文字，讓版面（對齊、間距、字級、分組）自己說明。
+ * 隱喻是一張地圖：紙色底、墨色字與線、朱紅只用來標示「你在這裡」（目前頁、選取、進度）。
+ */
+
+.v2 {
+  --v2-paper: #f5f2ea;
+  --v2-paper-2: #ece8dc;
+  --v2-surface: #ffffff;
+  --v2-ink: #15202b;
+  --v2-ink-2: #45505c;
+  --v2-ink-3: #616b77;
+  --v2-line: #d8d3c5;
+  --v2-line-2: #c3bdac;
+  --v2-accent: #c2410c;
+  --v2-accent-soft: #fbe9df;
+  --v2-ok: #047857;
+  --v2-danger: #b91c1c;
+  --v2-focus: #1d4ed8;
+  --v2-serif: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+  --v2-nav-h: 3.75rem;
+  --v2-radius: 0.5rem;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--v2-paper);
+  color: var(--v2-ink);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* 全高（工具型）頁面：導覽列固定在上方，內容區自己捲動 */
+.v2.v2--app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/*
+ * 舊版 index.css 的 base 層把所有標題設成 primary-900；新版標題跟著內文顏色。
+ * 用 :where() 把權重壓到和 base 一樣低，重用的舊元件（對比、課程詳情彈窗）裡
+ * 標題上的 text-* utility 才不會被蓋掉。
+ */
+:where(.v2) h1,
+:where(.v2) h2,
+:where(.v2) h3,
+:where(.v2) h4 {
+  color: inherit;
+}
+
+.v2 :focus-visible {
+  outline: 2px solid var(--v2-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.v2-serif {
+  font-family: var(--v2-serif);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.v2-num {
+  font-family: var(--v2-serif);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.v2-muted {
+  color: var(--v2-ink-2);
+}
+
+.v2-faint {
+  color: var(--v2-ink-3);
+}
+
+.v2-accent {
+  color: var(--v2-accent);
+}
+
+.v2-container {
+  width: 100%;
+  max-width: 76rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .v2-container {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* ── 跳到主要內容 ── */
+.v2-skip {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: var(--v2-ink);
+  color: #fff;
+  border-radius: var(--v2-radius);
+}
+
+.v2-skip:focus {
+  top: 0.75rem;
+}
+
+/*
+ * 注意：這個檔案比 Tailwind 晚載入，下面的元件 class（.v2-btn、.v2-iconbtn…）若設定了 display、padding 等屬性，
+ * 會蓋過同權重的 Tailwind utility。和 utility 一起用、又要改這些屬性時，請加 !（例如 lg:!hidden、!px-0）。
+ */
+
+/* ── 導覽列 ── */
+.v2-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  flex: none;
+  height: var(--v2-nav-h);
+  background: color-mix(in srgb, var(--v2-paper) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--v2-line);
+}
+
+.v2-navlink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  color: var(--v2-ink-2);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 150ms ease;
+}
+
+.v2-navlink:hover {
+  color: var(--v2-ink);
+}
+
+.v2-navlink[aria-current='page'] {
+  color: var(--v2-ink);
+  font-weight: 700;
+}
+
+.v2-navlink[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -0.5rem;
+  height: 3px;
+  background: var(--v2-accent);
+}
+
+/* ── 按鈕 ── */
+.v2-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  border: 1px solid var(--v2-ink);
+  border-radius: var(--v2-radius);
+  background: var(--v2-ink);
+  color: #fff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.v2-btn:hover {
+  background: #24323f;
+}
+
+.v2-btn:active {
+  transform: translateY(1px);
+}
+
+.v2-btn:disabled {
+  border-color: var(--v2-line-2);
+  background: var(--v2-paper-2);
+  color: var(--v2-ink-3);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.v2-btn--ghost {
+  background: transparent;
+  color: var(--v2-ink);
+  border-color: var(--v2-line-2);
+}
+
+.v2-btn--ghost:hover {
+  background: var(--v2-surface);
+  border-color: var(--v2-ink);
+}
+
+.v2-btn--lg {
+  min-height: 3.25rem;
+  padding: 0 1.75rem;
+  font-size: 1.0625rem;
+}
+
+.v2-btn--sm {
+  min-height: 2.25rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* 只有圖示的按鈕（一定要有 aria-label） */
+.v2-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  border-radius: var(--v2-radius);
+  color: var(--v2-ink-2);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.v2-iconbtn:hover {
+  background: var(--v2-paper-2);
+  color: var(--v2-ink);
+}
+
+.v2-iconbtn[aria-pressed='true'] {
+  background: var(--v2-accent-soft);
+  color: var(--v2-accent);
+}
+
+/* ── 可切換的選項（單選／多選） ── */
+.v2-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid var(--v2-line-2);
+  border-radius: 999px;
+  background: var(--v2-surface);
+  color: var(--v2-ink);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.v2-chip:hover {
+  border-color: var(--v2-ink);
+}
+
+.v2-chip[aria-checked='true'],
+.v2-chip[aria-pressed='true'] {
+  border-color: var(--v2-ink);
+  background: var(--v2-ink);
+  color: #fff;
+}
+
+.v2-chip--sm {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* 分段切換 */
+.v2-seg {
+  display: inline-flex;
+  padding: 0.1875rem;
+  border: 1px solid var(--v2-line-2);
+  border-radius: calc(var(--v2-radius) + 0.1875rem);
+  background: var(--v2-paper-2);
+}
+
+.v2-seg > button {
+  min-height: 2.375rem;
+  padding: 0 1rem;
+  border-radius: var(--v2-radius);
+  color: var(--v2-ink-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.v2-seg > button:hover {
+  color: var(--v2-ink);
+}
+
+.v2-seg > button[aria-checked='true'],
+.v2-seg > button[aria-selected='true'] {
+  background: var(--v2-surface);
+  color: var(--v2-ink);
+  box-shadow: 0 1px 2px rgb(21 32 43 / 0.12);
+}
+
+/* ── 輸入框 ── */
+.v2-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--v2-line-2);
+  border-radius: var(--v2-radius);
+  background: var(--v2-surface);
+  color: var(--v2-ink);
+  font-size: 1rem;
+}
+
+.v2-input::placeholder {
+  color: var(--v2-ink-3);
+}
+
+/* 搜尋框已有自己的清除鈕，隱藏瀏覽器內建的 */
+.v2-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.v2-input:focus {
+  border-color: var(--v2-ink);
+  outline: 2px solid var(--v2-focus);
+  outline-offset: 1px;
+}
+
+/* ── 清單列 ── */
+.v2-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.625rem 1rem;
+  border-bottom: 1px solid var(--v2-line);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.v2-row:hover {
+  background: var(--v2-paper-2);
+}
+
+.v2-row[aria-current='true'] {
+  background: var(--v2-surface);
+  box-shadow: inset 3px 0 0 var(--v2-accent);
+}
+
+/* ── 面板與分隔 ── */
+.v2-panel {
+  background: var(--v2-surface);
+  border: 1px solid var(--v2-line);
+  border-radius: calc(var(--v2-radius) * 1.5);
+}
+
+.v2-rule {
+  border: 0;
+  border-top: 1px solid var(--v2-line);
+}
+
+.v2-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--v2-paper-2);
+  color: var(--v2-ink-2);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* 分數／比例長條 */
+.v2-bar {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--v2-paper-2);
+  overflow: hidden;
+}
+
+.v2-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--v2-ink);
+}
+
+.v2-bar--accent > span {
+  background: var(--v2-accent);
+}
+
+/* 捲動容器 */
+.v2-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--v2-line-2) transparent;
+}
+
+/* ── Hero 的等高線圖 ── */
+.v2-hero-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 靜態後備：沒有 WebGPU、偏好減少動態、或小螢幕時顯示 */
+.v2-hero-static {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(90deg, var(--v2-paper) 0%, color-mix(in srgb, var(--v2-paper) 55%, transparent) 45%, transparent 75%),
+    repeating-radial-gradient(ellipse 60% 80% at 82% 38%, transparent 0 21px, rgb(21 32 43 / 0.13) 21px 22px),
+    repeating-radial-gradient(ellipse 70% 50% at 58% 92%, transparent 0 27px, rgb(21 32 43 / 0.08) 27px 28px);
+}
+
+.v2-hero-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.v2-hero-canvas.is-ready {
+  opacity: 1;
+}
+
+/* ── 進場動畫 ── */
+@keyframes v2-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.v2-rise {
+  animation: v2-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes v2-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.v2-skeleton {
+  border-radius: var(--v2-radius);
+  background: var(--v2-paper-2);
+  animation: v2-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes v2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.v2-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--v2-line-2);
+  border-top-color: var(--v2-ink);
+  border-radius: 50%;
+  animation: v2-spin 700ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2 *,
+  .v2 *::before,
+  .v2 *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* AI 回答的 Markdown 內容 */
+.v2-prose {
+  font-size: 0.9375rem;
+  line-height: 1.8;
+}
+
+.v2-prose p,
+.v2-prose ul,
+.v2-prose ol,
+.v2-prose table {
+  margin-block: 0.6em;
+}
+
+.v2-prose ul,
+.v2-prose ol {
+  padding-left: 1.4em;
+}
+
+.v2-prose ul {
+  list-style: disc;
+}
+
+.v2-prose ol {
+  list-style: decimal;
+}
+
+.v2-prose h1,
+.v2-prose h2,
+.v2-prose h3,
+.v2-prose h4 {
+  margin: 1em 0 0.4em;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.v2-prose a {
+  color: var(--v2-accent);
+  text-decoration: underline;
+}
+
+.v2-prose code {
+  padding: 0.1em 0.3em;
+  border-radius: 0.25rem;
+  background: var(--v2-paper-2);
+  font-size: 0.9em;
+}
+
+.v2-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.v2-prose th,
+.v2-prose td {
+  padding: 0.4em 0.6em;
+  border: 1px solid var(--v2-line);
+  text-align: left;
+}

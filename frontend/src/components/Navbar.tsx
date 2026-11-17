@@ -6,6 +6,7 @@ import logo from '../assets/NCULogo.png';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useAuth, type AuthUser } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
+import { toV2Path } from '../v2/paths';
 
 const navItems = [
   { path: '/', label: '首頁' },
@@ -30,12 +31,15 @@ function Avatar({ picture, name }: { picture: string; name: string }) {
 
 function MobileMenuOverlay({
   pathname,
+  v2Href,
   onClose,
   user,
   isDev,
   onLogout,
 }: {
   pathname: string;
+  /** 新版（/v2）的對應頁面 */
+  v2Href: string;
   onClose: () => void;
   user: AuthUser | null;
   isDev: boolean;
@@ -75,6 +79,13 @@ function MobileMenuOverlay({
                 {item.label}
               </Link>
             ))}
+            <Link
+              to={v2Href}
+              onClick={onClose}
+              className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
+            >
+              切換到新版
+            </Link>
 
             {/* 使用者區塊 */}
             {user ? (
@@ -151,6 +162,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const isDev = isDeveloper(user?.email);
+  const v2Href = `${toV2Path(location.pathname)}${location.search}`;
 
   useEffect(() => {
     void (async () => { await Promise.resolve(); setIsMobileMenuOpen(false); })();
@@ -189,6 +201,10 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
+              {/* 1024px 時導覽列只剩約 60px 空間：窄一點的 chip 才不會把其他項目擠到換行；更窄的寬度原本就很擠，不再加 */}
+              <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 lg:block" title="切換到新版介面">
+                新版
+              </Link>
               <GoogleLoginButton />
             </div>
 
@@ -209,6 +225,7 @@ export default function Navbar() {
       {isMobileMenuOpen ? (
         <MobileMenuOverlay
           pathname={location.pathname}
+          v2Href={v2Href}
           onClose={() => setIsMobileMenuOpen(false)}
           user={user}
           isDev={isDev}

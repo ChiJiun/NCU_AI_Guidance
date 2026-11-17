@@ -10,7 +10,7 @@ import {
 } from '../../features/courses/catalog';
 import { useCourseCatalog } from '../../features/courses/useCourseCatalog';
 import type { Course } from '../../types';
-import { collegeHex } from '../colleges';
+import { useSite } from '../site';
 import CourseDetailV2 from '../components/CourseDetailV2';
 import RovingGroup from '../components/RovingGroup';
 
@@ -32,6 +32,7 @@ const toggle = (value: string, setter: Dispatch<SetStateAction<string[]>>) =>
   setter((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]));
 
 export default function CoursesV2() {
+  const { collegeHex } = useSite();
   const catalog = useCourseCatalog();
   const {
     loading,

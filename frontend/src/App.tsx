@@ -15,9 +15,12 @@ import DemoCasePage from './pages/DemoCasePage';
 import { AuthProvider } from './auth/AuthContext';
 import LoadErrorBoundary from './components/LoadErrorBoundary';
 import V2LoadError from './v2/V2LoadError';
+import V3LoadError from './v3/V3LoadError';
 
 // 新版前端（/v2/*）獨立成一個 chunk，只有進到 /v2 才會載入，不影響舊版
 const V2App = lazy(() => import('./v2/V2App'));
+// 第三版前端（/v3/*）：v2 的版面＋舊版的風格，同樣獨立成一個 chunk
+const V3App = lazy(() => import('./v3/V3App'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -56,6 +59,16 @@ function App() {
               <LoadErrorBoundary fallback={<V2LoadError />}>
                 <Suspense fallback={<div className="min-h-screen" style={{ background: '#f5f2ea' }} />}>
                   <V2App />
+                </Suspense>
+              </LoadErrorBoundary>
+            }
+          />
+          <Route
+            path="/v3/*"
+            element={
+              <LoadErrorBoundary fallback={<V3LoadError />}>
+                <Suspense fallback={<div className="bg-theme-1 min-h-screen" />}>
+                  <V3App />
                 </Suspense>
               </LoadErrorBoundary>
             }

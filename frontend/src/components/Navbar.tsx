@@ -180,6 +180,17 @@ export default function Navbar() {
   return (
     <>
       <nav className="sticky top-0 z-50 border-b border-white/70 bg-white/80 backdrop-blur-xl">
+        {/*
+          768–1279px 的新版入口：導覽列這個寬度沒有多餘空間，改放在導覽列頂端的細橫條。
+          它是 sticky 導覽列的一部分，不會疊在頁面內容上；舊版彈窗（後出現的 z-50）也會把它一起蓋住。
+        */}
+        <div className="hidden border-b border-white/70 md:block xl:hidden">
+          <div className="page-container-wide flex h-7 items-center justify-end">
+            <Link to={v2Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900">
+              切換到新版 →
+            </Link>
+          </div>
+        </div>
         <div className="page-container-wide">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center space-x-3 transition duration-200 hover:-translate-y-0.5">
@@ -201,7 +212,7 @@ export default function Navbar() {
                   {item.label}
                 </Link>
               ))}
-              {/* 1280px 以下導覽列沒有多餘寬度（已登入時更窄），放進來會讓其他項目換行，改用下方的浮動入口 */}
+              {/* 1280px 以下導覽列沒有多餘寬度（已登入時更窄），放進來會讓其他項目換行，改用上面的細橫條 */}
               <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
                 新版
               </Link>
@@ -221,14 +232,6 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-
-      {/* 768–1279px 的新版入口：固定在左下角，不佔導覽列寬度；右下角已有搜尋按鈕與對比列 */}
-      <Link
-        to={v2Href}
-        className="fixed bottom-5 left-5 z-[60] hidden rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-sm font-medium text-slate-600 shadow-soft backdrop-blur transition hover:text-slate-900 md:block xl:hidden"
-      >
-        切換到新版
-      </Link>
 
       {isMobileMenuOpen ? (
         <MobileMenuOverlay

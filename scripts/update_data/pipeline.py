@@ -387,8 +387,28 @@ class Pipeline:
         promotable = [f for f in all_changed if ch.is_within(f, declared)]
         self.report.undeclared = [f for f in all_changed if not ch.is_within(f, declared)]
         self.report.changes = [ch.describe_change(f, sandbox / f, self.root / f) for f in promotable]
+
+        # 後面的步驟可能改到前面步驟的輸出（逐步驗證時看到的是當時的版本），
+        # 所以套用前對所有要套用的檔案用最終內容再驗證一次。
+        final_errors = [e for rel in promotable
+                        for e in ch.validate_file(rel, sandbox / rel, self.root / rel, limits)]
+        final_errors += ch.paired_errors(promotable, self.root)
+        if final_errors:
+            self._add(StepResult("final_validation", "apply", "failed",
+                                 "套用前的整體驗證失敗（可能是後面的步驟改到前面步驟的輸出）："
+                                 + "；".join(final_errors), promotable))
+            return False
+
         if self.opts.apply and promotable:
-            promote(promotable, sandbox, self.root, self.run_dir / "backup", self.run_id)
+            try:
+                promote(promotable, sandbox, self.root, self.run_dir / "backup", self.run_id)
+            except Exception as e:
+                self._add(StepResult("promote", "apply", "failed",
+                                     f"套用到正式目錄失敗（{type(e).__name__}: {e}）；已嘗試用 "
+                                     f"{(self.run_dir / 'backup').as_posix()} 還原已替換的檔案，"
+                                     "請確認沒有其他程式（例如後端）佔用 data/processed 的檔案後重跑",
+                                     promotable))
+                return False
             self.report.promoted = True
         return True
 

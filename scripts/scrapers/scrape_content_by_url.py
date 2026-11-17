@@ -166,6 +166,14 @@ def parse_condition_page(driver) -> dict:
     return result
 
 
+# 課程綱要頁一定會有的識別欄位；一個都沒解析到，就當成錯誤頁
+OUTLINE_IDENTITY_FIELDS = ('課號', '流水號', '課程名稱(中文)')
+
+
+def is_outline_page(outline: dict) -> bool:
+    return any(str(outline.get(f) or '').strip() for f in OUTLINE_IDENTITY_FIELDS)
+
+
 # ─── 爬取單筆課程 ─────────────────────────────────────────────────────────────
 
 def scrape_course(driver, course: dict, dry_run: bool) -> tuple[bool, bool]:
@@ -193,6 +201,11 @@ def scrape_course(driver, course: dict, dry_run: bool) -> tuple[bool, bool]:
             if outline.get('_parse_error'):
                 error = True
                 print(f"    [綱要解析錯誤] {str(outline['_parse_error'])[:60]}")
+            elif not is_outline_page(outline):
+                # 頁面載入了但不是課程綱要（例如「系統忙碌」錯誤頁）：不能當成「無新資料」記進斷點
+                error = True
+                outline = {}
+                print('    [綱要頁異常] 找不到課號／流水號／課程名稱，可能是錯誤頁')
 
             # 補回文字欄位
             for field in SYLLABUS_FIELDS:
@@ -292,12 +305,43 @@ def pending_targets(dirs=None) -> tuple[list[tuple[Path, int]], dict[Path, set[s
     return pending, done_by_dir
 
 
+class ErrorBudget:
+    """錯誤預算：連續出錯太多（通常是瀏覽器掛掉或網站擋人）就提早中止，
+    跑完後錯誤率太高也視為失敗，讓資料更新管線停在 fetch 階段、不往下 build。"""
+
+    def __init__(self, max_consecutive: int = 10, max_rate: float = 0.2):
+        self.max_consecutive, self.max_rate = max_consecutive, max_rate
+        self.streak = 0
+        self.processed = 0
+        self.errors = 0
+
+    def record(self, error: bool) -> None:
+        self.processed += 1
+        if error:
+            self.errors += 1
+            self.streak += 1
+        else:
+            self.streak = 0
+
+    @property
+    def exhausted(self) -> bool:
+        """連續錯誤達上限，應立即中止。"""
+        return self.max_consecutive > 0 and self.streak >= self.max_consecutive
+
+    def failed(self) -> bool:
+        """整體是否算失敗：提早中止、或錯誤率超過上限。"""
+        if self.exhausted:
+            return True
+        return self.processed > 0 and self.errors / self.processed > self.max_rate
+
+
 def process_file(driver, file_path: Path, indices: list[int], done: set[str], *,
                  dry_run: bool, scrape=None, pause: float = 0.8,
-                 start: int = 0, total: int = 0) -> dict[str, int]:
+                 start: int = 0, total: int = 0, budget: ErrorBudget | None = None) -> dict[str, int]:
     """處理同一個檔案裡的待爬課程，回傳 {'processed', 'updated', 'errors'}。
 
     只有沒發生錯誤、且不是 dry-run 的課程才會加進 done（出錯的下次重試）。
+    budget 連續錯誤達上限時停止處理剩下的課（已補到的資料仍會寫回）。
     有更新時以暫存檔＋os.replace 寫回，避免中斷留下半個 JSON。
     """
     scrape = scrape or scrape_course
@@ -305,6 +349,8 @@ def process_file(driver, file_path: Path, indices: list[int], done: set[str], *,
     counts = {'processed': 0, 'updated': 0, 'errors': 0}
 
     for i in indices:
+        if budget is not None and budget.exhausted:
+            break
         course = data[i]
         name = course.get('課程名稱(中文)', '')
         dept = course.get('系所', '')
@@ -326,6 +372,8 @@ def process_file(driver, file_path: Path, indices: list[int], done: set[str], *,
             if not dry_run:
                 done.add(checkpoint_key(file_path, course))
         counts['processed'] += 1
+        if budget is not None:
+            budget.record(error)
         if pause:
             time.sleep(pause)
 
@@ -339,13 +387,18 @@ def process_file(driver, file_path: Path, indices: list[int], done: set[str], *,
 
 # ─── 主程式 ──────────────────────────────────────────────────────────────────
 
-def main():
+def main(argv=None) -> int:
+    """回傳結束碼：0 成功；1 連續錯誤過多而中止、或錯誤率超過上限。"""
     parser = argparse.ArgumentParser()
     parser.add_argument('--headless', action='store_true', help='無頭模式')
     parser.add_argument('--limit', type=int, default=0, help='最多處理幾筆（0=全部）')
     parser.add_argument('--dry-run', action='store_true',
                         help='只解析，不寫回檔案（測試用）')
-    args = parser.parse_args()
+    parser.add_argument('--max-consecutive-errors', type=int, default=10,
+                        help='連續幾筆出錯就中止並以結束碼 1 結束（0=不限）；預設 10')
+    parser.add_argument('--max-error-rate', type=float, default=0.2,
+                        help='錯誤筆數佔已處理筆數超過此比例就以結束碼 1 結束；預設 0.2')
+    args = parser.parse_args(argv)
 
     print('掃描待補課程...')
     targets = collect_targets()
@@ -360,7 +413,7 @@ def main():
 
     if not pending:
         print('無待處理項目，結束。')
-        return
+        return 0
 
     driver = make_driver(headless=args.headless)
 
@@ -370,23 +423,31 @@ def main():
     for f, i in pending:
         file_groups[f].append(i)
 
+    budget = ErrorBudget(args.max_consecutive_errors, args.max_error_rate)
     totals = {'processed': 0, 'updated': 0, 'errors': 0}
     try:
         for file_path, indices in file_groups.items():
             counts = process_file(driver, file_path, indices, done_by_dir[file_path.parent],
-                                  dry_run=args.dry_run, start=totals['processed'], total=len(pending))
+                                  dry_run=args.dry_run, start=totals['processed'], total=len(pending),
+                                  budget=budget)
             for k in totals:
                 totals[k] += counts[k]
             # 每個檔案處理完存一次斷點
             if not args.dry_run:
                 save_checkpoint(file_path.parent, done_by_dir[file_path.parent])
+            if budget.exhausted:
+                print(f'\n連續 {budget.streak} 筆出錯，可能是瀏覽器掛掉或網站暫時無法連線，中止。')
+                break
     finally:
-        driver.quit()
+        try:
+            driver.quit()
+        except Exception:
+            pass
         if not args.dry_run:
             for d, done in done_by_dir.items():
                 save_checkpoint(d, done)
         prefix = '[DRY-RUN] ' if args.dry_run else ''
-        print(f"\n{prefix}完成：處理 {totals['processed']} 筆，實際補齊 {totals['updated']} 筆，"
+        print(f"\n{prefix}完成：處理 {totals['processed']}／{len(pending)} 筆，實際補齊 {totals['updated']} 筆，"
               f"錯誤 {totals['errors']} 筆")
         if args.dry_run:
             print('（dry-run 模式，未寫回，去掉 --dry-run 重跑）')
@@ -394,6 +455,13 @@ def main():
             print(f'斷點記錄：各學期目錄下的 {CHECKPOINT_NAME}（重新爬課程時會隨目錄一起換掉）')
             print('重新跑可繼續未完成的部分（出錯的課程會重試）。若想從頭跑，刪除斷點檔即可。')
 
+    if budget.failed():
+        reason = (f'連續 {budget.streak} 筆出錯而中止' if budget.exhausted
+                  else f'錯誤率 {budget.errors}/{budget.processed} 超過 {budget.max_rate:.0%}')
+        print(f'補課綱失敗：{reason}。以結束碼 1 結束，資料更新管線不會往下 build；修好後重跑會從斷點續爬。')
+        return 1
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

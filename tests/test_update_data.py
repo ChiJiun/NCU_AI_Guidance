@@ -473,6 +473,34 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("api_key=***", log)
         self.assertNotIn("should-be-hidden", log)
 
+    def test_later_step_clobbering_earlier_output_fails_final_validation(self):
+        (self.root / "scripts/fake/z.py").write_text(textwrap.dedent("""
+            from pathlib import Path
+            R = Path(__file__).resolve().parents[2]
+            (R / "data/processed/items.json").write_text("[]", encoding="utf-8")
+            (R / "data/processed/other.json").write_text("[1]", encoding="utf-8")
+        """), encoding="utf-8")
+        clobber = Step("b", BUILD, "t", commands=(("scripts/fake/z.py",),),
+                       outputs=("data/processed/other.json",))
+        rep = self._run([self._build("grow"), clobber], apply=True)
+        self.assertTrue(rep.failed)
+        self.assertFalse(rep.promoted)
+        self.assertEqual(rep.results[-1].name, "final_validation")
+        self.assertIn("items.json", rep.results[-1].detail)
+        self.assertEqual(len(self._items()), 2)
+        self.assertFalse((self.root / "data/processed/other.json").exists())
+
+    def test_promote_failure_writes_report_and_restores(self):
+        with mock.patch.object(pipeline, "_replace_with_retry", side_effect=PermissionError("locked")):
+            rep = self._run([self._build("grow")], apply=True)
+        self.assertTrue(rep.failed)
+        self.assertFalse(rep.promoted)
+        self.assertEqual((rep.results[-1].name, rep.results[-1].status), ("promote", "failed"))
+        summary = (rep.run_dir / "summary.md").read_text(encoding="utf-8")
+        self.assertIn("套用到正式目錄失敗", summary)
+        self.assertEqual(len(self._items()), 2)
+        self.assertEqual([f.name for f in (self.root / "data/processed").iterdir()], ["items.json"])
+
     def test_undeclared_writes_are_not_promoted(self):
         rep = self._run([self._build("stray")], apply=True)
         self.assertEqual(rep.undeclared, ["data/processed/stray.json"])
@@ -834,6 +862,90 @@ class ContentScraperCheckpoint(unittest.TestCase):
         pending, done = self.mod.pending_targets([term_dir])
         self.assertEqual(pending, [(f, 0)])
         self.assertEqual(done[term_dir], set())
+
+    def _main(self, courses, scrape=None, driver=None, argv=("--headless",)):
+        d = self.root / "data/raw/courses/114_1"
+        _write_json(d / "a.json", courses)
+        calls = []
+
+        def counting(drv, course, dry_run):
+            calls.append(course["課號-班別"])
+            return scrape(drv, course, dry_run)
+
+        patches = [mock.patch.object(self.mod, "COURSE_DIRS", [d]),
+                   mock.patch.object(self.mod.time, "sleep", lambda s: None),
+                   mock.patch.object(self.mod, "make_driver", lambda headless=False: driver or _BoomDriver()),
+                   mock.patch("sys.stdout")]
+        if scrape is not None:
+            patches.append(mock.patch.object(self.mod, "scrape_course", counting))
+        for p in patches:
+            p.start()
+        try:
+            rc = self.mod.main(list(argv))
+        finally:
+            for p in reversed(patches):
+                p.stop()
+        return rc, calls, self.mod.load_checkpoint(d)
+
+    def test_dead_driver_exits_nonzero(self):
+        class Dead:
+            def get(self, url):
+                raise RuntimeError("invalid session id")
+
+            def quit(self):
+                pass
+
+        rc, _, done = self._main([_course("A"), _course("B")], driver=Dead())
+        self.assertEqual(rc, 1)
+        self.assertEqual(done, set())
+
+    def test_consecutive_errors_abort_early(self):
+        rc, calls, done = self._main([_course(f"C{i:02d}") for i in range(15)],
+                                     scrape=lambda drv, c, dry_run: (False, True))
+        self.assertEqual(rc, 1)
+        self.assertEqual(len(calls), 10)   # 預設連續 10 筆出錯就中止
+        self.assertEqual(done, set())
+
+    def test_few_errors_still_succeed(self):
+        def one_bad(drv, course, dry_run):
+            return False, course["課號-班別"] == "C03"
+
+        rc, calls, done = self._main([_course(f"C{i:02d}") for i in range(10)], scrape=one_bad)
+        self.assertEqual(rc, 0)
+        self.assertEqual(len(calls), 10)
+        self.assertEqual(len(done), 9)
+
+    def test_high_error_rate_exits_nonzero(self):
+        def every_other(drv, course, dry_run):
+            return False, int(course["課號-班別"][1:]) % 2 == 0
+
+        rc, calls, done = self._main([_course(f"C{i:02d}") for i in range(10)], scrape=every_other)
+        self.assertEqual(rc, 1)            # 5/10 出錯 > 20%
+        self.assertEqual(len(calls), 10)   # 沒有連續 10 筆，不會提早中止
+        self.assertEqual(len(done), 5)
+
+    def test_nothing_pending_exits_zero(self):
+        rc, calls, _ = self._main([_course("A", filled=True)], scrape=lambda *a, **k: (True, False))
+        self.assertEqual((rc, calls), (0, []))
+
+    def test_error_page_is_not_treated_as_no_data(self):
+        class Busy:
+            def get(self, url):
+                pass
+
+            def find_element(self, by, value):
+                if value == "body":
+                    return _El("系統忙碌，請稍後再試")
+                raise RuntimeError("no element")
+
+            def find_elements(self, *a):
+                return []
+
+        course = _course("A")
+        with mock.patch.object(self.mod.time, "sleep", lambda s: None), mock.patch("sys.stdout"):
+            self.assertEqual(self.mod.scrape_course(Busy(), course, dry_run=False), (False, True))
+        self.assertTrue(self.mod.is_outline_page({"課號": "CE1001", "課程目標": ""}))
+        self.assertFalse(self.mod.is_outline_page({"核心能力": []}))
 
     def test_legacy_checkpoint_file_is_ignored(self):
         self.assertFalse(hasattr(self.mod, "CHECKPOINT_PATH"))

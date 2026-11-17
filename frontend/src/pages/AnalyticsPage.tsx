@@ -20,81 +20,69 @@ import {
 } from 'react-icons/hi';
 import { useAuth } from '../auth/AuthContext';
 import {
-  analyticsAPI,
-  projectAnalyticsAPI,
   type AnalyticsData,
   type AnalyticsGeneralEdu,
   type PdfAnalyticsData,
 } from '../api/services';
-
-// ── 學院 → 學術領域對照 ─────────────────────────────────────────
-const COLLEGE_TO_DOMAIN: Record<string, string> = {
-  '理學院':                   '理工',
-  '工學院':                   '理工',
-  '地球科學學院':             '地科',
-  '永續與綠能科技研究學院':   '理工',
-  '資訊電機學院':             '資訊',
-  '生醫理工學院':             '生醫',
-  '文學院':                   '人文',
-  '客家學院':                 '人文',
-  '管理學院':                 '商管',
-  '中心、處室':               '通識',
-};
-const DOMAIN_ORDER = ['理工', '資訊', '地科', '生醫', '人文', '商管'];
-const DOMAIN_COLORS: Record<string, string> = {
-  理工: '#6366f1', 資訊: '#0ea5e9', 地科: '#a16207',
-  生醫: '#10b981', 人文: '#f59e0b', 商管: '#ef4444',
-};
+import {
+  COMBINED_TYPE_LABELS,
+  COURSE_TYPE_TEXT,
+  DOMAIN_COLORS,
+  activeDomainCount,
+  collegeDomainAxes,
+  combinedDomainAxes,
+  diagnoseCombinedType as diagnoseCombinedTypeId,
+  diagnoseCourseType,
+  formatRelativeTime,
+  uniqueCollegeCount,
+  usagePreferenceText,
+} from '../features/analytics/analysis';
+import { useAnalytics, type TabId } from '../features/analytics/useAnalytics';
 
 // ── 探索型態診斷 ─────────────────────────────────────────────────
 const EXPLORE_TYPES = [
   {
     id: 'planning',
-    label: '規劃導向型',
+    ...COURSE_TYPE_TEXT.planning,
     Icon: HiClipboardList,
     iconColor: 'text-amber-600',
     iconBg: 'bg-amber-100',
-    desc: '你常查詢學程規定與畢業門檻，展現清晰的修課規劃意識。',
     color: 'from-amber-50 to-orange-50 border-amber-200',
     badge: 'bg-amber-100 text-amber-700',
   },
   {
     id: 'cross',
-    label: '跨域探索型',
+    ...COURSE_TYPE_TEXT.cross,
     Icon: HiGlobeAlt,
     iconColor: 'text-violet-600',
     iconBg: 'bg-violet-100',
-    desc: '你的興趣橫跨三個以上學術領域，善於尋找跨領域的知識連結。',
     color: 'from-violet-50 to-purple-50 border-violet-200',
     badge: 'bg-violet-100 text-violet-700',
   },
   {
     id: 'deep',
-    label: '專注深挖型',
+    ...COURSE_TYPE_TEXT.deep,
     Icon: HiZoomIn,
     iconColor: 'text-blue-600',
     iconBg: 'bg-blue-100',
-    desc: '你深度探索特定領域的課程，方向清晰、目標明確。',
     color: 'from-blue-50 to-indigo-50 border-blue-200',
     badge: 'bg-blue-100 text-blue-700',
   },
   {
     id: 'wide',
-    label: '廣泛探索型',
+    ...COURSE_TYPE_TEXT.wide,
     Icon: HiMap,
     iconColor: 'text-emerald-600',
     iconBg: 'bg-emerald-100',
-    desc: '你對多元課程保持開放，探索範圍廣泛，善於發掘新可能。',
     color: 'from-emerald-50 to-teal-50 border-emerald-200',
     badge: 'bg-emerald-100 text-emerald-700',
   },
   {
     id: 'balanced',
-    label: '均衡探索型',
+    ...COURSE_TYPE_TEXT.balanced,
     Icon: HiAdjustments,
     iconColor: 'text-slate-600',
     iconBg: 'bg-slate-100',
-    desc: '你的探索模式均衡，兼顧深度與廣度，靈活應對各類需求。',
     color: 'from-slate-50 to-gray-50 border-slate-200',
     badge: 'bg-slate-100 text-slate-600',
   },
@@ -161,7 +149,7 @@ const PDF_TYPE_MAP: Record<string, typeof PDF_EXPLORE_TYPES[number]> = {
 const COMBINED_EXPLORE_TYPES = [
   {
     id: 'researcher',
-    label: '學術研究導向',
+    label: COMBINED_TYPE_LABELS.researcher,
     Icon: HiDocumentText,
     iconColor: 'text-emerald-600',
     iconBg: 'bg-emerald-100',
@@ -170,7 +158,7 @@ const COMBINED_EXPLORE_TYPES = [
   },
   {
     id: 'planner',
-    label: '課程規劃導向',
+    label: COMBINED_TYPE_LABELS.planner,
     Icon: HiClipboardList,
     iconColor: 'text-amber-600',
     iconBg: 'bg-amber-100',
@@ -179,7 +167,7 @@ const COMBINED_EXPLORE_TYPES = [
   },
   {
     id: 'course_explorer',
-    label: '課程探索導向',
+    label: COMBINED_TYPE_LABELS.course_explorer,
     Icon: HiAcademicCap,
     iconColor: 'text-blue-600',
     iconBg: 'bg-blue-100',
@@ -188,7 +176,7 @@ const COMBINED_EXPLORE_TYPES = [
   },
   {
     id: 'integrator',
-    label: '跨域整合型',
+    label: COMBINED_TYPE_LABELS.integrator,
     Icon: HiGlobeAlt,
     iconColor: 'text-violet-600',
     iconBg: 'bg-violet-100',
@@ -197,7 +185,7 @@ const COMBINED_EXPLORE_TYPES = [
   },
   {
     id: 'explorer',
-    label: '廣泛探索型',
+    label: COMBINED_TYPE_LABELS.explorer,
     Icon: HiMap,
     iconColor: 'text-indigo-600',
     iconBg: 'bg-indigo-100',
@@ -206,7 +194,7 @@ const COMBINED_EXPLORE_TYPES = [
   },
   {
     id: 'balanced',
-    label: '均衡發展型',
+    label: COMBINED_TYPE_LABELS.balanced,
     Icon: HiAdjustments,
     iconColor: 'text-slate-600',
     iconBg: 'bg-slate-100',
@@ -221,78 +209,16 @@ function diagnoseCombinedType(
   coursePct: number,
   combinedAxes: { label: string; pct: number }[],
 ): { style: typeof COMBINED_EXPLORE_TYPES[number]; desc: string } {
-  const researchPct = 100 - coursePct;
-  const avgDepth = projectData?.overview.avg_depth ?? 0;
-  const uniqueColleges = new Set([
-    ...(courseData?.college_distribution.map(i => i.name) ?? []),
-    ...(projectData?.college_distribution.map(i => i.name) ?? []),
-  ]).size;
-  const domainsActive = combinedAxes.filter(a => a.pct >= 12).length;
-  const planningTools = ['get_graduation_requirements','get_graduation_rules','get_program_info','get_program_courses','get_requirements_notes'];
-  const totalToolCalls = courseData?.tool_usage.reduce((s, t) => s + t.count, 0) || 1;
-  const planningCount  = (courseData?.tool_usage ?? [])
-    .filter(t => planningTools.includes(t.tool))
-    .reduce((s, t) => s + t.count, 0);
-  const hasPlanningFocus = planningCount / totalToolCalls >= 0.25;
-
-  if (researchPct > 60 && avgDepth >= 2) {
-    return {
-      style: COMBINED_EXPLORE_TYPES[0],
-      desc: `你投入大量時間深入研讀研究計畫（佔 ${researchPct}% 互動量），平均每次對話提問 ${avgDepth} 輪，對學術研究有高度興趣。`,
-    };
-  }
-  if (coursePct > 60 && hasPlanningFocus) {
-    return {
-      style: COMBINED_EXPLORE_TYPES[1],
-      desc: `你主要透過課程助理（佔 ${coursePct}%）規劃修課路徑，常查詢學分規定與畢業門檻，目標導向清晰。`,
-    };
-  }
-  if (coursePct > 60) {
-    return {
-      style: COMBINED_EXPLORE_TYPES[2],
-      desc: `你的互動以課程助理為主（佔 ${coursePct}%），廣泛探索各系所開設課程，對學習內容充滿好奇心。`,
-    };
-  }
-  if (domainsActive >= 3 && uniqueColleges >= 3) {
-    return {
-      style: COMBINED_EXPLORE_TYPES[3],
-      desc: `你在課程與研究兩個面向都跨越了 ${uniqueColleges} 個學院、${domainsActive} 個主要領域，具備強烈的跨域整合意識。`,
-    };
-  }
-  if ((courseData?.dept_distribution.length ?? 0) + (projectData?.dept_distribution.length ?? 0) >= 8) {
-    return {
-      style: COMBINED_EXPLORE_TYPES[4],
-      desc: `你在課程與研究兩個系統都保持廣泛探索，涉足的系所數量豐富，善於發掘不同領域的可能性。`,
-    };
-  }
-  return {
-    style: COMBINED_EXPLORE_TYPES[5],
-    desc: `你在課程助理（${coursePct}%）與研究計畫（${researchPct}%）之間保持均衡，兼顧課程規劃與學術探索兩個面向。`,
-  };
+  const { id, desc } = diagnoseCombinedTypeId(courseData, projectData, coursePct, combinedAxes);
+  return { style: COMBINED_EXPLORE_TYPES.find(t => t.id === id)!, desc };
 }
 
 function diagnoseType(
   data: AnalyticsData,
   domainAxes: { label: string; value: number }[],
 ): typeof EXPLORE_TYPES[0] {
-  if (data.overview.total_turns < 3) return EXPLORE_TYPES[4];
-
-  const topDeptPct = data.dept_distribution[0]?.pct ?? 0;
-  const deptCount  = data.dept_distribution.length;
-  const planningTools = ['get_graduation_requirements', 'get_graduation_rules',
-    'get_program_info', 'get_program_courses', 'get_requirements_notes'];
-  const totalToolCalls = data.tool_usage.reduce((s, t) => s + t.count, 0) || 1;
-  const planningCount  = data.tool_usage
-    .filter(t => planningTools.includes(t.tool))
-    .reduce((s, t) => s + t.count, 0);
-  const planningRatio  = planningCount / totalToolCalls;
-  const domainsActive  = domainAxes.filter(a => ((a as { pct?: number }).pct ?? a.value) >= 15).length;
-
-  if (planningRatio >= 0.25)              return EXPLORE_TYPES[0];
-  if (domainsActive >= 3)                 return EXPLORE_TYPES[1];
-  if (topDeptPct > 55 && deptCount <= 4)  return EXPLORE_TYPES[2];
-  if (deptCount >= 6 && topDeptPct < 30)  return EXPLORE_TYPES[3];
-  return EXPLORE_TYPES[4];
+  const id = diagnoseCourseType(data, domainAxes);
+  return EXPLORE_TYPES.find(t => t.id === id)!;
 }
 
 // ── 雷達圖 (SVG) ────────────────────────────────────────────────
@@ -457,8 +383,6 @@ function EmptyState() {
   );
 }
 
-type TabId = 'all' | 'course' | 'project';
-
 // ── Tab Bar ─────────────────────────────────────────────────────
 const TAB_LABELS: { id: TabId; label: string }[] = [
   { id: 'all',     label: '全部' },
@@ -507,39 +431,8 @@ function AllTab({
   const researchPct = 100 - coursePct;
 
   // 綜合雷達圖
-  const combinedAxes = useMemo(() => {
-    const courseCols = courseData?.college_distribution ?? [];
-    const projCols = projectData?.college_distribution ?? [];
-    if (!courseCols.length && !projCols.length) return [];
-
-    const courseTotal = courseCols.reduce((s, i) => s + i.count, 0) || 1;
-    const projTotal = projCols.reduce((s, i) => s + i.count, 0) || 1;
-
-    const courseW = radarMode === 'weighted'
-      ? (totalInteractions > 0 ? courseInteractions / totalInteractions : 0.5)
-      : 0.5;
-    const projW = 1 - courseW;
-
-    const blended: Record<string, number> = {};
-    for (const item of courseCols) {
-      const d = COLLEGE_TO_DOMAIN[item.name];
-      if (!d) continue;
-      blended[d] = (blended[d] ?? 0) + (item.count / courseTotal) * courseW;
-    }
-    for (const item of projCols) {
-      const d = COLLEGE_TO_DOMAIN[item.name];
-      if (!d) continue;
-      blended[d] = (blended[d] ?? 0) + (item.count / projTotal) * projW;
-    }
-
-    const total = DOMAIN_ORDER.reduce((s, d) => s + (blended[d] ?? 0), 0) || 1;
-    const maxVal = Math.max(...DOMAIN_ORDER.map(d => blended[d] ?? 0)) || 1;
-    return DOMAIN_ORDER.map(d => ({
-      label: d,
-      value: Math.round((blended[d] ?? 0) / maxVal * 100),
-      pct: Math.round((blended[d] ?? 0) / total * 1000) / 10,
-    }));
-  }, [courseData, projectData, radarMode, courseInteractions, totalInteractions]);
+  // 計算量很小（六個領域），直接算；包 useMemo 反而會讓 React Compiler 放棄最佳化這個元件
+  const combinedAxes = combinedDomainAxes(courseData, projectData, radarMode, courseInteractions, totalInteractions);
 
   const combined = diagnoseCombinedType(courseData, projectData, coursePct, combinedAxes);
 
@@ -622,10 +515,7 @@ function AllTab({
                   <div className="flex justify-between">
                     <span>探索學院數（合計）</span>
                     <span className="font-medium">
-                      {new Set([
-                        ...(courseData?.college_distribution.map(i => i.name) ?? []),
-                        ...(projectData?.college_distribution.map(i => i.name) ?? []),
-                      ]).size} 個
+                      {uniqueCollegeCount(courseData, projectData)} 個
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -667,13 +557,7 @@ function AllTab({
               </div>
             </div>
             <p className="rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
-              {coursePct > 70
-                ? '你主要使用課程助理探索修課資訊，對課程規劃有清晰的需求。'
-                : researchPct > 70
-                ? '你大量使用研究計畫功能，對學術研究有高度的探索興趣。'
-                : coursePct >= researchPct
-                ? `你對兩個功能都有使用，課程助理（${coursePct}%）略多於研究計畫（${researchPct}%）。`
-                : `你對兩個功能都有使用，研究計畫（${researchPct}%）略多於課程助理（${coursePct}%）。`}
+              {usagePreferenceText(coursePct, researchPct)}
             </p>
           </div>
         </div>
@@ -692,22 +576,7 @@ function CourseTab({
   loading: boolean;
   error: string;
 }) {
-  const domainAxes = useMemo(() => {
-    if (!data?.college_distribution.length) return [];
-    const totals: Record<string, number> = {};
-    for (const item of data.college_distribution) {
-      const d = COLLEGE_TO_DOMAIN[item.name] ?? '其他';
-      totals[d] = (totals[d] ?? 0) + item.count;
-    }
-    const nonGeTotal = DOMAIN_ORDER.reduce((s, d) => s + (totals[d] ?? 0), 0) || 1;
-    const maxVal = Math.max(...DOMAIN_ORDER.map(d => totals[d] ?? 0)) || 1;
-    return DOMAIN_ORDER.map(d => {
-      const raw = totals[d] ?? 0;
-      const pct = Math.round((raw / nonGeTotal) * 1000) / 10;
-      const rel = Math.round((raw / maxVal) * 100);
-      return { label: d, value: rel, pct };
-    });
-  }, [data]);
+  const domainAxes = useMemo(() => collegeDomainAxes(data?.college_distribution), [data]);
 
   const exploreType = useMemo(
     () => (data ? diagnoseType(data, domainAxes) : null),
@@ -779,7 +648,7 @@ function CourseTab({
                   </div>
                   <div className="flex justify-between">
                     <span>跨域廣度</span>
-                    <span className="font-medium">{domainAxes.filter(a => ((a as { pct?: number }).pct ?? a.value) >= 15).length} 個主要領域</span>
+                    <span className="font-medium">{activeDomainCount(domainAxes)} 個主要領域</span>
                   </div>
                 </div>
               </div>
@@ -822,22 +691,7 @@ function ProjectTab({
 }) {
   const [showAllDocs, setShowAllDocs] = useState(false);
 
-  const domainAxes = useMemo(() => {
-    if (!data?.college_distribution.length) return [];
-    const totals: Record<string, number> = {};
-    for (const item of data.college_distribution) {
-      const d = COLLEGE_TO_DOMAIN[item.name] ?? '其他';
-      totals[d] = (totals[d] ?? 0) + item.count;
-    }
-    const nonGeTotal = DOMAIN_ORDER.reduce((s, d) => s + (totals[d] ?? 0), 0) || 1;
-    const maxVal = Math.max(...DOMAIN_ORDER.map(d => totals[d] ?? 0)) || 1;
-    return DOMAIN_ORDER.map(d => {
-      const raw = totals[d] ?? 0;
-      const pct = Math.round((raw / nonGeTotal) * 1000) / 10;
-      const rel = Math.round((raw / maxVal) * 100);
-      return { label: d, value: rel, pct };
-    });
-  }, [data]);
+  const domainAxes = useMemo(() => collegeDomainAxes(data?.college_distribution), [data]);
 
   const pdfExploreStyle = data?.exploration_type.type
     ? (PDF_TYPE_MAP[data.exploration_type.type] ?? PDF_EXPLORE_TYPES[4])
@@ -1014,17 +868,6 @@ function ProjectTab({
   );
 }
 
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  if (days === 0) return '今天';
-  if (days === 1) return '昨天';
-  if (days < 30) return `${days} 天前`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} 個月前`;
-  return `${Math.floor(months / 12)} 年前`;
-}
-
 function TabLoadingSkeleton() {
   return (
     <div className="space-y-6">
@@ -1048,61 +891,11 @@ function TabError({ msg }: { msg: string }) {
 // ── 主頁面 ──────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabId>('all');
-
-  const [courseData, setCourseData] = useState<AnalyticsData | null>(null);
-  const [courseLoading, setCourseLoading] = useState(false);
-  const [courseError, setCourseError] = useState('');
-  const [courseFetched, setCourseFetched] = useState(false);
-
-  const [projectData, setProjectData] = useState<PdfAnalyticsData | null>(null);
-  const [projectLoading, setProjectLoading] = useState(false);
-  const [projectError, setProjectError] = useState('');
-  const [projectFetched, setProjectFetched] = useState(false);
-
-  const fetchCourse = async () => {
-    if (courseFetched) return;
-    setCourseLoading(true);
-    setCourseError('');
-    try {
-      const result = await analyticsAPI.get();
-      setCourseData(result);
-    } catch {
-      setCourseError('載入課程分析失敗，請稍後再試');
-    } finally {
-      setCourseLoading(false);
-      setCourseFetched(true);
-    }
-  };
-
-  const fetchProject = async () => {
-    if (projectFetched) return;
-    setProjectLoading(true);
-    setProjectError('');
-    try {
-      const result = await projectAnalyticsAPI.get();
-      setProjectData(result);
-    } catch {
-      setProjectError('載入研究計畫分析失敗，請稍後再試');
-    } finally {
-      setProjectLoading(false);
-      setProjectFetched(true);
-    }
-  };
-
-  // 切換 tab 時懶載入
-  useEffect(() => {
-    if (!user) return;
-    if (activeTab === 'all') {
-      void fetchCourse();
-      void fetchProject();
-    } else if (activeTab === 'course') {
-      void fetchCourse();
-    } else if (activeTab === 'project') {
-      void fetchProject();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeTab]);
+  const {
+    activeTab, setActiveTab,
+    courseData, courseLoading, courseError,
+    projectData, projectLoading, projectError,
+  } = useAnalytics();
 
   if (authLoading) {
     return (

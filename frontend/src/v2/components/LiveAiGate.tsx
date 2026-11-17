@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { GoogleMark } from '../../components/GoogleLoginButton';
 import { DEMO_CASES } from '../../demo/cases';
 import type { LiveAiAccessState } from '../../hooks/useLiveAiAccess';
+import { v2Link } from '../paths';
 
 interface LiveAiGateProps {
   liveAi: LiveAiAccessState;
@@ -58,7 +59,7 @@ export default function LiveAiGate({ liveAi, assistant, children }: LiveAiGatePr
           </button>
         )}
         {DEMO_CASES.length > 0 && (
-          <Link to={assistant ? `/demo?assistant=${assistant}` : '/demo'} className="v2-btn v2-btn--sm">
+          <Link to={`${v2Link('/demo')}${assistant ? `?assistant=${assistant}` : ''}`} className="v2-btn v2-btn--sm">
             看示範案例
           </Link>
         )}

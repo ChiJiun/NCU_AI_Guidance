@@ -19,389 +19,38 @@ import {
   HiTrash,
   HiUser,
 } from 'react-icons/hi';
-import { projectAPI } from '../api/services';
 import type { PdfConversationSummary } from '../api/services';
-import {
-  COLLEGE_ORDER,
-  getDeptCollege,
-  deptSortKey,
-  sortDeptsByCollegeOrder,
-} from '../constants/colleges';
+import { getDeptCollege } from '../constants/colleges';
 import PdfViewer from '../components/PdfViewer';
 import LiveAiDisabledNotice, { LiveAiPendingSlot } from '../components/LiveAiDisabledNotice';
 import { useAuth } from '../auth/AuthContext';
-import { useLiveAiAccess } from '../hooks/useLiveAiAccess';
 import type { LiveAiStatus } from '../api/liveAi';
 import type { Project } from '../types';
-
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: string[];
-};
-
-type MobileOutlineView = 'list' | 'detail';
+import { getPdfUrl, useProjects } from '../features/projects/useProjects';
+import { formatSourceLabels, groupDepartmentsByCollege } from '../features/projects/projectUtils';
+import type { ChatMessage } from '../features/projects/projectUtils';
 
 export default function ProjectsPage() {
   const { user, loginWithGoogle } = useAuth();
-  const liveAi = useLiveAiAccess();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [viewMode, setViewMode] = useState<'outline' | 'pdf-chat'>('outline');
-  const [mobileOutlineView, setMobileOutlineView] = useState<MobileOutlineView>('list');
-  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
-  const [activeAgent, setActiveAgent] = useState<{ name: string; label: string } | null>(null);
-  const [currentStage, setCurrentStage] = useState<string>('');
-  const [threadId, setThreadId] = useState<string | undefined>(undefined);
-  const [streamingText, setStreamingText] = useState('');
-  const abortCtrlRef = useRef<AbortController | null>(null);
-  const streamingTextRef = useRef('');
-  const [loading, setLoading] = useState(true);
-  const [pdfConversations, setPdfConversations] = useState<PdfConversationSummary[]>([]);
-  const [filterYear, setFilterYear] = useState('');
-  const [filterDept, setFilterDept] = useState('');
-  const [filterTitle, setFilterTitle] = useState('');
-  const [recentChats, setRecentChats] = useState<{
-    document_id: number;
-    thread_id: string;
-    title: string;
-    created_at: string | null;
-  }[]>([]);
-  const [leftPanelTab, setLeftPanelTab] = useState<'projects' | 'recent'>('projects');
-
-  useEffect(() => {
-    projectAPI
-      .getProjects()
-      .then((data) => {
-        setProjects(data);
-      })
-      .catch((error) => {
-        console.error('Failed to load projects:', error);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    if (!user) { setRecentChats([]); return; }
-    projectAPI.listRecentChats()
-      .then(setRecentChats)
-      .catch(() => {});
-  }, [user]);
-
-  const years = useMemo(
-    () => [...new Set(projects.map((project) => project.year))].sort((a, b) => b.localeCompare(a)),
-    [projects]
-  );
-
-  const departments = useMemo(
-    () => sortDeptsByCollegeOrder([...new Set(projects.map((p) => p.department))]),
-    [projects]
-  );
-
-  const filteredProjects = useMemo(() => {
-    const q = filterTitle.trim().toLowerCase();
-    const filtered = projects.filter(
-      (p) =>
-        (!filterYear || p.year === filterYear) &&
-        (!filterDept || p.department === filterDept) &&
-        (!q || p.title.toLowerCase().includes(q))
-    );
-    return filtered.sort((a, b) => {
-      const ca = getDeptCollege(a.department), cb = getDeptCollege(b.department);
-      const ia = COLLEGE_ORDER.indexOf(ca as (typeof COLLEGE_ORDER)[number]);
-      const ib = COLLEGE_ORDER.indexOf(cb as (typeof COLLEGE_ORDER)[number]);
-      const ra = ia === -1 ? COLLEGE_ORDER.length : ia;
-      const rb = ib === -1 ? COLLEGE_ORDER.length : ib;
-      if (ra !== rb) return ra - rb;
-      const ka = deptSortKey(a.department), kb = deptSortKey(b.department);
-      if (ka !== kb) return ka - kb;
-      const dc = a.department.localeCompare(b.department, 'zh-Hant');
-      if (dc !== 0) return dc;
-      return b.year.localeCompare(a.year);
-    });
-  }, [projects, filterYear, filterDept, filterTitle]);
-
-  const matchedRecentChats = useMemo(
-    () => recentChats.flatMap(rc => {
-      const proj = projects.find(p => p.documentId === rc.document_id);
-      return proj ? [{ ...rc, project: proj }] : [];
-    }),
-    [recentChats, projects]
-  );
-
-  const clearSelectedIfFiltered = (nextYear: string, nextDept: string) => {
-    if (!selectedProject) return;
-    const stillExists = projects.some(
-      (p) =>
-        p.id === selectedProject.id &&
-        (!nextYear || p.year === nextYear) &&
-        (!nextDept || p.department === nextDept),
-    );
-    if (stillExists) return;
-    setSelectedProject(null);
-    setChatMessages([]);
-    setInputMessage('');
-    setViewMode('outline');
-    setMobileOutlineView('list');
-    setIsMobileChatOpen(false);
-  };
-
-  const handleFilterYearChange = (year: string) => {
-    setFilterYear(year);
-    clearSelectedIfFiltered(year, filterDept);
-  };
-
-  const handleFilterDeptChange = (dept: string) => {
-    setFilterDept(dept);
-    clearSelectedIfFiltered(filterYear, dept);
-  };
-
-  const handleSelectProject = (project: Project) => {
-    setSelectedProject(project);
-    setChatMessages([createWelcomeMessage(project)]);
-    setInputMessage('');
-    setViewMode('outline');
-    setMobileOutlineView('detail');
-    setIsMobileChatOpen(false);
-    setThreadId(undefined);
-    streamingTextRef.current = '';
-    setStreamingText('');
-    setChatLoading(false);
-    setPdfConversations([]);
-    abortCtrlRef.current?.abort();
-    abortCtrlRef.current = null;
-    if (user) {
-      projectAPI.listConversations(project.id)
-        .then((convs) => setPdfConversations(convs))
-        .catch(() => {});
-    }
-  };
-
-  const handleBackToOutline = () => {
-    setViewMode('outline');
-    setMobileOutlineView('detail');
-    setIsMobileChatOpen(false);
-  };
-
-  const handleBackToProjectList = () => {
-    setMobileOutlineView('list');
-  };
-
-  const handleOpenPdfChat = () => {
-    if (!selectedProject) return;
-    setViewMode('pdf-chat');
-    setIsMobileChatOpen(false);
-    if (chatMessages.length === 0) {
-      setChatMessages([createWelcomeMessage(selectedProject)]);
-    }
-  };
-
-  const doSendProjectMessage = (msg: string, fromIdx?: number) => {
-    if (!user || !liveAi.allowed || !selectedProject || chatLoading) return;
-    setChatLoading(true);
-    setStreamingText('');
-    setChatMessages((prev) => {
-      const base = fromIdx !== undefined ? prev.slice(0, fromIdx) : [...prev];
-      return [...base, { role: 'user', content: msg }];
-    });
-
-    const ctrl = projectAPI.streamChat(
-      selectedProject.id,
-      msg,
-      {
-        onToken: (token) => {
-          streamingTextRef.current += token;
-          setStreamingText(streamingTextRef.current);
-        },
-        onReplace: (text) => {
-          streamingTextRef.current = text;
-          setStreamingText(text);
-        },
-        onSessionId: (id) => {
-          setThreadId(id || undefined);
-        },
-        onAgentStart: (agent, label) => {
-          setActiveAgent({ name: agent, label });
-          setCurrentStage('');
-        },
-        onStage: (text) => {
-          setCurrentStage(text);
-        },
-        onDone: (sessionId, _cancelled, sources) => {
-          setActiveAgent(null);
-          setCurrentStage('');
-          const finalText = streamingTextRef.current;
-          streamingTextRef.current = '';
-          setStreamingText('');
-          if (finalText) {
-            setChatMessages((msgs) => [
-              ...msgs,
-              { role: 'assistant', content: finalText, sources: sources?.length ? sources : undefined },
-            ]);
-          }
-          setChatLoading(false);
-          const newThreadId = sessionId || undefined;
-          setThreadId(newThreadId);
-          abortCtrlRef.current = null;
-          if (selectedProject && newThreadId) {
-            projectAPI.listConversations(selectedProject.id)
-              .then((convs) => setPdfConversations(convs))
-              .catch(() => {});
-          }
-        },
-        onError: (errMsg) => {
-          setActiveAgent(null);
-          setCurrentStage('');
-          console.error('Project stream error:', errMsg);
-          streamingTextRef.current = '';
-          setStreamingText('');
-          setChatMessages((prev) => [
-            ...prev,
-            { role: 'assistant', content: '目前暫時無法回應，請稍後再試一次。' },
-          ]);
-          setChatLoading(false);
-          abortCtrlRef.current = null;
-        },
-        onRestricted: (restrictedMsg) => {
-          // 後端判定目前帳號不能使用即時 AI：顯示說明而不是錯誤，並把輸入區換成說明元件
-          liveAi.markRestricted(restrictedMsg);
-          setActiveAgent(null);
-          setCurrentStage('');
-          streamingTextRef.current = '';
-          setStreamingText('');
-          setChatMessages((prev) => [...prev, { role: 'assistant', content: restrictedMsg }]);
-          setChatLoading(false);
-          abortCtrlRef.current = null;
-        },
-      },
-      threadId,
-    );
-    abortCtrlRef.current = ctrl;
-  };
-
-  const handleSendMessage = (event: FormEvent) => {
-    event.preventDefault();
-    if (!inputMessage.trim()) return;
-    const text = inputMessage.trim();
-    setInputMessage('');
-    doSendProjectMessage(text);
-  };
-
-  const handleSendEditedMessage = (newContent: string, fromIdx: number) => {
-    doSendProjectMessage(newContent, fromIdx);
-  };
-
-  const handleCancelStream = () => {
-    if (!abortCtrlRef.current || !selectedProject || !threadId) return;
-    abortCtrlRef.current.abort();
-    abortCtrlRef.current = null;
-    if (threadId) projectAPI.cancelChat(selectedProject.id, threadId).catch(() => {});
-    const finalText = streamingTextRef.current;
-    streamingTextRef.current = '';
-    setStreamingText('');
-    if (finalText) {
-      setChatMessages((msgs) => [...msgs, { role: 'assistant', content: finalText + '…（已中止）' }]);
-    }
-    setChatLoading(false);
-    setActiveAgent(null);
-    setCurrentStage('');
-  };
-
-  const handleNewPdfConversation = () => {
-    if (!selectedProject) return;
-    abortCtrlRef.current?.abort();
-    abortCtrlRef.current = null;
-    streamingTextRef.current = '';
-    setStreamingText('');
-    setChatLoading(false);
-    setActiveAgent(null);
-    setCurrentStage('');
-    setThreadId(undefined);
-    setChatMessages([createWelcomeMessage(selectedProject)]);
-  };
-
-  const handleSwitchPdfConversation = async (targetThreadId: string) => {
-    if (!selectedProject || chatLoading || targetThreadId === threadId) return;
-    abortCtrlRef.current?.abort();
-    abortCtrlRef.current = null;
-    streamingTextRef.current = '';
-    setStreamingText('');
-    setChatLoading(true);
-    setThreadId(targetThreadId);
-    try {
-      const msgs = await projectAPI.loadConversationMessages(selectedProject.id, targetThreadId);
-      setChatMessages([createWelcomeMessage(selectedProject), ...msgs]);
-    } catch {
-      setChatMessages([createWelcomeMessage(selectedProject)]);
-    } finally {
-      setChatLoading(false);
-      setActiveAgent(null);
-      setCurrentStage('');
-    }
-  };
-
-  const handleDeletePdfConversation = async (targetThreadId: string) => {
-    if (!selectedProject) return;
-    if (!window.confirm('確定要刪除此對話嗎？')) return;
-    try {
-      await projectAPI.deleteConversation(selectedProject.id, targetThreadId);
-    } catch {
-      return;
-    }
-    setPdfConversations((prev) => prev.filter((c) => c.thread_id !== targetThreadId));
-    if (targetThreadId === threadId) {
-      streamingTextRef.current = '';
-      setStreamingText('');
-      setChatLoading(false);
-      setActiveAgent(null);
-      setCurrentStage('');
-      abortCtrlRef.current?.abort();
-      abortCtrlRef.current = null;
-      setThreadId(undefined);
-      setChatMessages([createWelcomeMessage(selectedProject)]);
-    }
-  };
-
-  const handleSelectFromRecentChat = (project: Project, targetThreadId: string) => {
-    abortCtrlRef.current?.abort();
-    abortCtrlRef.current = null;
-    streamingTextRef.current = '';
-    setStreamingText('');
-    setChatLoading(false);
-    setActiveAgent(null);
-    setCurrentStage('');
-    setSelectedProject(project);
-    setChatMessages([createWelcomeMessage(project)]);
-    setInputMessage('');
-    setViewMode('outline');
-    setMobileOutlineView('detail');
-    setIsMobileChatOpen(false);
-    setThreadId(targetThreadId);
-    setPdfConversations([]);
-    if (user) {
-      projectAPI.listConversations(project.id)
-        .then((convs) => setPdfConversations(convs))
-        .catch(() => {});
-    }
-  };
-
-  const handleContinueRecentChat = async () => {
-    if (!selectedProject || !threadId) return;
-    setViewMode('pdf-chat');
-    setIsMobileChatOpen(false);
-    setChatLoading(true);
-    try {
-      const msgs = await projectAPI.loadConversationMessages(selectedProject.id, threadId);
-      setChatMessages([createWelcomeMessage(selectedProject), ...msgs]);
-    } catch {
-      setChatMessages([createWelcomeMessage(selectedProject)]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
+  const {
+    liveAi,
+    loading,
+    selectedProject,
+    viewMode, mobileOutlineView,
+    isMobileChatOpen, setIsMobileChatOpen,
+    chatMessages, inputMessage, setInputMessage,
+    chatLoading, activeAgent, currentStage,
+    threadId, setThreadId, streamingText,
+    pdfConversations,
+    filterYear, filterDept, filterTitle, setFilterTitle,
+    leftPanelTab, setLeftPanelTab,
+    years, departments, filteredProjects, matchedRecentChats,
+    handleFilterYearChange, handleFilterDeptChange,
+    handleSelectProject, handleBackToOutline, handleBackToProjectList, handleOpenPdfChat,
+    handleSendMessage, handleSendEditedMessage, handleCancelStream,
+    handleNewPdfConversation, handleSwitchPdfConversation, handleDeletePdfConversation,
+    handleSelectFromRecentChat, handleContinueRecentChat,
+  } = useProjects();
 
   const getCollegeLabel = getDeptCollege;
 
@@ -428,24 +77,6 @@ export default function ProjectsPage() {
     }
   };
 
-  const getPdfUrl = (project: Project) => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    const baseUrl = apiUrl.replace('/api', '');
-
-    if (project.pdfUrl) {
-      if (project.pdfUrl.startsWith('http://') || project.pdfUrl.startsWith('https://')) {
-        return project.pdfUrl;
-      }
-      if (project.pdfUrl.startsWith('/')) {
-        return `${baseUrl}${project.pdfUrl}`;
-      }
-      return project.pdfUrl;
-    }
-
-    if (!project.pdfPath) return '';
-    const encodedPath = project.pdfPath.split('\\').map(encodeURIComponent).join('/');
-    return `${baseUrl}/pdfs/${encodedPath}`;
-  };
 
   if (loading) {
     return (
@@ -1242,29 +873,10 @@ function DeptSelect({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const groups = useMemo(() => {
-    const isGrad = (d: string) =>
-      d.includes('研究所') || (d.includes('研究中心') && !d.includes('學系'));
-    const map = new Map<string, string[]>();
-    // 依照 departments 原始順序插入，保留與專題列表相同的排序
-    for (const dept of departments) {
-      const college = getCollegeLabel(dept);
-      if (!map.has(college)) map.set(college, []);
-      map.get(college)!.push(dept);
-    }
-    // 每個學院內：學系/學士班在前，研究所/研究中心在後
-    const sorted = Array.from(map.entries()).map(([college, depts]) => [
-      college,
-      [
-        ...depts.filter((d) => !isGrad(d)),
-        ...depts.filter((d) =>  isGrad(d)),
-      ],
-    ] as [string, string[]]);
-    // 未分類放最後；其餘保留 departments 插入順序（已由 sortDeptsByCollegeOrder 保證）
-    const normal = sorted.filter(([c]) => c !== '未分類單位');
-    const uncat  = sorted.filter(([c]) => c === '未分類單位');
-    return [...normal, ...uncat];
-  }, [departments, getCollegeLabel]);
+  const groups = useMemo(
+    () => groupDepartmentsByCollege(departments, getCollegeLabel),
+    [departments, getCollegeLabel],
+  );
 
   return (
     <div ref={ref} className="relative">
@@ -1428,23 +1040,6 @@ function SectionBlock({ title, children }: { title: string; children: ReactNode 
       <p className="pl-4 leading-relaxed text-gray-700">{children}</p>
     </div>
   );
-}
-
-function createWelcomeMessage(project: Project): ChatMessage {
-  return {
-    role: 'assistant',
-    content: `你現在正在查看「${project.title}」這份研究計畫。如果你想了解研究方向、內容重點或延伸問題，可以直接在這裡提問。`,
-  };
-}
-
-/** 把後端回傳的來源字串（"p.3"、"p.5-6"、"3"…）整理成去重後的頁碼標籤 */
-function formatSourceLabels(sources?: string[]): string[] {
-  if (!sources?.length) return [];
-  const labels = sources
-    .map((s) => (typeof s === 'string' ? s.trim() : ''))
-    .filter(Boolean)
-    .map((s) => (/^\d+(\s*[-–]\s*\d+)?$/.test(s) ? `p.${s.replace(/\s+/g, '')}` : s));
-  return Array.from(new Set(labels));
 }
 
 function SourceChips({ sources }: { sources?: string[] }) {

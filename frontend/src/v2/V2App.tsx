@@ -5,10 +5,16 @@ import AssessmentV2 from './pages/AssessmentV2';
 import CourseChatV2 from './pages/CourseChatV2';
 import CoursesV2 from './pages/CoursesV2';
 import CurriculumV2 from './pages/CurriculumV2';
+import DemoCaseV2 from './pages/DemoCaseV2';
+import DemoGalleryV2 from './pages/DemoGalleryV2';
 import HomeV2 from './pages/HomeV2';
+import MonitorV2 from './pages/MonitorV2';
+import ProfileV2 from './pages/ProfileV2';
+import ProjectsV2 from './pages/ProjectsV2';
+import ResourcesV2 from './pages/ResourcesV2';
 import { hasV2Page, toLegacyPath, toV2Path } from './paths';
 
-/** 新版還沒有的頁面（例如 /v2/projects）：導回舊版同一頁。 */
+/** 新版還沒有的頁面：導回舊版同一頁。 */
 function BackToLegacy() {
   const { pathname, search, hash } = useLocation();
   return <Navigate to={`${toLegacyPath(pathname)}${search}${hash}`} replace />;
@@ -33,6 +39,12 @@ export default function V2App() {
         <Route path="curriculum" element={<CurriculumV2 />} />
         <Route path="courses" element={<CoursesV2 />} />
         <Route path="course-search" element={<CourseChatV2 />} />
+        <Route path="projects" element={<ProjectsV2 />} />
+        <Route path="resources" element={<ResourcesV2 />} />
+        <Route path="profile" element={<ProfileV2 />} />
+        <Route path="demo" element={<DemoGalleryV2 />} />
+        <Route path="demo/:caseId" element={<DemoCaseV2 />} />
+        <Route path="monitor" element={<MonitorV2 />} />
       </Route>
       <Route path="*" element={<BackToLegacy />} />
     </Routes>

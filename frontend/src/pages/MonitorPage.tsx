@@ -1,49 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
 import {
   HiCheckCircle, HiXCircle, HiRefresh,
   HiTrendingUp, HiTrendingDown,
   HiDatabase, HiServer, HiChip, HiChatAlt2, HiDocumentText, HiAcademicCap,
 } from 'react-icons/hi';
-import { useAuth } from '../auth/AuthContext';
-import { isDeveloper } from '../auth/developerUtils';
 import {
-  monitorAPI,
   type MonitorStats, type MonitorTrend,
   type LLMLatency, type DBStats, type PdfStats, type CombinedStats, type DepthStats,
 } from '../api/services';
+import {
+  agentLabel,
+  combineActivity,
+  combinedDailyCost,
+  courseRowCost,
+  fmt,
+  fmtUptime,
+  ms,
+  todayISO,
+  type PickerMode,
+  type TimeRangeState,
+} from '../features/monitor/monitorUtils';
+import { useMonitor, type MonitorTabId } from '../features/monitor/useMonitor';
 
 type TipParam = { marker: string; seriesName: string; value: number; name: string; axisValue: string; seriesIndex: number };
-
-// ── 日期工具 ─────────────────────────────────────────────────────
-function toISO(d: Date) { return d.toISOString().split('T')[0]; }
-function weekToRange(w: string) {
-  const [yr, wn] = w.split('-W');
-  const year = parseInt(yr), week = parseInt(wn);
-  const jan4 = new Date(year, 0, 4);
-  const mon = new Date(jan4);
-  mon.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1 + (week - 1) * 7);
-  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
-  return { start: toISO(mon), end: toISO(sun) };
-}
-function monthToRange(m: string) {
-  const [yr, mo] = m.split('-').map(Number);
-  return { start: toISO(new Date(yr, mo - 1, 1)), end: toISO(new Date(yr, mo, 0)) };
-}
-function todayISO() { return toISO(new Date()); }
-function currentWeekISO() {
-  const now = new Date();
-  const d   = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yr  = d.getUTCFullYear();
-  const wk  = Math.ceil((((d.getTime() - Date.UTC(yr, 0, 1)) / 86400000) + 1) / 7);
-  return `${yr}-W${String(wk).padStart(2, '0')}`;
-}
-function currentMonthISO() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
 
 // ── ECharts 深色共用 ──────────────────────────────────────────────
 const TIP = { backgroundColor: '#0f172a', borderColor: '#334155', textStyle: { color: '#e2e8f0' } };
@@ -52,30 +32,6 @@ const AX  = {
   splitLine: { lineStyle: { color: '#1e293b' } },
   axisLabel: { color: '#94a3b8', fontSize: 11 },
 };
-
-function fmt(n: number) {
-  if (n >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n/1_000).toFixed(1)}K`;
-  return String(n);
-}
-function ms(n: number) {
-  if (n >= 60_000) return `${(n/60_000).toFixed(1)}m`;
-  if (n >= 1_000)  return `${(n/1_000).toFixed(1)}s`;
-  return `${n}ms`;
-}
-function fmtUptime(sec: number): string {
-  if (sec < 60)   return `${sec}s`;
-  if (sec < 3600) return `${Math.floor(sec/60)}m ${sec%60}s`;
-  const h = Math.floor(sec/3600), minu = Math.floor((sec%3600)/60);
-  return `${h}h ${minu}m`;
-}
-
-const AGENT_LABEL: Record<string, string> = {
-  chat: '直接回答',
-  retrieval: '文件搜尋',
-  research: '深度研究',
-};
-function agentLabel(name: string) { return AGENT_LABEL[name] ?? name; }
 
 // ── 共用組件 ──────────────────────────────────────────────────────
 function Trend({ t }: { t: MonitorTrend }) {
@@ -215,29 +171,9 @@ function CombinedCostChart({
   courseTrend: MonitorStats['daily_trend'];
   pdfTrend: PdfStats['daily_trend'];
 }) {
-  const dates = Array.from(new Set([
-    ...courseTrend.map(r => r.date ?? ''),
-    ...pdfTrend.map(r => r.date ?? ''),
-  ])).filter(Boolean).sort();
+  const { dates, courseCosts, pdfCosts } = combinedDailyCost(courseTrend, pdfTrend);
 
   if (!dates.length) return <div className="flex h-28 items-center justify-center text-sm text-slate-600">尚無資料</div>;
-
-  const cMap = new Map(courseTrend.map(r => [r.date ?? '', r]));
-  const pMap = new Map(pdfTrend.map(r => [r.date ?? '', r]));
-
-  const courseCosts = dates.map(d => {
-    const r = cMap.get(d); if (!r) return 0;
-    return +((r.input * COURSE_INPUT_PRICE + r.output * COURSE_OUTPUT_PRICE).toFixed(6));
-  });
-  const pdfCosts = dates.map(d => {
-    const r = pMap.get(d); if (!r) return 0;
-    const ai = Math.max(0, (r.input || 0) - (r.router_input || 0));
-    const ao = Math.max(0, (r.output || 0) - (r.router_output || 0));
-    return +(
-      ai * PDF_AGENT_INPUT_PRICE + ao * PDF_AGENT_OUTPUT_PRICE +
-      (r.router_input || 0) * PDF_ROUTER_INPUT_PRICE + (r.router_output || 0) * PDF_ROUTER_OUTPUT_PRICE
-    ).toFixed(6);
-  });
 
   const hasData = [...courseCosts, ...pdfCosts].some(v => v > 0);
   if (!hasData) return <div className="flex h-28 items-center justify-center text-sm text-slate-600">尚無費用記錄（對話後開始統計）</div>;
@@ -358,13 +294,6 @@ function ActivityChart({ data }: { data:{date:string;sessions:number;turns:numbe
   return <ReactECharts option={opt} style={{height:160}}/>;
 }
 
-const COURSE_INPUT_PRICE       = 0.75  / 1_000_000;
-const COURSE_OUTPUT_PRICE      = 4.50  / 1_000_000;
-const PDF_AGENT_INPUT_PRICE    = 2.50  / 1_000_000;
-const PDF_AGENT_OUTPUT_PRICE   = 10.00 / 1_000_000;
-const PDF_ROUTER_INPUT_PRICE   = 0.15  / 1_000_000;
-const PDF_ROUTER_OUTPUT_PRICE  = 0.60  / 1_000_000;
-
 function DailyCostChart({ daily_trend, isHourly }: {
   daily_trend: MonitorStats['daily_trend']; isHourly: boolean;
 }) {
@@ -372,9 +301,7 @@ function DailyCostChart({ daily_trend, isHourly }: {
   const xData   = isHourly
     ? Array.from({length:24}, (_,i) => `${String(i).padStart(2,'0')}:00`)
     : daily_trend.map(r => r.date ?? '');
-  const costs   = daily_trend.map(r =>
-    +(r.input * COURSE_INPUT_PRICE + r.output * COURSE_OUTPUT_PRICE).toFixed(6)
-  );
+  const costs   = daily_trend.map(courseRowCost);
   const tokPerTurn = daily_trend.map(r =>
     r.turns > 0 ? +((r.input + r.output) / r.turns).toFixed(0) : 0
   );
@@ -516,16 +443,6 @@ function LatencyByAgentChart({ data }: { data: { agent_name: string; cnt: number
 }
 
 // ── Tab 內容組件 ──────────────────────────────────────────────────
-
-type PickerMode = 'preset'|'day'|'week'|'month';
-
-interface TimeRangeState {
-  mode: PickerMode;
-  preset: '1d'|'7d'|'30d';
-  dayVal: string;
-  weekVal: string;
-  monthVal: string;
-}
 
 interface TimeRangeProps {
   state: TimeRangeState;
@@ -1239,15 +1156,10 @@ function ActivityTab({ stats }: { stats: MonitorStats }) {
   const coursePeak     = stats.course?.peak_hours ?? stats.peak_hours;
   const courseTools    = stats.course?.tools_usage ?? stats.tools_usage;
 
-  const combinedActivity = useMemo(() => {
-    const dateMap = new Map<string, { sessions: number; turns: number }>();
-    for (const r of courseActivity) dateMap.set(r.date, { sessions: r.sessions, turns: r.turns });
-    for (const r of pdfActivity) {
-      const e = dateMap.get(r.date) ?? { sessions: 0, turns: 0 };
-      dateMap.set(r.date, { sessions: e.sessions + r.sessions, turns: e.turns + r.turns });
-    }
-    return Array.from(dateMap.entries()).sort(([a],[b]) => a < b ? -1 : 1).map(([date, v]) => ({ date, ...v }));
-  }, [courseActivity, pdfActivity]);
+  const combinedActivity = useMemo(
+    () => combineActivity(courseActivity, pdfActivity),
+    [courseActivity, pdfActivity],
+  );
 
   const activityData = feature === 'course' ? courseActivity : feature === 'pdf' ? pdfActivity : combinedActivity;
 
@@ -1328,7 +1240,7 @@ function ActivityTab({ stats }: { stats: MonitorStats }) {
 }
 
 // ── 主頁面 ────────────────────────────────────────────────────────
-type TabId = 'overview'|'course'|'pdf'|'database'|'activity';
+type TabId = MonitorTabId;
 const TABS: { id: TabId; label: string; icon: React.ComponentType<{className?:string}> }[] = [
   { id:'overview',  label:'總覽',      icon: HiChip },
   { id:'course',    label:'課程推薦',  icon: HiAcademicCap },
@@ -1338,83 +1250,16 @@ const TABS: { id: TabId; label: string; icon: React.ComponentType<{className?:st
 ];
 
 export default function MonitorPage() {
-  const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [timeState, setTimeState] = useState<TimeRangeState>({
-    mode:'preset', preset:'7d', dayVal:todayISO(), weekVal:currentWeekISO(), monthVal:currentMonthISO(),
-  });
-  const [refreshSec, setRefreshSec]   = useState(60);
-  const [countdown, setCountdown]     = useState(60);
-  const [stats, setStats]             = useState<MonitorStats|null>(null);
-  const [dbStats, setDbStats]         = useState<DBStats|null>(null);
-  const [dbLoading, setDbLoading]     = useState(false);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string|null>(null);
-  const [lastAt, setLastAt]           = useState<Date|null>(null);
-  const seqRef    = useRef(0);
-  const dbFetched = useRef(false);
-
-  const fetchOpts = useMemo(() => {
-    const { mode, preset, dayVal, weekVal, monthVal } = timeState;
-    if (mode==='preset') return { preset };
-    if (mode==='day'   && dayVal)   return { start:dayVal,    end:dayVal };
-    if (mode==='week'  && weekVal)  { const r=weekToRange(weekVal);  return { start:r.start,end:r.end }; }
-    if (mode==='month' && monthVal) { const r=monthToRange(monthVal);return { start:r.start,end:r.end }; }
-    return { preset:'7d' as const };
-  }, [timeState]);
-
-  const fetchStats = useCallback(async (opts: typeof fetchOpts) => {
-    const id = ++seqRef.current;
-    setLoading(true); setError(null);
-    try {
-      const d = await monitorAPI.getStats(opts);
-      if (seqRef.current===id) { setStats(d); setLastAt(new Date()); }
-    } catch (e: unknown) {
-      if (seqRef.current===id) setError(e instanceof Error ? e.message : '載入失敗');
-    } finally {
-      if (seqRef.current===id) setLoading(false);
-    }
-  }, []);
-
-  // 認證 + 初始 fetch
-  useEffect(() => {
-    if (authLoading) return;
-    if (!isDeveloper(user?.email)) { navigate('/'); return; }
-    fetchStats(fetchOpts);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, navigate, fetchStats, fetchOpts]);
-
-  // auto-refresh
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCountdown(c => { if (c<=1) { fetchStats(fetchOpts); return refreshSec; } return c-1; });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [fetchOpts, refreshSec, fetchStats]);
-
-  // DB stats：切到 database tab 時才 fetch
-  useEffect(() => {
-    if (activeTab==='database' && !dbFetched.current) {
-      dbFetched.current = true;
-      setDbLoading(true);
-      monitorAPI.getDbStats()
-        .then(setDbStats)
-        .finally(() => setDbLoading(false));
-    }
-  }, [activeTab]);
-
-  const doRefresh = () => {
-    fetchStats(fetchOpts);
-    setCountdown(refreshSec);
-    if (activeTab==='database') {
-      dbFetched.current = false;
-      setDbLoading(true);
-      monitorAPI.getDbStats().then(setDbStats).finally(()=>setDbLoading(false));
-      dbFetched.current = true;
-    }
-  };
+  const {
+    authLoading,
+    activeTab, setActiveTab,
+    timeState, setTimeState,
+    refreshSec, setRefreshSec,
+    countdown, setCountdown,
+    stats, dbStats, dbLoading,
+    loading, error, lastAt,
+    doRefresh,
+  } = useMonitor();
 
   if (authLoading) return null;
 

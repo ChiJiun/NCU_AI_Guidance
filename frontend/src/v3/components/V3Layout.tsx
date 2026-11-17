@@ -57,11 +57,16 @@ function VersionSwitch({ pathname, search }: { pathname: string; search: string 
     <nav aria-label="切換介面版本" className="v3-versions">
       {VERSIONS.map((version) =>
         version.id === 'v3' ? (
-          <span key={version.id} aria-current="page" title={version.title}>
+          <span key={version.id} aria-current="page" title={version.title} aria-label={version.title}>
             {version.id}
           </span>
         ) : (
-          <Link key={version.id} to={switchVersionHref(pathname, search, version.id)} title={`切換到${version.title}`}>
+          <Link
+            key={version.id}
+            to={switchVersionHref(pathname, search, version.id)}
+            title={`切換到${version.title}`}
+            aria-label={`切換到${version.title}`}
+          >
             {version.id}
           </Link>
         ),

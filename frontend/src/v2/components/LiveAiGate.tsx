@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { GoogleMark } from '../../components/GoogleLoginButton';
 import { DEMO_CASES } from '../../demo/cases';
 import type { LiveAiAccessState } from '../../hooks/useLiveAiAccess';
-import { v2Link } from '../paths';
+import { useSite } from '../site';
 
 interface LiveAiGateProps {
   liveAi: LiveAiAccessState;
@@ -23,6 +23,8 @@ interface LiveAiGateProps {
  */
 export default function LiveAiGate({ liveAi, assistant, children }: LiveAiGateProps) {
   const { user, loginWithGoogle } = useAuth();
+  // v3 也重用這個元件：示範案例連結要跟著目前的版本（v3 沒有示範案例頁，連回舊版）
+  const { link } = useSite();
   const [loginFailed, setLoginFailed] = useState(false);
 
   if (liveAi.loading) {
@@ -59,7 +61,7 @@ export default function LiveAiGate({ liveAi, assistant, children }: LiveAiGatePr
           </button>
         )}
         {DEMO_CASES.length > 0 && (
-          <Link to={`${v2Link('/demo')}${assistant ? `?assistant=${assistant}` : ''}`} className="v2-btn v2-btn--sm">
+          <Link to={`${link('/demo')}${assistant ? `?assistant=${assistant}` : ''}`} className="v2-btn v2-btn--sm">
             看示範案例
           </Link>
         )}

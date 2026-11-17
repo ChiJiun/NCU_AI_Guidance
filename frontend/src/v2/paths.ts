@@ -2,13 +2,27 @@
  * 新舊版路徑對應（純函式，不依賴 React，方便用 node --test 測試）。
  *
  * - 舊版維持原網址（/、/courses…），新版放在 /v2 底下（/v2、/v2/courses…）。
- * - 新版目前只有 V2_PAGES 列出的頁面；其他頁面在新版裡直接連回舊版。
+ * - 新版目前只有 V2_PAGES 列出的頁面（加上 /demo/:caseId）；其他頁面在新版裡直接連回舊版。
  */
 
 export const V2_BASE = '/v2';
 
 /** 新版已經有的頁面（以舊版路徑表示）。 */
-export const V2_PAGES = ['/', '/assessment', '/curriculum', '/courses', '/course-search'] as const;
+export const V2_PAGES = [
+  '/',
+  '/assessment',
+  '/curriculum',
+  '/courses',
+  '/course-search',
+  '/projects',
+  '/resources',
+  '/profile',
+  '/demo',
+  '/monitor',
+] as const;
+
+/** 示範案例內頁 /demo/:caseId（id 保留原本的大小寫） */
+const DEMO_CASE_PATH = /^\/demo\/([^/]+)$/i;
 
 /**
  * 合併連續斜線並去掉結尾斜線。
@@ -27,8 +41,11 @@ export function isV2Path(pathname: string): boolean {
 
 /** 舊版路徑在新版有對應頁面時，回傳該頁的標準寫法（小寫）；沒有則回傳 null。 */
 function matchV2Page(legacyPathname: string): string | null {
-  const lower = normalizePath(legacyPathname).toLowerCase();
-  return (V2_PAGES as readonly string[]).includes(lower) ? lower : null;
+  const path = normalizePath(legacyPathname);
+  const lower = path.toLowerCase();
+  if ((V2_PAGES as readonly string[]).includes(lower)) return lower;
+  const demoCase = DEMO_CASE_PATH.exec(path);
+  return demoCase ? `/demo/${demoCase[1]}` : null;
 }
 
 /** 舊版路徑在新版有沒有對應頁面。 */

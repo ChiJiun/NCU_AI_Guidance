@@ -16,52 +16,10 @@ import {
 import CourseDetailModal from '../components/CourseDetailModal';
 import DebugTracePanel from '../components/DebugTracePanel';
 import HighlightedAnswer from '../components/HighlightedAnswer';
-import { TOOL_LABELS } from '../constants/toolLabels';
 import { ASSISTANT_LABELS, CATEGORY_LABELS, CATEGORY_STYLES, getDemoCase } from '../demo/cases';
-import type { DemoCase, DemoStep, DemoTurn } from '../demo/types';
-import type { CourseCard, DebugTrace } from '../types';
-
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString('zh-TW', { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function sourceLabel(src: unknown): string {
-  if (typeof src === 'string') return src;
-  if (src && typeof src === 'object') {
-    const o = src as Record<string, unknown>;
-    const text = o.title ?? o.name ?? o.source ?? o.page_content;
-    const page = o.page ?? (o.metadata as Record<string, unknown> | undefined)?.page;
-    if (text) return page != null ? `${String(text)}（第 ${String(page)} 頁）` : String(text);
-    return JSON.stringify(src);
-  }
-  return String(src);
-}
-
-function stepLabel(step: DemoStep): string {
-  if (step.kind === 'verify') {
-    const kept = step.selected?.length ?? 0;
-    return `驗證推薦課程：從 ${step.pool_size ?? '?'} 門候選中保留 ${kept} 門`;
-  }
-  const name = TOOL_LABELS[step.tool] ?? step.tool;
-  return step.count != null ? `${name}（找到 ${step.count} 筆）` : name;
-}
-
-function toDebugTrace(turn: DemoTurn): DebugTrace | null {
-  const toolCalls = turn.debug_trace?.toolCalls ?? [];
-  const verifyStep = turn.steps?.find((s): s is Extract<DemoStep, { kind: 'verify' }> => s.kind === 'verify');
-  const verify = verifyStep
-    ? {
-        poolSize: verifyStep.pool_size ?? 0,
-        selected: verifyStep.selected ?? [],
-        filteredOut: verifyStep.filtered_out ?? [],
-        method: verifyStep.method,
-      }
-    : null;
-  if (toolCalls.length === 0 && !verify) return null;
-  return { toolCalls, verify };
-}
+import type { DemoCase, DemoTurn } from '../demo/types';
+import { formatDate, sourceLabel, stepLabel, toDebugTrace } from '../features/demo/caseDetail';
+import type { CourseCard } from '../types';
 
 function SectionTitle({ icon: Icon, children }: { icon: typeof HiUser; children: React.ReactNode }) {
   return (

@@ -15,14 +15,14 @@ const PRIMARY_LINKS = [
   { to: '/course-search', label: '課程助理' },
 ];
 
-/** 尚未改版、連回舊版的頁面 */
-const LEGACY_LINKS = [
+/** 參考資料類的頁面（導覽列上和工具類分開一組） */
+const REFERENCE_LINKS = [
   { to: '/projects', label: '研究計畫' },
   { to: '/resources', label: '資源' },
 ];
 
 /** 工具型頁面：佔滿視窗高度，內容區自己捲動 */
-const APP_PAGES = ['/courses', '/course-search', '/curriculum'];
+const APP_PAGES = ['/courses', '/course-search', '/curriculum', '/projects'];
 
 /** Esc 或點到外面時關閉 */
 function useDismiss(open: boolean, close: () => void) {
@@ -103,11 +103,11 @@ function Account() {
             <p className="v2-faint truncate text-xs">{user.email}</p>
           </div>
           <hr className="v2-rule" />
-          <Link role="menuitem" to="/profile" className="v2-row !border-b-0 text-sm" onClick={() => setOpen(false)}>
+          <Link role="menuitem" to={v2Link('/profile')} className="v2-row !border-b-0 text-sm" onClick={() => setOpen(false)}>
             個人分析
           </Link>
           {isDeveloper(user.email) && (
-            <Link role="menuitem" to="/monitor" className="v2-row !border-b-0 text-sm" onClick={() => setOpen(false)}>
+            <Link role="menuitem" to={v2Link('/monitor')} className="v2-row !border-b-0 text-sm" onClick={() => setOpen(false)}>
               系統監控
             </Link>
           )}
@@ -160,10 +160,10 @@ export default function V2Layout() {
               </NavLink>
             ))}
             <span className="mx-2 h-4 w-px" style={{ background: 'var(--v2-line-2)' }} aria-hidden="true" />
-            {LEGACY_LINKS.map((item) => (
-              <Link key={item.to} to={item.to} className="v2-navlink">
+            {REFERENCE_LINKS.map((item) => (
+              <NavLink key={item.to} to={v2Link(item.to)} className="v2-navlink">
                 {item.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
 
@@ -197,10 +197,10 @@ export default function V2Layout() {
                 {item.label}
               </NavLink>
             ))}
-            {LEGACY_LINKS.map((item) => (
-              <Link key={item.to} to={item.to} className="v2-row v2-muted !min-h-12 !px-5">
+            {REFERENCE_LINKS.map((item) => (
+              <NavLink key={item.to} to={v2Link(item.to)} className="v2-row v2-muted !min-h-12 !px-5">
                 {item.label}
-              </Link>
+              </NavLink>
             ))}
           </nav>
         )}

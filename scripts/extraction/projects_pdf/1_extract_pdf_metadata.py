@@ -61,8 +61,19 @@ def extract_pdf_metadata(pdf_dir):
     return projects
 
 if __name__ == '__main__':
+    import sys
+    # 現行 projects.json 已含 documentId 與 step2 摘要；這支會整檔重寫並依目錄順序重新編號，
+    # 會清掉那些欄位、讓其他檔案對不上 id。
+    if '--i-understand-this-overwrites' not in sys.argv:
+        sys.exit(
+            "已停用：這支會整檔重寫 data/processed/projects.json、重新編號 proj001…，"
+            "並清掉 documentId、motivation、method、result、tags。\n"
+            "定期更新請改用 python -m scripts.update_data。"
+            "確定要重跑請加 --i-understand-this-overwrites。"
+        )
+
     # PDF資料夾路徑
-    pdf_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'raw', 'projects', '104-114')
+    pdf_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'data', 'raw', 'projects', '104-114')
 
     # 提取元資料
     print('開始掃描PDF檔案...')
@@ -70,7 +81,7 @@ if __name__ == '__main__':
     print(f'共找到 {len(projects)} 個專案')
 
     # 儲存為JSON
-    output_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'processed', 'projects.json')
+    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'data', 'processed', 'projects.json')
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(projects, f, ensure_ascii=False, indent=2)
 

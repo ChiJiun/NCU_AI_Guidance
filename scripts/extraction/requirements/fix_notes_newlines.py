@@ -18,8 +18,10 @@ fix_notes_newlines.py
 """
 import pdfplumber, re, json
 
-BASE = 'data/raw/應修科目表'
-OUTPUT = 'data/processed/requirements_notes.json'
+import os
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+BASE = os.path.join(_ROOT, 'data', 'raw', '應修科目表')
+OUTPUT = os.path.join(_ROOT, 'data', 'processed', 'requirements_notes.json')
 
 # ─── 工具函式 ─────────────────────────────────────────────────
 

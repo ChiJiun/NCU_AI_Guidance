@@ -2,6 +2,10 @@
 
 本目錄包含所有資料處理和生成腳本。
 
+> **定期更新資料請用一鍵入口 `python -m scripts.update_data`**（預設 dry-run，加 `--apply` 才寫入），
+> 它會依正確順序呼叫下面這些腳本、驗證輸出並產生變更摘要。步驟、旗標、成本與仍需人工處理的部分見
+> [`update_data/README.md`](update_data/README.md)。本檔以下的內容是早期的個別腳本說明，部分已過時。
+
 ## 腳本列表
 
 ### 0. `storage/upload_pdfs_to_cloudinary.py`

@@ -29,7 +29,7 @@ import argparse
 # 路徑設定
 # ─────────────────────────────────────────
 SCRIPT_DIR   = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..', '..')
+PROJECT_ROOT = os.path.join(SCRIPT_DIR, '..', '..', '..')
 INPUT_JSON   = os.path.join(PROJECT_ROOT, 'data', 'processed', 'pdf_sections_raw.json')
 OUTPUT_JSON  = os.path.join(PROJECT_ROOT, 'data', 'processed', 'assessment_questions.json')
 
@@ -169,7 +169,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--limit',   type=int, default=0,    help='限制處理筆數（0 = 全部）')
     parser.add_argument('--dry-run', action='store_true',    help='只印 prompt，不呼叫 API')
+    parser.add_argument('--i-understand-this-overwrites', action='store_true',
+                        help='確認要在現行 assessment_questions.json 上重跑（預設拒絕）')
     args = parser.parse_args()
+
+    # 現行 assessment_questions.json 由 scripts/data/import_step2_step3_summaries.py 產生，
+    # 紀錄裡沒有 source_id；這支腳本靠 source_id 斷點續跑，重跑會把全部紀錄再附加一次並呼叫付費 API。
+    if not args.dry_run and not args.i_understand_this_overwrites:
+        raise SystemExit(
+            "已停用：現行 assessment_questions.json 由 import_step2_step3_summaries.py 產生，"
+            "重跑這支會重複附加全部題目並呼叫 Azure OpenAI。\n"
+            "定期更新請改用 python -m scripts.update_data。"
+            "確定要重跑請加 --i-understand-this-overwrites。"
+        )
 
     if not os.path.exists(INPUT_JSON):
         print(f"找不到輸入檔：{INPUT_JSON}")

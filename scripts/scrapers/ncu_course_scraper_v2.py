@@ -14,12 +14,14 @@ import re
 
 
 class NCUCourseScraperV2:
-    def __init__(self, year="114", semester="1"):
+    def __init__(self, year="114", semester="1", output_dir=None, headless=False):
         self.year = year
         self.semester = semester
         self.base_url = f"https://cis.ncu.edu.tw/Course/main/query/byYears?do=showDept&semester={year}{semester}"
 
         chrome_options = Options()
+        if headless:
+            chrome_options.add_argument('--headless=new')
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--start-maximized')
@@ -27,9 +29,9 @@ class NCUCourseScraperV2:
         self.driver = webdriver.Chrome(options=chrome_options)
         self.wait = WebDriverWait(self.driver, 15)
 
-        # 輸出與舊資料路徑（相對於 project root）
+        # 輸出與舊資料路徑（相對於 project root）；資料更新管線會指定暫存輸出目錄
         _root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.output_dir = os.path.join(_root, 'data', 'raw', 'courses', f"{year}_{semester}")
+        self.output_dir = output_dir or os.path.join(_root, 'data', 'raw', 'courses', f"{year}_{semester}")
         os.makedirs(self.output_dir, exist_ok=True)
         print(f"✓ 輸出資料夾：{self.output_dir}")
 
@@ -295,8 +297,13 @@ class NCUCourseScraperV2:
             return {}
 
     def scrape_courses_with_pagination(self, college, dept_name):
-        """爬取課程（支援翻頁）"""
+        """爬取課程（支援翻頁）
+
+        回傳 (courses, complete)。任何一頁發生例外時 complete 為 False，
+        呼叫端不能把這份不完整的結果存檔（否則續爬時會被當成已爬完而跳過）。
+        """
         courses = []
+        complete = True
         page_num = 1
         has_next_page = True
 
@@ -410,20 +417,32 @@ class NCUCourseScraperV2:
             except Exception as e:
                 print(f"錯誤: {str(e)[:30]}")
                 has_next_page = False
+                complete = False
 
-        return courses
+        return courses, complete
 
     def save_dept_json(self, dept_name, courses):
-        """儲存系所課程為獨立JSON"""
+        """儲存系所課程為獨立JSON；成功回傳 True"""
         try:
             safe_name = re.sub(r'[\\/:*?"<>|]', '_', dept_name)
             filename = os.path.join(self.output_dir, f"{safe_name}.json")
+            tmp = filename + ".tmp"
 
-            with open(filename, 'w', encoding='utf-8') as f:
+            # 先寫暫存檔再換名，避免中斷時留下半個檔案被續爬當成已完成
+            with open(tmp, 'w', encoding='utf-8') as f:
                 json.dump(courses, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, filename)
             print(f"  ✓ 已儲存至 {filename} ({len(courses)} 門課程)")
+            return True
         except Exception as e:
             print(f"  ✗ 儲存錯誤: {e}")
+            return False
+
+    def _record_failure(self, name, reason):
+        if not hasattr(self, "failed_depts"):
+            self.failed_depts = []
+        self.failed_depts.append((name, reason))
+        print(f"  ✗ 失敗：{name}（{reason}）")
 
     def dept_already_scraped(self, full_name):
         """檢查該系所是否已有 JSON 檔案（同時檢查輸出資料夾和舊資料資料夾）"""
@@ -433,9 +452,14 @@ class NCUCourseScraperV2:
         return in_output or in_data
 
     def scrape_all_depts(self, exclude_keywords=None, skip_existing=True, max_depts=None):
-        """爬取所有系所"""
+        """爬取所有系所
+
+        失敗（系所清單讀不到、某系所翻頁出錯、存檔失敗）都會記到 self.failed_depts，
+        由 run() 據此回傳 False；翻頁不完整的系所不存檔，續爬時會重爬。
+        """
         if exclude_keywords is None:
             exclude_keywords = []
+        self.failed_depts = []
 
         try:
             dept_list_url = self.driver.current_url
@@ -443,17 +467,27 @@ class NCUCourseScraperV2:
             tables = self.driver.find_elements(By.TAG_NAME, "table")
             dept_table = tables[-1]
             rows = dept_table.find_elements(By.TAG_NAME, "tr")
+        except Exception as e:
+            self._record_failure("系所清單", f"讀取失敗：{e}")
+            return
 
-            total_depts = len(rows) - 1
-            print(f"\n找到 {total_depts} 個系所")
+        total_depts = len(rows) - 1
+        print(f"\n找到 {total_depts} 個系所")
+        if total_depts <= 0:
+            self._record_failure("系所清單", "沒有找到任何系所")
+            return
 
-            scraped_count = 0
-            for dept_index in range(total_depts):
+        scraped_count = 0
+        for dept_index in range(total_depts):
+            label = f"第 {dept_index + 1} 個系所"
+            entered = False
+            try:
                 tables = self.driver.find_elements(By.TAG_NAME, "table")
                 dept_table = tables[-1]
                 rows = dept_table.find_elements(By.TAG_NAME, "tr")
 
                 if dept_index + 1 >= len(rows):
+                    self._record_failure(label, "系所清單列數變少，讀不到這一列")
                     continue
 
                 row = rows[dept_index + 1]
@@ -461,6 +495,7 @@ class NCUCourseScraperV2:
                 college = cells[0].text.strip()
                 dept_name = cells[1].text.strip()
                 full_name = f"{college}_{dept_name}"
+                label = full_name
 
                 if any(keyword in full_name for keyword in exclude_keywords):
                     print(f"\n[{dept_index+1}/{total_depts}] 跳過：{full_name} (排除關鍵字)")
@@ -477,23 +512,28 @@ class NCUCourseScraperV2:
                 print(f"\n[{dept_index+1}/{total_depts}] 爬取：{full_name}")
 
                 dept_link = cells[2].find_element(By.TAG_NAME, "a")
+                entered = True  # 點擊本身失敗時頁面狀態不明，一律回系所清單
                 dept_link.click()
                 time.sleep(3)
 
-                courses = self.scrape_courses_with_pagination(college, dept_name)
-
-                if courses:
-                    self.save_dept_json(full_name, courses)
-
+                courses, complete = self.scrape_courses_with_pagination(college, dept_name)
                 scraped_count += 1
 
-                self.driver.get(dept_list_url)
-                time.sleep(2)
+                if not complete:
+                    self._record_failure(full_name, f"翻頁途中出錯，已爬 {len(courses)} 門，不存檔")
+                elif courses and not self.save_dept_json(full_name, courses):
+                    self._record_failure(full_name, "存檔失敗")
 
-        except Exception as e:
-            print(f"\n爬取所有系所錯誤: {e}")
-            import traceback
-            traceback.print_exc()
+            except Exception as e:
+                self._record_failure(label, f"例外：{str(e)[:80]}")
+
+            if entered:
+                try:
+                    self.driver.get(dept_list_url)
+                    time.sleep(2)
+                except Exception as e:
+                    self._record_failure("系所清單", f"回不到系所清單，停止：{e}")
+                    return
 
     def close(self):
         """關閉瀏覽器"""
@@ -502,39 +542,71 @@ class NCUCourseScraperV2:
         except:
             pass
 
-    def run(self):
-        """執行"""
+    def run(self, max_depts=None):
+        """執行；全部系所都成功才回傳 True。
+
+        進不了課程查詢頁、系所清單讀不到、任何系所翻頁或存檔失敗，都回傳 False。
+        """
         try:
             if not self.navigate_to_course_page():
-                return
+                return False
 
-            self.scrape_all_depts()
+            self.scrape_all_depts(max_depts=max_depts)
+            failed = getattr(self, "failed_depts", [])
 
             print("\n" + "=" * 60)
-            print(f"爬取完成！所有系所已儲存至 {self.output_dir}")
+            if failed:
+                print(f"爬取未完成：{len(failed)} 個項目失敗（已成功的系所留在 {self.output_dir}，重跑會續爬）")
+                for name, reason in failed:
+                    print(f"  - {name}：{reason}")
+            else:
+                print(f"爬取完成！所有系所已儲存至 {self.output_dir}")
             print("=" * 60)
+            return not failed
 
         except Exception as e:
             print(f"\n錯誤: {e}")
             import traceback
             traceback.print_exc()
+            return False
         finally:
             self.close()
 
 
-if __name__ == "__main__":
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="NCU 課程爬蟲 v2（公開頁面，不需登入）")
+    parser.add_argument("--year", default="114", help="學年度，例如 114")
+    parser.add_argument("--semesters", default="1,2", help="學期，逗號分隔，例如 1,2")
+    parser.add_argument("--output-dir", default=None,
+                        help="輸出目錄（只爬一個學期時使用；預設 data/raw/courses/{學年}_{學期}）")
+    parser.add_argument("--headless", action="store_true", help="無頭模式（不開瀏覽器視窗）")
+    parser.add_argument("--max-depts", type=int, default=None, help="最多爬幾個系所（試跑用）")
+    args = parser.parse_args(argv)
+
+    semesters = [s.strip() for s in args.semesters.split(",") if s.strip()]
+    if args.output_dir and len(semesters) != 1:
+        parser.error("--output-dir 只能搭配單一學期")
+
     print("=" * 60)
     print("  NCU 課程爬蟲 v2 (無需登入)")
     print("=" * 60)
 
-    # 爬取兩個學期
-    for semester in ["1", "2"]:
-        print(f"\n開始爬取 114 學年度第 {semester} 學期")
+    ok = True
+    for semester in semesters:
+        print(f"\n開始爬取 {args.year} 學年度第 {semester} 學期")
         print("=" * 60)
 
-        scraper = NCUCourseScraperV2(year="114", semester=semester)
-        scraper.run()
+        scraper = NCUCourseScraperV2(year=args.year, semester=semester,
+                                     output_dir=args.output_dir, headless=args.headless)
+        ok = scraper.run(max_depts=args.max_depts) and ok
 
     print("\n" + "=" * 60)
-    print("所有學期爬取完成！")
+    print("所有學期爬取完成！" if ok else "部分學期爬取失敗，請看上方錯誤訊息")
     print("=" * 60)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

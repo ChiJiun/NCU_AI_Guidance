@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from selenium.webdriver.common.by import By
 from ncu_course_scraper_v2 import NCUCourseScraperV2
 
-OUTPUT_BASE = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'courses')
+OUTPUT_BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'raw', 'courses')
 
 scraper = NCUCourseScraperV2(year="114", semester="1")
 scraper.output_dir = os.path.normpath(os.path.join(OUTPUT_BASE, "114_1"))

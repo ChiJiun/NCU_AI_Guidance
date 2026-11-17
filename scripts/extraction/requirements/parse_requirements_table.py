@@ -21,7 +21,7 @@ import time
 from pathlib import Path
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BASE_DIR / ".env")
 
 REQUIREMENTS_DIR = BASE_DIR / "data" / "raw" / "應修科目表"

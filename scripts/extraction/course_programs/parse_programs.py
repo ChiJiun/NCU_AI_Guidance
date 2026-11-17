@@ -11,7 +11,7 @@ import re
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[3]
 
 JS_FILE     = BASE_DIR / "data" / "raw" / "學分學程" / "學分學程.js"
 PROGRAMS_DIR = BASE_DIR / "data" / "raw" / "學分學程"

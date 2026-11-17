@@ -20,6 +20,7 @@ build_graph.py — NCU 知識圖譜統一建置腳本
 import argparse
 import csv
 import json
+import os
 import pickle
 import re
 from collections import Counter
@@ -45,6 +46,8 @@ RAW_COURSE_DIRS = [
     (BASE / "data" / "raw" / "graduate_courses", "grad"),
 ]
 SCRAPED_PATH    = BASE / "data" / "raw" / "scraped_missing" / "courses.json"
+# 原始課程學期清單，可用環境變數 NCU_DATA_TERMS 覆寫（例如 "115_1,115_2"）
+RAW_TERMS       = [t.strip() for t in os.environ.get("NCU_DATA_TERMS", "114_1,114_2").split(",") if t.strip()]
 
 NLP_DIR         = BASE / "data" / "processed" / "nlp"
 ELIGIBILITY     = BASE / "data" / "processed" / "course_eligibility.json"
@@ -228,7 +231,7 @@ def _load_raw_courses() -> dict:
         }
 
     for raw_dir, level in RAW_COURSE_DIRS:
-        for sem in ["114_1", "114_2"]:
+        for sem in RAW_TERMS:
             d = raw_dir / sem
             if not d.exists():
                 continue

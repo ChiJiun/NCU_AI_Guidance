@@ -32,11 +32,10 @@ _COLLEGE_MAP_PATH = ROOT / "data" / "processed" / "dept_college_map.json"
 def _get_qdrant() -> QdrantClient:
     qdrant_url = os.getenv("QDRANT_URL", "").strip()
     if qdrant_url:
-        return QdrantClient(
-            url=qdrant_url,
-            api_key=os.getenv("QDRANT_API_KEY", "").strip() or None,
-            timeout=30,
-        )
+        from app.services.qdrant_conn import qdrant_connection_kwargs
+        return QdrantClient(**qdrant_connection_kwargs(
+            qdrant_url, os.getenv("QDRANT_API_KEY"), timeout=30,
+        ))
     return QdrantClient(path=str(QDRANT_DIR))
 
 

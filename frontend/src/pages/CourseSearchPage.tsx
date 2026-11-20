@@ -18,6 +18,7 @@ import DebugTracePanel from '../components/DebugTracePanel';
 import HighlightedAnswer from '../components/HighlightedAnswer';
 import LiveAiDisabledNotice, { LiveAiPendingSlot } from '../components/LiveAiDisabledNotice';
 import { useAuth } from '../auth/AuthContext';
+import { DemoBadge, DemoCaseList, DemoComposerNotice, DemoResultBanner } from '../demo/DemoUI';
 import { formatTime, useCourseChat } from '../features/courseChat/useCourseChat';
 import type { Conversation } from '../features/courseChat/useCourseChat';
 import type { CourseCard } from '../types';
@@ -120,6 +121,7 @@ export default function CourseSearchPage() {
   const { user, loginWithGoogle } = useAuth();
   const {
     liveAi,
+    showDemo, demoListItems, demoQuestions,
     conversations, selectedConversationId, selectedConversation,
     inputMessage, setInputMessage,
     isMobileConversationOpen, setIsMobileConversationOpen,
@@ -133,6 +135,12 @@ export default function CourseSearchPage() {
     doSend, handleSendMessage, handleAbort, handleSendEdit, handleCancelEdit,
   } = useCourseChat();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  // 展示版：示範對話清單預設展開，讓訪客一眼看到有哪些示範
+  const [prevShowDemo, setPrevShowDemo] = useState(showDemo);
+  if (prevShowDemo !== showDemo) {
+    setPrevShowDemo(showDemo);
+    if (showDemo) setIsSidebarCollapsed(false);
+  }
 
   // Modal
   const [selectedCourse, setSelectedCourse] = useState<CourseCard | null>(null);
@@ -172,14 +180,17 @@ export default function CourseSearchPage() {
       {/* 頁頭 */}
       <div className="mb-3 flex flex-shrink-0 items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-base font-bold text-primary-900">課程助理</h1>
+          <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary-900">課程助理</h1>
+          {showDemo && <DemoBadge />}
           <span className="text-sm text-gray-400">/</span>
           <span className="text-sm text-gray-500">用 AI 對話方式快速整理課程方向與學習線索</span>
         </div>
-        <button onClick={handleNewConversation} className="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
-          <HiPlus className="h-4 w-4" />
-          新對話
-        </button>
+        {!showDemo && (
+          <button onClick={handleNewConversation} className="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
+            <HiPlus className="h-4 w-4" />
+            新對話
+          </button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
@@ -191,27 +202,37 @@ export default function CourseSearchPage() {
                 <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-3">
                   <div className="flex items-center gap-2">
                     <HiMenu className="h-5 w-5 text-primary-700" />
-                    <span className="text-sm font-semibold text-slate-800">對話列表</span>
+                    <span className="text-sm font-semibold text-slate-800">{showDemo ? '示範對話' : '對話列表'}</span>
                   </div>
                   <button type="button" onClick={() => setIsMobileConversationOpen(false)}
                     className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100">
                     <HiChevronLeft className="h-5 w-5" />
                   </button>
                 </div>
-                <div className="border-b border-gray-200 p-3">
-                  <button type="button" onClick={handleNewConversation}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-primary-800">
-                    <HiPlus className="h-4 w-4" />新對話
-                  </button>
-                </div>
-                <ConvList
-                  conversations={conversations}
-                  selectedConversationId={selectedConversationId}
-                  onSelectConversation={handleSelectConversation}
-                  onDeleteConversation={handleDeleteConversation}
-                  onRenameConversation={handleRenameConversation}
-                  onSelect={() => setIsMobileConversationOpen(false)}
-                />
+                {showDemo ? (
+                  <DemoCaseList
+                    items={demoListItems}
+                    selectedId={selectedConversationId}
+                    onSelect={(id) => { void handleSelectConversation(id); }}
+                  />
+                ) : (
+                  <>
+                    <div className="border-b border-gray-200 p-3">
+                      <button type="button" onClick={handleNewConversation}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-primary-800">
+                        <HiPlus className="h-4 w-4" />新對話
+                      </button>
+                    </div>
+                    <ConvList
+                      conversations={conversations}
+                      selectedConversationId={selectedConversationId}
+                      onSelectConversation={handleSelectConversation}
+                      onDeleteConversation={handleDeleteConversation}
+                      onRenameConversation={handleRenameConversation}
+                      onSelect={() => setIsMobileConversationOpen(false)}
+                    />
+                  </>
+                )}
               </div>
               <div className="flex w-11 items-center justify-center pl-2">
                 <button type="button" onClick={() => setIsMobileConversationOpen(false)}
@@ -238,14 +259,16 @@ export default function CourseSearchPage() {
                     className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100">
                     <HiChevronRight className="h-5 w-5" />
                   </button>
-                  <button type="button" onClick={handleNewConversation}
-                    className="rounded-xl bg-primary-900 p-2 text-white transition hover:bg-primary-800">
-                    <HiPlus className="h-5 w-5" />
-                  </button>
+                  {!showDemo && (
+                    <button type="button" onClick={handleNewConversation}
+                      className="rounded-xl bg-primary-900 p-2 text-white transition hover:bg-primary-800">
+                      <HiPlus className="h-5 w-5" />
+                    </button>
+                  )}
                 </>
               ) : (
                 <>
-                  <span className="text-sm font-semibold text-slate-800">對話紀錄</span>
+                  <span className="text-sm font-semibold text-slate-800">{showDemo ? '示範對話' : '對話紀錄'}</span>
                   <button type="button" onClick={() => setIsSidebarCollapsed(true)}
                     className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100">
                     <HiChevronLeft className="h-5 w-5" />
@@ -254,13 +277,21 @@ export default function CourseSearchPage() {
               )}
             </div>
             {!isSidebarCollapsed ? (
-              <ConvList
-                conversations={conversations}
-                selectedConversationId={selectedConversationId}
-                onSelectConversation={handleSelectConversation}
-                onDeleteConversation={handleDeleteConversation}
-                onRenameConversation={handleRenameConversation}
-              />
+              showDemo ? (
+                <DemoCaseList
+                  items={demoListItems}
+                  selectedId={selectedConversationId}
+                  onSelect={(id) => { void handleSelectConversation(id); }}
+                />
+              ) : (
+                <ConvList
+                  conversations={conversations}
+                  selectedConversationId={selectedConversationId}
+                  onSelectConversation={handleSelectConversation}
+                  onDeleteConversation={handleDeleteConversation}
+                  onRenameConversation={handleRenameConversation}
+                />
+              )
             ) : (
               <div className="flex-1 space-y-2 overflow-y-auto p-2">
                 {conversations.map((conv) => (
@@ -297,6 +328,13 @@ export default function CourseSearchPage() {
 
                 {/* 訊息列表 */}
                 <div className="flex-1 space-y-3 overflow-y-auto p-4">
+                  {selectedConversation.demo && (
+                    <DemoResultBanner
+                      recordedAt={selectedConversation.demo.recordedAt}
+                      summary={selectedConversation.demo.summary}
+                      reviewed={selectedConversation.demo.reviewed}
+                    />
+                  )}
                   {selectedConversation.messages.map((msg, idx, arr) => {
                     const lastUserIdx = arr.reduceRight(
                       (acc, m, i) => (acc === -1 && m.role === 'user' ? i : acc), -1,
@@ -454,8 +492,14 @@ export default function CourseSearchPage() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* 輸入框 / 登入提示 / 即時 AI 權限說明 */}
-                {!user ? (
+                {/* 輸入框 / 展示版示範 / 登入提示 / 即時 AI 權限說明 */}
+                {showDemo ? (
+                  <DemoComposerNotice
+                    items={demoQuestions}
+                    selectedId={selectedConversationId}
+                    onSelect={(id) => { void handleSelectConversation(id); }}
+                  />
+                ) : !user ? (
                   <div className="border-t border-gray-200 p-4">
                     <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 px-4 py-5 text-center">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">

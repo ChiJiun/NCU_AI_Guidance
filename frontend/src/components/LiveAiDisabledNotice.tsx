@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HiLockClosed, HiSparkles } from 'react-icons/hi';
-import { DEMO_CASES } from '../demo/cases';
 import { DEFAULT_LIVE_AI_RESTRICTED_MESSAGE } from '../api/liveAi';
 import { useAuth } from '../auth/AuthContext';
 import { GoogleMark } from './GoogleLoginButton';
 
 interface LiveAiDisabledNoticeProps {
-  /** 連到示範案例頁時預先篩選的助理類型 */
+  /** 示範對話要連到哪個助理的頁面 */
   assistant?: 'course' | 'research';
   compact?: boolean;
   /** 後端 403 給的訊息，有的話取代預設標題 */
@@ -36,7 +35,9 @@ export default function LiveAiDisabledNotice({ assistant, compact = false, messa
     ? '為了控制模型費用，AI 對話暫時只開放開發團隊成員，目前登入的帳號不在開放名單中。'
     : '為了控制模型費用，AI 對話暫時只開放開發團隊成員，開發團隊成員登入後即可使用。';
   const features = AVAILABLE_FEATURES.filter((item) => !isCurrentPage(pathname, item.to));
-  const demoTo = assistant ? `/demo?assistant=${assistant}` : '/demo';
+  // 示範對話直接放在課程助理、研究計畫頁裡
+  const demoTo = assistant === 'research' ? '/projects' : '/course-search';
+  const showDemoLink = !isCurrentPage(pathname, demoTo);
 
   const handleLogin = async () => {
     setLoginError('');
@@ -84,13 +85,13 @@ export default function LiveAiDisabledNotice({ assistant, compact = false, messa
             </div>
           </>
         )}
-        {DEMO_CASES.length > 0 && (
+        {showDemoLink && (
           <Link
             to={demoTo}
             className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-primary-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-800"
           >
             <HiSparkles className="h-4 w-4" />
-            查看 AI 示範案例
+            查看 AI 示範對話
           </Link>
         )}
       </div>

@@ -562,44 +562,16 @@ def _format_dt(value: Any) -> str:
 _WEEKDAY_NAMES = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
 
 
-def get_analytics(
-    user_id: str,
+def compute_course_analytics(
+    rows: list,
+    total_sessions: int,
     college_map: dict[str, str] | None = None,
-    enrich: Callable[[dict], None] | None = None,
 ) -> dict:
-    """從用戶歷史對話萃取學習傾向統計（15 分鐘快取）。
+    """由對話紀錄（每輪含 tools_used / course_pool / course_cards）算出學習傾向統計。
 
-    enrich：寫入快取前對結果做的補充（例如用 Qdrant 補 domain_tags），
-    讓快取涵蓋整份回應，快取命中時不必再重做。
+    純計算、不碰資料庫；比賽展示版也用它把示範對話算成「示範學生」的分析。
     """
-    if not user_id:
-        return _empty_analytics()
-
-    _ensure_schema()
     college_map = college_map or {}
-
-    with _connect() as conn:
-        cached = _analytics_cache_get(conn, user_id)
-        if cached is not None:
-            return cached
-
-        session_row = conn.execute(
-            "SELECT count(*)::int AS n FROM chat_sessions WHERE user_id = %s",
-            (user_id,),
-        ).fetchone()
-        total_sessions: int = session_row["n"] if session_row else 0
-
-        rows = conn.execute(
-            """
-            SELECT t.tools_used, t.course_pool, t.course_cards, t.created_at
-            FROM chat_turns t
-            JOIN chat_sessions s ON s.session_id = t.session_id
-            WHERE s.user_id = %s
-            ORDER BY t.id ASC
-            """,
-            (user_id,),
-        ).fetchall()
-
     total_turns = len(rows)
     seen_courses: set[str]            = set()
     dept_counter: dict[str, int]      = {}
@@ -748,6 +720,48 @@ def get_analytics(
         "general_edu":          general_edu,
         "top_course_domains":   top_course_domains,
     }
+    return result
+
+
+def get_analytics(
+    user_id: str,
+    college_map: dict[str, str] | None = None,
+    enrich: Callable[[dict], None] | None = None,
+) -> dict:
+    """從用戶歷史對話萃取學習傾向統計（15 分鐘快取）。
+
+    enrich：寫入快取前對結果做的補充（例如用 Qdrant 補 domain_tags），
+    讓快取涵蓋整份回應，快取命中時不必再重做。
+    """
+    if not user_id:
+        return _empty_analytics()
+
+    _ensure_schema()
+    college_map = college_map or {}
+
+    with _connect() as conn:
+        cached = _analytics_cache_get(conn, user_id)
+        if cached is not None:
+            return cached
+
+        session_row = conn.execute(
+            "SELECT count(*)::int AS n FROM chat_sessions WHERE user_id = %s",
+            (user_id,),
+        ).fetchone()
+        total_sessions: int = session_row["n"] if session_row else 0
+
+        rows = conn.execute(
+            """
+            SELECT t.tools_used, t.course_pool, t.course_cards, t.created_at
+            FROM chat_turns t
+            JOIN chat_sessions s ON s.session_id = t.session_id
+            WHERE s.user_id = %s
+            ORDER BY t.id ASC
+            """,
+            (user_id,),
+        ).fetchall()
+
+    result = compute_course_analytics(rows, total_sessions, college_map)
     if enrich is not None:
         enrich(result)
     with _connect() as conn:
@@ -774,6 +788,146 @@ def _empty_pdf_analytics() -> dict:
         "document_list": [],
         "recent_questions": [],
     }
+
+
+def compute_pdf_analytics(
+    convs: list[dict],
+    thread_msg_counts: dict[str, int],
+    recent_msgs: list[dict],
+    doc_meta: dict,
+    college_map: dict[str, str],
+) -> dict:
+    """由研究計畫對話紀錄算出探索傾向統計（純計算、不碰資料庫）。
+
+    convs: [{thread_id, document_id, created_at}]，依時間新到舊
+    recent_msgs: 最近的提問 [{thread_id, user_question, created_at}]，新到舊
+    """
+    total_questions = sum(thread_msg_counts.values())
+    recent_msg_rows = recent_msgs[:10]
+    total_conversations = len(convs)
+
+    # 按 document_id 分組對話
+    doc_conv_map: dict[int, list] = {}
+    for c in convs:
+        doc_conv_map.setdefault(c["document_id"], []).append(c)
+
+    # thread_id → document_id 對照（用於 recent_questions）
+    thread_doc_map: dict[str, int] = {c["thread_id"]: c["document_id"] for c in convs if c["document_id"]}
+
+    # 系所計數（以對話次數為權重）
+    dept_counter: dict[str, int] = {}
+    document_list = []
+
+    for doc_id, doc_convs in sorted(doc_conv_map.items(), key=lambda x: -len(x[1])):
+        meta = doc_meta.get(doc_id, {})
+        conv_count = len(doc_convs)
+        q_count = sum(thread_msg_counts.get(c["thread_id"], 0) for c in doc_convs)
+        avg_depth = round(q_count / conv_count, 1) if conv_count > 0 else 0.0
+
+        last_viewed = max(
+            (c["created_at"] for c in doc_convs if c["created_at"]),
+            default=None,
+        )
+
+        dept = meta.get("department", "")
+        if dept:
+            dept_counter[dept] = dept_counter.get(dept, 0) + conv_count
+        college = college_map.get(dept, "其他") if dept else "其他"
+
+        document_list.append({
+            "document_id": doc_id,
+            "title": meta.get("title", ""),
+            "department": dept,
+            "college": college,
+            "year": meta.get("year", ""),
+            "conversation_count": conv_count,
+            "question_count": q_count,
+            "avg_depth": avg_depth,
+            "last_viewed_at": last_viewed.isoformat() if last_viewed else None,
+        })
+
+    # 系所分佈 Top 8
+    total_dept = sum(dept_counter.values()) or 1
+    dept_distribution = [
+        {"name": d, "count": c, "pct": round(c / total_dept * 100, 1)}
+        for d, c in sorted(dept_counter.items(), key=lambda x: -x[1])[:8]
+    ]
+
+    # 學院分佈 Top 5
+    college_counter: dict[str, int] = {}
+    for dept, cnt in dept_counter.items():
+        col = college_map.get(dept, "其他")
+        college_counter[col] = college_counter.get(col, 0) + cnt
+    total_col = sum(college_counter.values()) or 1
+    college_distribution = [
+        {"name": c, "count": n, "pct": round(n / total_col * 100, 1)}
+        for c, n in sorted(college_counter.items(), key=lambda x: -x[1])[:5]
+    ]
+
+    # 整體平均對話深度
+    avg_depth_overall = round(total_questions / total_conversations, 1) if total_conversations > 0 else 0.0
+
+    # 對話深度分佈
+    depth_buckets: dict[str, int] = {"1–2 輪": 0, "3–5 輪": 0, "6+ 輪": 0}
+    for c in convs:
+        n = thread_msg_counts.get(c["thread_id"], 0)
+        if n <= 2:
+            depth_buckets["1–2 輪"] += 1
+        elif n <= 5:
+            depth_buckets["3–5 輪"] += 1
+        else:
+            depth_buckets["6+ 輪"] += 1
+    depth_distribution = [{"range": k, "count": v} for k, v in depth_buckets.items()]
+
+    # 探索型態診斷
+    doc_count = len(doc_conv_map)
+    real_colleges = [c for c in college_counter if c != "其他"]
+    college_count = len(real_colleges)
+    top_dept_pct = dept_distribution[0]["pct"] if dept_distribution else 0
+
+    if avg_depth_overall >= 4 or (avg_depth_overall >= 3 and doc_count <= 2):
+        exp_type = "深度鑽研型"
+        exp_desc = f"你深度鑽研研究計畫，平均每次對話提問 {avg_depth_overall} 輪，展現出對學術內容的高度專注與深究精神。"
+    elif college_count >= 3 and total_conversations >= 3:
+        exp_type = "跨域探索型"
+        exp_desc = f"你涉獵了來自 {college_count} 個學院的研究計畫，具備廣泛的跨領域研究視野。"
+    elif doc_count >= 5 and avg_depth_overall < 2.5:
+        exp_type = "廣泛涉獵型"
+        exp_desc = f"你瀏覽了 {doc_count} 篇不同的研究計畫，善於快速掌握多個研究方向的概況。"
+    elif top_dept_pct > 70:
+        top_dept_name = dept_distribution[0]["name"] if dept_distribution else "特定系所"
+        exp_type = "專注研究型"
+        exp_desc = f"你高度聚焦於 {top_dept_name} 的研究計畫，方向清晰、目標明確。"
+    else:
+        exp_type = "均衡探索型"
+        exp_desc = "你在深度與廣度之間保持均衡，兼顧了不同系所的研究成果。"
+
+    # 最近 10 筆提問
+    recent_questions = []
+    for r in recent_msg_rows:
+        doc_id = thread_doc_map.get(r["thread_id"])
+        doc_title = doc_meta.get(doc_id, {}).get("title", "") if doc_id else ""
+        recent_questions.append({
+            "question": r["user_question"] or "",
+            "document_title": doc_title,
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+        })
+
+    result = {
+        "overview": {
+            "total_conversations":   total_conversations,
+            "total_questions":       total_questions,
+            "total_documents_explored": len(doc_conv_map),
+            "avg_depth":             avg_depth_overall,
+        },
+        "dept_distribution":    dept_distribution,
+        "college_distribution": college_distribution,
+        "depth_distribution":   depth_distribution,
+        "exploration_type":     {"type": exp_type, "desc": exp_desc},
+        "document_list":        document_list[:8],
+        "recent_questions":     recent_questions,
+    }
+    return result
 
 
 def get_pdf_analytics(user_id: str, doc_meta: dict | None = None) -> dict:
@@ -839,129 +993,19 @@ def get_pdf_analytics(user_id: str, doc_meta: dict | None = None) -> dict:
             {"uid": user_id},
         ).all()
 
-    total_conversations = len(convs)
-
-    # 按 document_id 分組對話
-    doc_conv_map: dict[int, list] = {}
-    for c in convs:
-        doc_conv_map.setdefault(c.document_id, []).append(c)
-
-    # thread_id → document_id 對照（用於 recent_questions）
-    thread_doc_map: dict[str, int] = {c.thread_id: c.document_id for c in convs if c.document_id}
-
-    # 系所計數（以對話次數為權重）
-    dept_counter: dict[str, int] = {}
-    document_list = []
-
-    for doc_id, doc_convs in sorted(doc_conv_map.items(), key=lambda x: -len(x[1])):
-        meta = doc_meta.get(doc_id, {})
-        conv_count = len(doc_convs)
-        q_count = sum(thread_msg_counts.get(c.thread_id, 0) for c in doc_convs)
-        avg_depth = round(q_count / conv_count, 1) if conv_count > 0 else 0.0
-
-        last_viewed = max(
-            (c.created_at for c in doc_convs if c.created_at),
-            default=None,
-        )
-
-        dept = meta.get("department", "")
-        if dept:
-            dept_counter[dept] = dept_counter.get(dept, 0) + conv_count
-        college = college_map.get(dept, "其他") if dept else "其他"
-
-        document_list.append({
-            "document_id": doc_id,
-            "title": meta.get("title", ""),
-            "department": dept,
-            "college": college,
-            "year": meta.get("year", ""),
-            "conversation_count": conv_count,
-            "question_count": q_count,
-            "avg_depth": avg_depth,
-            "last_viewed_at": last_viewed.isoformat() if last_viewed else None,
-        })
-
-    # 系所分佈 Top 8
-    total_dept = sum(dept_counter.values()) or 1
-    dept_distribution = [
-        {"name": d, "count": c, "pct": round(c / total_dept * 100, 1)}
-        for d, c in sorted(dept_counter.items(), key=lambda x: -x[1])[:8]
-    ]
-
-    # 學院分佈 Top 5
-    college_counter: dict[str, int] = {}
-    for dept, cnt in dept_counter.items():
-        col = college_map.get(dept, "其他")
-        college_counter[col] = college_counter.get(col, 0) + cnt
-    total_col = sum(college_counter.values()) or 1
-    college_distribution = [
-        {"name": c, "count": n, "pct": round(n / total_col * 100, 1)}
-        for c, n in sorted(college_counter.items(), key=lambda x: -x[1])[:5]
-    ]
-
-    # 整體平均對話深度
-    avg_depth_overall = round(total_questions / total_conversations, 1) if total_conversations > 0 else 0.0
-
-    # 對話深度分佈
-    depth_buckets: dict[str, int] = {"1–2 輪": 0, "3–5 輪": 0, "6+ 輪": 0}
-    for c in convs:
-        n = thread_msg_counts.get(c.thread_id, 0)
-        if n <= 2:
-            depth_buckets["1–2 輪"] += 1
-        elif n <= 5:
-            depth_buckets["3–5 輪"] += 1
-        else:
-            depth_buckets["6+ 輪"] += 1
-    depth_distribution = [{"range": k, "count": v} for k, v in depth_buckets.items()]
-
-    # 探索型態診斷
-    doc_count = len(doc_conv_map)
-    real_colleges = [c for c in college_counter if c != "其他"]
-    college_count = len(real_colleges)
-    top_dept_pct = dept_distribution[0]["pct"] if dept_distribution else 0
-
-    if avg_depth_overall >= 4 or (avg_depth_overall >= 3 and doc_count <= 2):
-        exp_type = "深度鑽研型"
-        exp_desc = f"你深度鑽研研究計畫，平均每次對話提問 {avg_depth_overall} 輪，展現出對學術內容的高度專注與深究精神。"
-    elif college_count >= 3 and total_conversations >= 3:
-        exp_type = "跨域探索型"
-        exp_desc = f"你涉獵了來自 {college_count} 個學院的研究計畫，具備廣泛的跨領域研究視野。"
-    elif doc_count >= 5 and avg_depth_overall < 2.5:
-        exp_type = "廣泛涉獵型"
-        exp_desc = f"你瀏覽了 {doc_count} 篇不同的研究計畫，善於快速掌握多個研究方向的概況。"
-    elif top_dept_pct > 70:
-        top_dept_name = dept_distribution[0]["name"] if dept_distribution else "特定系所"
-        exp_type = "專注研究型"
-        exp_desc = f"你高度聚焦於 {top_dept_name} 的研究計畫，方向清晰、目標明確。"
-    else:
-        exp_type = "均衡探索型"
-        exp_desc = "你在深度與廣度之間保持均衡，兼顧了不同系所的研究成果。"
-
-    # 最近 10 筆提問
-    recent_questions = []
-    for r in recent_msg_rows:
-        doc_id = thread_doc_map.get(r.thread_id)
-        doc_title = doc_meta.get(doc_id, {}).get("title", "") if doc_id else ""
-        recent_questions.append({
-            "question": r.user_question or "",
-            "document_title": doc_title,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-        })
-
-    result = {
-        "overview": {
-            "total_conversations":   total_conversations,
-            "total_questions":       total_questions,
-            "total_documents_explored": len(doc_conv_map),
-            "avg_depth":             avg_depth_overall,
-        },
-        "dept_distribution":    dept_distribution,
-        "college_distribution": college_distribution,
-        "depth_distribution":   depth_distribution,
-        "exploration_type":     {"type": exp_type, "desc": exp_desc},
-        "document_list":        document_list[:8],
-        "recent_questions":     recent_questions,
-    }
+    result = compute_pdf_analytics(
+        [
+            {"thread_id": c.thread_id, "document_id": c.document_id, "created_at": c.created_at}
+            for c in convs
+        ],
+        thread_msg_counts,
+        [
+            {"thread_id": r.thread_id, "user_question": r.user_question, "created_at": r.created_at}
+            for r in recent_msg_rows
+        ],
+        doc_meta,
+        college_map,
+    )
     with _connect() as conn:
         _pdf_analytics_cache_set(conn, user_id, result)
     return result

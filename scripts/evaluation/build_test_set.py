@@ -2,8 +2,8 @@
 build_test_set.py — 產生實證評估用的獨立測試題組（data/evaluation/test_set.json）
 
 設計原則：
-  - 與 Demo 展示案例（data/demo/scenarios.json）分開：避開展示案例用到的系所與研究計畫，
-    避免評估結果只來自挑選過的成功案例。
+  - 與 Demo 展示案例分開：產生題組時避開當時展示案例（data/demo/scenarios.json，已移除）用到的系所與研究計畫，
+    避免評估結果只來自挑選過的成功案例。現在的示範對話見 scripts/demo/demo_questions.json。
   - 能從校內資料直接查證的題目（課程基本資料、畢業學分、必修課、研究計畫摘要），
     參考答案由程式從 data/processed/ 取出，附上資料來源，評分者可逐點核對。
   - 另外手寫資料不足、錯誤前提、安全／隱私、複雜推論等題型，參考答案是「應有的行為」。
@@ -26,7 +26,8 @@ PROCESSED = ROOT / "data" / "processed"
 OUT = ROOT / "data" / "evaluation" / "test_set.json"
 SEED = 20261104
 
-# Demo 展示案例已使用的系所與研究計畫（見 data/demo/scenarios.json），評估題刻意避開
+# 產生題組時舊版 Demo 案例（data/demo/scenarios.json，已移除）用到的系所與研究計畫，評估題刻意避開。
+# 題組已凍結，這裡保留原值以便重現；現在的示範對話見 scripts/demo/demo_questions.json。
 DEMO_DEPTS = {"資訊工程學系", "資訊管理學系", "電機工程學系", "生命科學系"}
 DEMO_PROJECTS = {"proj403", "proj322", "proj125"}
 

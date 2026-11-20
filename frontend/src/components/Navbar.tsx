@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { HiMenu, HiX, HiUser, HiChartBar, HiLogout } from 'react-icons/hi';
+import { HiMenu, HiX, HiUser, HiChartBar, HiLogout, HiLogin } from 'react-icons/hi';
 import logo from '../assets/NCULogo.png';
 import GoogleLoginButton from './GoogleLoginButton';
 import { useAuth, type AuthUser } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
 import { switchVersionHref } from '../v3/paths';
+import { useDemoView } from '../hooks/useDemoView';
 
 const navItems = [
   { path: '/', label: '首頁' },
@@ -37,6 +38,9 @@ function MobileMenuOverlay({
   user,
   isDev,
   onLogout,
+  onLogin,
+  showVersionSwitch,
+  showDemoProfile,
 }: {
   pathname: string;
   /** v2（/v2）的對應頁面 */
@@ -47,6 +51,11 @@ function MobileMenuOverlay({
   user: AuthUser | null;
   isDev: boolean;
   onLogout: () => void;
+  onLogin: () => Promise<void>;
+  /** 展示版對外時不顯示新版／v3 切換 */
+  showVersionSwitch: boolean;
+  /** 展示版的訪客：顯示示範學生入口與團隊登入 */
+  showDemoProfile: boolean;
 }) {
   return createPortal(
     <div className="fixed inset-0 z-[9999] bg-transparent md:hidden">
@@ -82,20 +91,24 @@ function MobileMenuOverlay({
                 {item.label}
               </Link>
             ))}
-            <Link
-              to={v2Href}
-              onClick={onClose}
-              className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
-            >
-              切換到新版 v2
-            </Link>
-            <Link
-              to={v3Href}
-              onClick={onClose}
-              className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
-            >
-              切換到 v3
-            </Link>
+            {showVersionSwitch && (
+              <>
+                <Link
+                  to={v2Href}
+                  onClick={onClose}
+                  className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
+                >
+                  切換到新版 v2
+                </Link>
+                <Link
+                  to={v3Href}
+                  onClick={onClose}
+                  className="block w-full self-stretch px-4 py-4 text-base font-medium text-slate-500 transition hover:bg-slate-50"
+                >
+                  切換到 v3
+                </Link>
+              </>
+            )}
 
             {/* 使用者區塊 */}
             {user ? (
@@ -154,6 +167,35 @@ function MobileMenuOverlay({
                   </button>
                 </div>
               </>
+            ) : showDemoProfile ? (
+              <div className="mt-2 border-t border-slate-200 pt-4">
+                <Link
+                  to="/profile"
+                  onClick={onClose}
+                  className={`flex items-center gap-3 w-full px-4 py-3 text-base font-medium transition ${
+                    pathname === '/profile'
+                      ? 'bg-primary-900 text-white'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <HiUser className="h-5 w-5" />
+                  示範學生的個人分析
+                  <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    示範
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    void onLogin().catch(() => {});
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-base font-medium text-slate-500 transition hover:bg-slate-50"
+                >
+                  <HiLogin className="h-5 w-5" />
+                  團隊成員登入（Google）
+                </button>
+              </div>
             ) : (
               <div className="mt-2 border-t border-slate-200 pt-4">
                 <GoogleLoginButton />
@@ -170,8 +212,19 @@ function MobileMenuOverlay({
 export default function Navbar() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, loginWithGoogle } = useAuth();
   const isDev = isDeveloper(user?.email);
+  const demoView = useDemoView();
+  // 展示版對外時隱藏新版／v3 切換（開發團隊登入後照常顯示）；確認中先不顯示，避免出現後又消失
+  const showVersionSwitch = !demoView.loading && (!demoView.demoSite || isDev);
+  const showDemoProfile = demoView.demoSite && !user;
+
+  // 依賴視窗高度的舊版版面會扣掉細橫條高度（index.css 的 --legacy-nav-strip），隱藏時要一併歸零
+  useEffect(() => {
+    const root = document.documentElement;
+    if (showVersionSwitch) delete root.dataset.hideVersionSwitch;
+    else root.dataset.hideVersionSwitch = 'true';
+  }, [showVersionSwitch]);
   const v2Href = switchVersionHref(location.pathname, location.search, 'v2');
   const v3Href = switchVersionHref(location.pathname, location.search, 'v3');
 
@@ -196,7 +249,7 @@ export default function Navbar() {
           它是 sticky 導覽列的一部分，不會疊在頁面內容上；舊版彈窗（後出現的 z-50）也會把它一起蓋住。
         */}
         {/* 高度（含下框線）由 index.css 的 --legacy-nav-strip 決定，依賴視窗高度的舊版版面會扣掉同一個值 */}
-        <div className="box-border hidden h-[var(--legacy-nav-strip)] border-b border-white/70 md:block xl:hidden">
+        <div className={`box-border hidden h-[var(--legacy-nav-strip)] border-b border-white/70 xl:hidden ${showVersionSwitch ? 'md:block' : ''}`}>
           <div className="page-container-wide flex h-full items-center justify-end">
             <Link to={v2Href} className="flex h-full items-center px-2 text-xs font-medium text-slate-500 transition hover:text-slate-900">
               切換到新版 →
@@ -228,12 +281,16 @@ export default function Navbar() {
                 </Link>
               ))}
               {/* 1280px 以下導覽列沒有多餘寬度（已登入時更窄），放進來會讓其他項目換行，改用上面的細橫條 */}
-              <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
-                新版
-              </Link>
-              <Link to={v3Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到 v3 介面">
-                v3
-              </Link>
+              {showVersionSwitch && (
+                <>
+                  <Link to={v2Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到新版介面">
+                    新版
+                  </Link>
+                  <Link to={v3Href} className="nav-chip hidden whitespace-nowrap px-2.5 xl:block" title="切換到 v3 介面">
+                    v3
+                  </Link>
+                </>
+              )}
               <GoogleLoginButton />
             </div>
 
@@ -260,6 +317,9 @@ export default function Navbar() {
           user={user}
           isDev={isDev}
           onLogout={logout}
+          onLogin={loginWithGoogle}
+          showVersionSwitch={showVersionSwitch}
+          showDemoProfile={showDemoProfile}
         />
       ) : null}
     </>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
+import { demoAPI } from '../../demo/demoCases';
+import { useDemoView } from '../../hooks/useDemoView';
 import {
   analyticsAPI,
   projectAnalyticsAPI,
@@ -15,6 +17,9 @@ export type TabId = 'all' | 'course' | 'project';
  */
 export function useAnalytics() {
   const { user, loading: authLoading } = useAuth();
+  // 展示版：不能即時提問的人沒有自己的紀錄，改看由示範對話算出的「示範學生」分析
+  const { showDemo, loading: demoViewLoading } = useDemoView();
+  const [demoInfo, setDemoInfo] = useState<{ generatedAt: string; course: number; research: number } | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('all');
 
   const [courseData, setCourseData] = useState<AnalyticsData | null>(null);
@@ -57,9 +62,33 @@ export function useAnalytics() {
     }
   };
 
+  useEffect(() => {
+    if (!showDemo) return;
+    let cancelled = false;
+    void (async () => {
+      setCourseLoading(true);
+      setProjectLoading(true);
+      const demo = await demoAPI.analytics();
+      if (cancelled) return;
+      if (demo) {
+        setCourseData(demo.course);
+        setProjectData(demo.project);
+        setDemoInfo({ generatedAt: demo.generated_at, course: demo.source.course_cases, research: demo.source.research_cases });
+      } else {
+        setCourseError('示範分析準備中');
+        setProjectError('示範分析準備中');
+      }
+      setCourseLoading(false);
+      setProjectLoading(false);
+      setCourseFetched(true);
+      setProjectFetched(true);
+    })();
+    return () => { cancelled = true; };
+  }, [showDemo]);
+
   // 切換 tab 時懶載入
   useEffect(() => {
-    if (!user) return;
+    if (!user || showDemo || demoViewLoading) return;
     if (activeTab === 'all') {
       void fetchCourse();
       void fetchProject();
@@ -69,10 +98,11 @@ export function useAnalytics() {
       void fetchProject();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeTab]);
+  }, [user, activeTab, showDemo, demoViewLoading]);
 
   return {
     user, authLoading,
+    showDemo, demoViewLoading, demoInfo,
     activeTab, setActiveTab,
     courseData, courseLoading, courseError,
     projectData, projectLoading, projectError,

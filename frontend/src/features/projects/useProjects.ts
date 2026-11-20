@@ -4,6 +4,7 @@ import { projectAPI } from '../../api/services';
 import type { PdfConversationSummary } from '../../api/services';
 import { useAuth } from '../../auth/AuthContext';
 import { useLiveAiAccess } from '../../hooks/useLiveAiAccess';
+import { demoAPI, type ResearchDemoCase } from '../../demo/demoCases';
 import type { Project } from '../../types';
 import {
   buildProjectPdfUrl,
@@ -30,6 +31,10 @@ export function getPdfUrl(project: Project): string {
 export function useProjects() {
   const { user } = useAuth();
   const liveAi = useLiveAiAccess();
+  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範問答
+  const showDemo = liveAi.status === 'restricted';
+  const [demoCases, setDemoCases] = useState<ResearchDemoCase[]>([]);
+  const [activeDemoId, setActiveDemoId] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<'outline' | 'pdf-chat'>('outline');
@@ -50,7 +55,7 @@ export function useProjects() {
   const [filterDept, setFilterDept] = useState('');
   const [filterTitle, setFilterTitle] = useState('');
   const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
-  const [leftPanelTab, setLeftPanelTab] = useState<'projects' | 'recent'>('projects');
+  const [leftPanelTab, setLeftPanelTab] = useState<'projects' | 'recent' | 'demo'>('projects');
 
   useEffect(() => {
     projectAPI
@@ -65,11 +70,22 @@ export function useProjects() {
   }, []);
 
   useEffect(() => {
-    if (!user) { setRecentChats([]); return; }
+    let cancelled = false;
+    void (async () => {
+      const cases = showDemo ? await demoAPI.researchCases() : [];
+      if (cancelled) return;
+      setDemoCases(cases);
+      if (cases.length > 0) setLeftPanelTab('demo');
+    })();
+    return () => { cancelled = true; };
+  }, [showDemo]);
+
+  useEffect(() => {
+    if (!user || showDemo) { setRecentChats([]); return; }
     projectAPI.listRecentChats()
       .then(setRecentChats)
       .catch(() => {});
-  }, [user]);
+  }, [user, showDemo]);
 
   const years = useMemo(
     () => projectYears(projects),
@@ -120,7 +136,8 @@ export function useProjects() {
 
   const handleSelectProject = (project: Project) => {
     setSelectedProject(project);
-    setChatMessages([createWelcomeMessage(project)]);
+    setChatMessages([createWelcomeMessage(project, showDemo)]);
+    setActiveDemoId('');
     setInputMessage('');
     setViewMode('outline');
     setMobileOutlineView('detail');
@@ -132,12 +149,53 @@ export function useProjects() {
     setPdfConversations([]);
     abortCtrlRef.current?.abort();
     abortCtrlRef.current = null;
-    if (user) {
+    if (user && !showDemo) {
       projectAPI.listConversations(project.id)
         .then((convs) => setPdfConversations(convs))
         .catch(() => {});
     }
   };
+
+  /** 展示版：打開一組示範問答（切到該研究計畫的 PDF 與對話畫面） */
+  const handleOpenDemo = (demoId: string) => {
+    const demo = demoCases.find((c) => c.id === demoId);
+    const project = demo && projects.find((p) => p.id === demo.project_id);
+    if (!demo || !project) return;
+    handleSelectProject(project);
+    setActiveDemoId(demo.id);
+    setChatMessages([
+      createWelcomeMessage(project),
+      ...demo.turns.flatMap((t): ChatMessage[] => [
+        { role: 'user', content: t.user },
+        { role: 'assistant', content: t.assistant, sources: t.sources?.length ? t.sources : undefined },
+      ]),
+    ]);
+    setViewMode('pdf-chat');
+    setIsMobileChatOpen(true);
+  };
+
+  // 首頁可以用 ?demo=<id> 直接開某一組示範（計畫與示範都載入後只觸發一次）
+  const openedDemoFromUrl = useRef(false);
+  useEffect(() => {
+    if (openedDemoFromUrl.current || projects.length === 0 || demoCases.length === 0) return;
+    openedDemoFromUrl.current = true;
+    const wanted = new URLSearchParams(window.location.search).get('demo');
+    if (wanted) handleOpenDemo(wanted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, demoCases]);
+
+  const demoListItems = useMemo(() => demoCases.map((c) => ({
+    id: c.id, title: c.title, category: c.category, summary: c.summary, reviewed: c.reviewed,
+    meta: `${c.project_department}｜${c.project_title}`,
+  })), [demoCases]);
+  const activeDemo = demoCases.find((c) => c.id === activeDemoId) ?? null;
+  const selectedProjectDemo = selectedProject
+    ? demoCases.find((c) => c.project_id === selectedProject.id) ?? null
+    : null;
+  const demoQuestions = useMemo(
+    () => demoCases.map((c) => ({ id: c.id, question: c.turns[0]?.user ?? c.title })),
+    [demoCases],
+  );
 
   const handleBackToOutline = () => {
     setViewMode('outline');
@@ -154,7 +212,7 @@ export function useProjects() {
     setViewMode('pdf-chat');
     setIsMobileChatOpen(false);
     if (chatMessages.length === 0) {
-      setChatMessages([createWelcomeMessage(selectedProject)]);
+      setChatMessages([createWelcomeMessage(selectedProject, showDemo)]);
     }
   };
 
@@ -333,7 +391,7 @@ export function useProjects() {
     setActiveAgent(null);
     setCurrentStage('');
     setSelectedProject(project);
-    setChatMessages([createWelcomeMessage(project)]);
+    setChatMessages([createWelcomeMessage(project, showDemo)]);
     setInputMessage('');
     setViewMode('outline');
     setMobileOutlineView('detail');
@@ -364,6 +422,7 @@ export function useProjects() {
 
   return {
     liveAi,
+    showDemo, demoListItems, demoQuestions, activeDemo, activeDemoId, selectedProjectDemo, handleOpenDemo,
     projects, loading,
     selectedProject,
     viewMode, mobileOutlineView,

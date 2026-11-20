@@ -5,13 +5,11 @@ import { HiLockClosed } from 'react-icons/hi';
 import { DEFAULT_LIVE_AI_RESTRICTED_MESSAGE } from '../../api/liveAi';
 import { useAuth } from '../../auth/AuthContext';
 import { GoogleMark } from '../../components/GoogleLoginButton';
-import { DEMO_CASES } from '../../demo/cases';
 import type { LiveAiAccessState } from '../../hooks/useLiveAiAccess';
-import { useSite } from '../site';
 
 interface LiveAiGateProps {
   liveAi: LiveAiAccessState;
-  /** 連到示範案例頁時預先篩選的助理類型 */
+  /** 示範對話要連到哪個助理的頁面 */
   assistant?: 'course' | 'research';
   /** 可以使用即時 AI 時顯示的輸入區 */
   children: ReactNode;
@@ -23,8 +21,8 @@ interface LiveAiGateProps {
  */
 export default function LiveAiGate({ liveAi, assistant, children }: LiveAiGateProps) {
   const { user, loginWithGoogle } = useAuth();
-  // v3 也重用這個元件：示範案例連結要跟著目前的版本（v3 沒有示範案例頁，連回舊版）
-  const { link } = useSite();
+  // 示範對話只放在舊版的課程助理、研究計畫頁裡（v2、v3 也重用這個元件，一律連回舊版）
+  const demoTo = assistant === 'research' ? '/projects' : '/course-search';
   const [loginFailed, setLoginFailed] = useState(false);
 
   if (liveAi.loading) {
@@ -60,11 +58,9 @@ export default function LiveAiGate({ liveAi, assistant, children }: LiveAiGatePr
             登入
           </button>
         )}
-        {DEMO_CASES.length > 0 && (
-          <Link to={`${link('/demo')}${assistant ? `?assistant=${assistant}` : ''}`} className="v2-btn v2-btn--sm">
-            看示範案例
-          </Link>
-        )}
+        <Link to={demoTo} className="v2-btn v2-btn--sm">
+          看示範對話
+        </Link>
       </div>
       {loginFailed && (
         <p role="alert" className="w-full text-xs" style={{ color: 'var(--v2-danger)' }}>

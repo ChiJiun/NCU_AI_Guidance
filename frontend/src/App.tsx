@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
@@ -10,8 +10,6 @@ import ResourcesPage from './pages/ResourcesPage';
 import CurriculumPage from './pages/CurriculumPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import MonitorPage from './pages/MonitorPage';
-import DemoGalleryPage from './pages/DemoGalleryPage';
-import DemoCasePage from './pages/DemoCasePage';
 import { AuthProvider } from './auth/AuthContext';
 import LoadErrorBoundary from './components/LoadErrorBoundary';
 import V2LoadError from './v2/V2LoadError';
@@ -30,6 +28,16 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * 舊的獨立示範案例頁（/demo、/demo/:caseId）已改成在課程助理、研究計畫頁內直接看示範對話；
+ * 舊連結導到對應的頁面（?assistant=research → 研究計畫，其餘 → 課程助理）。
+ */
+function DemoRedirect() {
+  const { search } = useLocation();
+  const assistant = new URLSearchParams(search).get('assistant');
+  return <Navigate to={assistant === 'research' ? '/projects' : '/course-search'} replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -41,8 +49,8 @@ function App() {
             <Route path="/assessment" element={<AssessmentPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/profile" element={<AnalyticsPage />} />
-            <Route path="/demo" element={<DemoGalleryPage />} />
-            <Route path="/demo/:caseId" element={<DemoCasePage />} />
+            <Route path="/demo" element={<DemoRedirect />} />
+            <Route path="/demo/:caseId" element={<DemoRedirect />} />
           </Route>
           <Route element={<Layout noPad />}>
             <Route path="/monitor" element={<MonitorPage />} />

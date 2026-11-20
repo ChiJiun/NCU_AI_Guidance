@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { HiChevronDown, HiUser, HiLogout, HiChartBar } from 'react-icons/hi';
 import { useAuth } from '../auth/AuthContext';
 import { isDeveloper } from '../auth/developerUtils';
+import { useDemoView } from '../hooks/useDemoView';
 
 export function GoogleMark() {
   return (
@@ -32,8 +33,17 @@ function Avatar({ picture, name }: { picture: string; name: string }) {
   );
 }
 
+function DemoAvatar() {
+  return (
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700 ring-2 ring-white">
+      示
+    </div>
+  );
+}
+
 export default function GoogleLoginButton() {
   const { user, loading, loginWithGoogle, logout } = useAuth();
+  const { demoSite } = useDemoView();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,6 +72,71 @@ export default function GoogleLoginButton() {
   if (loading) {
     return (
       <div className="flex h-9 w-28 animate-pulse items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3" />
+    );
+  }
+
+  // 展示版：訪客預設就是「示範學生」，不用登入；選單裡保留團隊成員的 Google 登入
+  if (!user && demoSite) {
+    return (
+      <div ref={menuRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium transition-all ${
+            open
+              ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-sm'
+              : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:border-amber-200 hover:bg-amber-50 hover:text-amber-900'
+          }`}
+        >
+          <DemoAvatar />
+          <span className="whitespace-nowrap">示範學生</span>
+          <HiChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {open && (
+          <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+            <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+              <DemoAvatar />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-800">示範學生</p>
+                <p className="text-xs text-slate-400">展示版・不需登入</p>
+              </div>
+            </div>
+
+            <div className="py-1">
+              <Link
+                to="/profile"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <HiUser className="h-4 w-4 text-slate-400" />
+                個人分析
+              </Link>
+            </div>
+
+            <div className="border-t border-slate-100 py-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  void handleLogin();
+                }}
+                className="flex w-full items-start gap-3 px-4 py-2.5 text-left hover:bg-slate-50"
+              >
+                <span className="mt-0.5"><GoogleMark /></span>
+                <span>
+                  <span className="block text-sm text-slate-700">團隊成員登入</span>
+                  <span className="block text-[11px] leading-4 text-slate-400">以 Google 登入，管理員可即時提問</span>
+                </span>
+              </button>
+              {error && <p className="px-4 pb-2 text-xs text-red-500">{error}</p>}
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 

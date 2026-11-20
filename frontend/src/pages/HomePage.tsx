@@ -13,9 +13,11 @@ import {
   HiExternalLink,
   HiLightningBolt,
   HiLockClosed,
+  HiSparkles,
 } from 'react-icons/hi';
 import { useAuth } from '../auth/AuthContext';
-import { DEMO_CASES } from '../demo/cases';
+import DemoShowcase from '../demo/DemoShowcase';
+import { useDemoView } from '../hooks/useDemoView';
 
 // ── Google 圖示 ──────────────────────────────────────────────────────────────
 function GoogleMark() {
@@ -230,6 +232,8 @@ const sources = [
 export default function HomePage() {
   const navigate  = useNavigate();
   const { user, loading, loginWithGoogle } = useAuth();
+  // 展示版：網站開了 developers 模式（demoSite）；目前使用者不能即時提問時改看示範（showDemo）
+  const { demoSite, showDemo } = useDemoView();
   const [isLeaving, setIsLeaving]                   = useState(false);
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const dragStateRef = useRef({ isDown: false, startX: 0, moved: false });
@@ -368,9 +372,14 @@ export default function HomePage() {
                   <button type="button" onClick={() => navigateWithAnimation('/courses')} className="btn-secondary">
                     瀏覽課程資料
                   </button>
-                  {DEMO_CASES.length > 0 && (
-                    <button type="button" onClick={() => navigateWithAnimation('/demo')} className="btn-secondary">
-                      查看 AI 示範案例
+                  {showDemo && (
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('demo-showcase')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="btn-secondary"
+                    >
+                      <HiSparkles className="mr-2 h-5 w-5 text-amber-500" />
+                      看 AI 示範對話
                     </button>
                   )}
                 </div>
@@ -395,6 +404,13 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* 展示版：首頁直接放示範對話入口，訪客不用登入 */}
+        {showDemo && (
+          <div id="demo-showcase" className="scroll-mt-20 bg-white/60">
+            <DemoShowcase onNavigate={navigateWithAnimation} />
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════════════════════════════
             2. HIGHLIGHTS — 白底，彩色左邊框
@@ -582,7 +598,12 @@ export default function HomePage() {
                     <h3 className="text-xl font-bold text-slate-950">{path.title}</h3>
                     <p className="mt-2 max-w-lg text-sm leading-6 text-slate-500">{path.description}</p>
                     <div className="mt-5 flex flex-wrap gap-2.5">
-                      {path.links.map((link) => (
+                      {path.links.map((rawLink) => {
+                        // 展示版：個人分析改看示範學生，不需登入
+                        const link = showDemo && rawLink.path === '/profile'
+                          ? { ...rawLink, locked: false, sub: '示範' }
+                          : rawLink;
+                        return (
                         <button
                           key={link.label}
                           type="button"
@@ -598,7 +619,8 @@ export default function HomePage() {
                           <span className="text-[10px] font-normal opacity-60">{link.sub}</span>
                           <HiArrowRight className="h-3.5 w-3.5 transition-transform group-hover/chip:translate-x-0.5" />
                         </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -610,7 +632,7 @@ export default function HomePage() {
         {/* ══════════════════════════════════════════════════════════════════
             5. 登入提醒 / 已登入狀態
         ══════════════════════════════════════════════════════════════════ */}
-        {!loading && !user && (
+        {!loading && !user && !demoSite && (
           <section className="px-6 py-4 md:px-10">
             <Reveal>
               <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl bg-primary-900">
@@ -713,6 +735,19 @@ export default function HomePage() {
             {/* 版權 */}
             <div className="mt-10 border-t border-slate-800 pt-6">
               <p className="text-xs text-slate-600">© 2026 國立中央大學科系探索平台 — 所有資料均來自公開官方管道</p>
+              {demoSite && (
+                <p className="mt-2 text-xs leading-5 text-slate-600">
+                  展示版說明：AI 課程助理與研究計畫助理的對話為預先產生的示範結果，僅供參考，實際修課與畢業規定請以學校公告為準。
+                  {!loading && !user && (
+                    <>
+                      {' '}
+                      <button type="button" onClick={handleLogin} className="underline decoration-slate-700 underline-offset-2 hover:text-slate-400">
+                        團隊登入
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
             </div>
 
           </div>

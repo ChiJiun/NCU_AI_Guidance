@@ -15,6 +15,7 @@ import {
   HiPencil,
   HiPlus,
   HiSearch,
+  HiSparkles,
   HiStop,
   HiTrash,
   HiUser,
@@ -24,6 +25,7 @@ import { getDeptCollege } from '../constants/colleges';
 import PdfViewer from '../components/PdfViewer';
 import LiveAiDisabledNotice, { LiveAiPendingSlot } from '../components/LiveAiDisabledNotice';
 import { useAuth } from '../auth/AuthContext';
+import { DemoBadge, DemoCaseList, DemoComposerNotice, DemoResultBanner } from '../demo/DemoUI';
 import type { LiveAiStatus } from '../api/liveAi';
 import type { Project } from '../types';
 import { getPdfUrl, useProjects } from '../features/projects/useProjects';
@@ -34,6 +36,7 @@ export default function ProjectsPage() {
   const { user, loginWithGoogle } = useAuth();
   const {
     liveAi,
+    showDemo, demoListItems, demoQuestions, activeDemo, activeDemoId, selectedProjectDemo, handleOpenDemo,
     loading,
     selectedProject,
     viewMode, mobileOutlineView,
@@ -78,6 +81,17 @@ export default function ProjectsPage() {
   };
 
 
+  const chatDemo: ChatDemoProps | undefined = showDemo
+    ? {
+        banner: activeDemo
+          ? { recordedAt: activeDemo.recorded_at, summary: activeDemo.summary, reviewed: activeDemo.reviewed }
+          : null,
+        questions: demoQuestions,
+        activeId: activeDemoId,
+        onSelect: handleOpenDemo,
+      }
+    : undefined;
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -94,7 +108,8 @@ export default function ProjectsPage() {
       {viewMode !== 'pdf-chat' ? (
         <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-2">
-            <h1 className="text-base font-bold text-primary-900">專題成果</h1>
+            <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary-900">專題成果</h1>
+            {showDemo && <DemoBadge />}
             <span className="text-sm text-gray-400">/</span>
             <span className="text-sm text-gray-500">瀏覽歷年專題，並可進一步開啟 PDF 與 AI 問答。</span>
           </div>
@@ -153,16 +168,33 @@ export default function ProjectsPage() {
                   getCollegeBadgeClass={getCollegeBadgeClass}
                 />
 
-                <div className="mt-8 flex justify-end">
-                  <button type="button" onClick={handleOpenPdfChat} className="btn-primary flex items-center gap-2">
+                <div className="mt-8 flex justify-end gap-3">
+                  {selectedProjectDemo && (
+                    <button type="button" onClick={() => handleOpenDemo(selectedProjectDemo.id)} className="btn-primary flex items-center gap-2">
+                      <HiSparkles className="h-5 w-5" />
+                      查看示範對話
+                    </button>
+                  )}
+                  <button type="button" onClick={handleOpenPdfChat} className={selectedProjectDemo ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
                     <HiChat className="h-5 w-5" />
-                    查看 PDF 與 AI 對話
+                    {showDemo ? '查看 PDF' : '查看 PDF 與 AI 對話'}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">
                 <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable_both-edges]">
+                  {demoListItems.length > 0 && (
+                    <div className="px-1 pt-2 pr-4">
+                      <p className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                        <HiSparkles className="h-3.5 w-3.5 text-amber-500" />
+                        示範對話
+                      </p>
+                      <div className="-mx-3 flex">
+                        <DemoCaseList items={demoListItems} selectedId={activeDemoId} onSelect={handleOpenDemo} />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-3 px-1 pt-2 pb-2 pr-4">
                     {filteredProjects.map((project) => (
                       <div
@@ -196,8 +228,22 @@ export default function ProjectsPage() {
                 <span className="text-xs text-gray-500">
                   共 <span className="font-semibold text-primary-700">{filteredProjects.length}</span> 筆
                 </span>
-                {user && matchedRecentChats.length > 0 && (
+                {((user && matchedRecentChats.length > 0) || demoListItems.length > 0) && (
                   <div className="flex items-center gap-0.5 rounded-full bg-black/5 px-0.5 py-0.5">
+                    {demoListItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setLeftPanelTab('demo')}
+                        className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-150 focus:outline-none ${
+                          leftPanelTab === 'demo'
+                            ? 'bg-white text-primary-900 shadow-soft'
+                            : 'text-slate-400 hover:text-slate-600'
+                        }`}
+                      >
+                        <HiSparkles className="h-3.5 w-3.5" />
+                        示範對話
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setLeftPanelTab('projects')}
@@ -210,6 +256,7 @@ export default function ProjectsPage() {
                       <HiAcademicCap className="h-3.5 w-3.5" />
                       專題列表
                     </button>
+                    {user && matchedRecentChats.length > 0 && (
                     <button
                       type="button"
                       onClick={() => setLeftPanelTab('recent')}
@@ -222,6 +269,7 @@ export default function ProjectsPage() {
                       <HiClock className="h-3.5 w-3.5" />
                       最近對話
                     </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -250,6 +298,13 @@ export default function ProjectsPage() {
                       <div className="card p-6 text-center text-sm text-gray-500">目前沒有符合條件的研究計畫。</div>
                     ) : null}
                   </div>
+                </div>
+              )}
+
+              {/* 示範對話列表（展示版） */}
+              {leftPanelTab === 'demo' && (
+                <div className="-mx-2 flex min-h-0 flex-1 flex-col">
+                  <DemoCaseList items={demoListItems} selectedId={activeDemoId} onSelect={handleOpenDemo} />
                 </div>
               )}
 
@@ -305,15 +360,21 @@ export default function ProjectsPage() {
                   />
 
                   <div className="flex justify-end gap-3">
+                    {selectedProjectDemo && (
+                      <button type="button" onClick={() => handleOpenDemo(selectedProjectDemo.id)} className="btn-primary flex items-center gap-2">
+                        <HiSparkles className="h-5 w-5" />
+                        查看示範對話
+                      </button>
+                    )}
                     {threadId && (
                       <button type="button" onClick={handleContinueRecentChat} className="btn-primary flex items-center gap-2">
                         <HiChat className="h-5 w-5" />
                         繼續對話
                       </button>
                     )}
-                    <button type="button" onClick={() => { setThreadId(undefined); handleOpenPdfChat(); }} className={threadId ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
+                    <button type="button" onClick={() => { setThreadId(undefined); handleOpenPdfChat(); }} className={threadId || selectedProjectDemo ? 'btn-secondary flex items-center gap-2' : 'btn-primary flex items-center gap-2'}>
                       <HiChat className="h-5 w-5" />
-                      {threadId ? '新對話' : '查看 PDF 與 AI 對話'}
+                      {threadId ? '新對話' : showDemo ? '查看 PDF' : '查看 PDF 與 AI 對話'}
                     </button>
                   </div>
                 </div>
@@ -362,10 +423,11 @@ export default function ProjectsPage() {
                   liveAiMessage={liveAi.message}
                   conversations={pdfConversations}
                   activeThreadId={threadId}
-                  onNewConversation={handleNewPdfConversation}
+                  onNewConversation={showDemo ? undefined : handleNewPdfConversation}
                   onSwitchConversation={handleSwitchPdfConversation}
                   onDeleteConversation={handleDeletePdfConversation}
                   onSendEdit={liveAi.allowed ? handleSendEditedMessage : undefined}
+                  demo={chatDemo}
                 />
 
                 <div className="flex w-11 items-center justify-center pl-2">
@@ -408,10 +470,11 @@ export default function ProjectsPage() {
               liveAiMessage={liveAi.message}
               conversations={pdfConversations}
               activeThreadId={threadId}
-              onNewConversation={handleNewPdfConversation}
+              onNewConversation={showDemo ? undefined : handleNewPdfConversation}
               onSwitchConversation={handleSwitchPdfConversation}
               onDeleteConversation={handleDeletePdfConversation}
               onSendEdit={liveAi.allowed ? handleSendEditedMessage : undefined}
+              demo={chatDemo}
             />
           </div>
         </>
@@ -548,6 +611,13 @@ function ConversationDropdown({
   );
 }
 
+interface ChatDemoProps {
+  banner: { recordedAt: string; summary: string; reviewed: boolean } | null;
+  questions: { id: string; question: string }[];
+  activeId: string;
+  onSelect: (id: string) => void;
+}
+
 function ChatPanel({
   messages,
   streamingText,
@@ -570,6 +640,7 @@ function ChatPanel({
   onSwitchConversation,
   onDeleteConversation,
   onSendEdit,
+  demo,
 }: {
   messages: ChatMessage[];
   streamingText: string;
@@ -592,6 +663,8 @@ function ChatPanel({
   onSwitchConversation?: (threadId: string) => void;
   onDeleteConversation?: (threadId: string) => void;
   onSendEdit?: (newContent: string, fromIdx: number) => void;
+  /** 展示版：顯示示範標示、改用示範題目取代輸入框 */
+  demo?: ChatDemoProps;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
@@ -650,8 +723,10 @@ function ChatPanel({
           />
         ) : (
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-gray-800">AI 對話區</h2>
-            <p className="truncate text-xs text-gray-400">可針對研究主題、內容重點與延伸問題進行提問</p>
+            <h2 className="text-sm font-semibold text-gray-800">{demo ? '示範對話' : 'AI 對話區'}</h2>
+            <p className="truncate text-xs text-gray-400">
+              {demo ? '預先產生的研究助理問答紀錄' : '可針對研究主題、內容重點與延伸問題進行提問'}
+            </p>
           </div>
         )}
         {onClose ? (
@@ -667,6 +742,13 @@ function ChatPanel({
       </div>
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${compact ? 'bg-white' : ''}`}>
+        {demo?.banner && (
+          <DemoResultBanner
+            recordedAt={demo.banner.recordedAt}
+            summary={demo.banner.summary}
+            reviewed={demo.banner.reviewed}
+          />
+        )}
         {messages.map((message, index) => {
           const isEditing = editingMsgIdx === index;
           const canEdit   = message.role === 'user' && index === lastUserIdx && !chatLoading && !!onSendEdit;
@@ -784,7 +866,9 @@ function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {!isLoggedIn ? (
+      {demo ? (
+        <DemoComposerNotice items={demo.questions} selectedId={demo.activeId} onSelect={demo.onSelect} />
+      ) : !isLoggedIn ? (
         <div className="border-t border-gray-200 p-4">
           <div className="flex flex-col items-center gap-3 rounded-2xl bg-slate-50 px-4 py-5 text-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">

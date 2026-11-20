@@ -1,0 +1,508 @@
+{
+  "version": 1,
+  "generated_at": "2026-11-17T10:34:37+00:00",
+  "source": {
+    "course_cases": 12,
+    "research_cases": 4
+  },
+  "course": {
+    "overview": {
+      "total_sessions": 12,
+      "total_turns": 19,
+      "total_courses_explored": 105,
+      "fav_college": "管理學院"
+    },
+    "dept_distribution": [
+      {
+        "name": "大氣科學學系",
+        "count": 26,
+        "pct": 22.4
+      },
+      {
+        "name": "資訊管理學系",
+        "count": 22,
+        "pct": 19.0
+      },
+      {
+        "name": "中國文學系",
+        "count": 12,
+        "pct": 10.3
+      },
+      {
+        "name": "通識教育中心",
+        "count": 11,
+        "pct": 9.5
+      },
+      {
+        "name": "企業管理學系",
+        "count": 8,
+        "pct": 6.9
+      },
+      {
+        "name": "生醫科學與工程學系",
+        "count": 8,
+        "pct": 6.9
+      },
+      {
+        "name": "客家語文暨社會科學學系",
+        "count": 6,
+        "pct": 5.2
+      },
+      {
+        "name": "資訊工程學系",
+        "count": 6,
+        "pct": 5.2
+      }
+    ],
+    "college_distribution": [
+      {
+        "name": "管理學院",
+        "count": 33,
+        "pct": 26.6
+      },
+      {
+        "name": "地球科學學院",
+        "count": 27,
+        "pct": 21.8
+      },
+      {
+        "name": "中心、處室",
+        "count": 13,
+        "pct": 10.5
+      },
+      {
+        "name": "文學院",
+        "count": 12,
+        "pct": 9.7
+      },
+      {
+        "name": "資訊電機學院",
+        "count": 8,
+        "pct": 6.5
+      }
+    ],
+    "tool_usage": [
+      {
+        "tool": "search_courses",
+        "label": "課程語意搜尋",
+        "count": 12
+      },
+      {
+        "tool": "get_dept_overview",
+        "label": "系所概覽",
+        "count": 10
+      },
+      {
+        "tool": "search_programs",
+        "label": "學分學程搜尋",
+        "count": 4
+      },
+      {
+        "tool": "get_course_detail",
+        "label": "課程詳情查詢",
+        "count": 2
+      },
+      {
+        "tool": "ppr_explore",
+        "label": "知識圖譜探索",
+        "count": 1
+      },
+      {
+        "tool": "get_program_info",
+        "label": "學分學程資訊",
+        "count": 1
+      }
+    ],
+    "top_courses": [
+      {
+        "name": "天氣學與天氣分析",
+        "count": 3
+      },
+      {
+        "name": "會計學",
+        "count": 3
+      },
+      {
+        "name": "統計學",
+        "count": 3
+      },
+      {
+        "name": "大氣科學概論",
+        "count": 2
+      },
+      {
+        "name": "大氣熱力學",
+        "count": 2
+      },
+      {
+        "name": "流體力學",
+        "count": 2
+      },
+      {
+        "name": "大氣測計及操作Ⅰ",
+        "count": 2
+      },
+      {
+        "name": "程式語言與繪圖Ⅰ",
+        "count": 2
+      },
+      {
+        "name": "程式語言與繪圖Ⅱ",
+        "count": 2
+      },
+      {
+        "name": "微積分",
+        "count": 2
+      }
+    ],
+    "top_domain_tags": [
+      {
+        "tag": "大氣科學",
+        "count": 14
+      },
+      {
+        "tag": "資訊管理",
+        "count": 13
+      },
+      {
+        "tag": "大氣動力學",
+        "count": 10
+      },
+      {
+        "tag": "天氣學",
+        "count": 9
+      },
+      {
+        "tag": "生醫訊號與影像處理",
+        "count": 7
+      },
+      {
+        "tag": "生醫電子電路設計",
+        "count": 7
+      },
+      {
+        "tag": "對流及降水",
+        "count": 6
+      },
+      {
+        "tag": "數值天氣預報",
+        "count": 6
+      },
+      {
+        "tag": "天氣分析",
+        "count": 6
+      },
+      {
+        "tag": "熱帶氣旋",
+        "count": 5
+      },
+      {
+        "tag": "數值天氣模擬",
+        "count": 5
+      },
+      {
+        "tag": "客家文化",
+        "count": 5
+      },
+      {
+        "tag": "智慧感測系統",
+        "count": 5
+      },
+      {
+        "tag": "邊界層氣象",
+        "count": 4
+      },
+      {
+        "tag": "數值模擬",
+        "count": 4
+      }
+    ],
+    "general_edu": {
+      "total": 13,
+      "categories": [
+        {
+          "name": "通識",
+          "count": 13
+        }
+      ],
+      "top_topic_tags": [
+        {
+          "tag": "資訊科技",
+          "count": 4
+        },
+        {
+          "tag": "倫理學",
+          "count": 4
+        },
+        {
+          "tag": "物理",
+          "count": 3
+        },
+        {
+          "tag": "社會學",
+          "count": 2
+        },
+        {
+          "tag": "性別研究",
+          "count": 1
+        },
+        {
+          "tag": "永續發展",
+          "count": 1
+        },
+        {
+          "tag": "法律",
+          "count": 1
+        },
+        {
+          "tag": "數學",
+          "count": 1
+        },
+        {
+          "tag": "全球化",
+          "count": 1
+        }
+      ]
+    },
+    "top_course_domains": [
+      {
+        "domain": "基礎學科(大氣組)",
+        "count": 14
+      },
+      {
+        "domain": "基礎學科(共同)",
+        "count": 9
+      },
+      {
+        "domain": "軟體開發與管理",
+        "count": 9
+      },
+      {
+        "domain": "基礎知識",
+        "count": 8
+      },
+      {
+        "domain": "社會思潮與現象領域",
+        "count": 7
+      },
+      {
+        "domain": "轉譯醫學",
+        "count": 7
+      },
+      {
+        "domain": "古典文學",
+        "count": 6
+      },
+      {
+        "domain": "資料管理",
+        "count": 6
+      },
+      {
+        "domain": "醫學電子資訊與影像處理",
+        "count": 6
+      },
+      {
+        "domain": "基礎醫學",
+        "count": 5
+      },
+      {
+        "domain": "共同物理課程",
+        "count": 4
+      },
+      {
+        "domain": "考據",
+        "count": 4
+      },
+      {
+        "domain": "語言與文學領域",
+        "count": 4
+      },
+      {
+        "domain": "商業智慧",
+        "count": 4
+      },
+      {
+        "domain": "理論數學",
+        "count": 3
+      },
+      {
+        "domain": "自然科學領域",
+        "count": 3
+      },
+      {
+        "domain": "語言文字",
+        "count": 3
+      },
+      {
+        "domain": "應用科學領域",
+        "count": 3
+      },
+      {
+        "domain": "人文與文化研究領域",
+        "count": 3
+      },
+      {
+        "domain": "社會思潮領域",
+        "count": 3
+      }
+    ]
+  },
+  "project": {
+    "overview": {
+      "total_conversations": 4,
+      "total_questions": 8,
+      "total_documents_explored": 4,
+      "avg_depth": 2.0
+    },
+    "dept_distribution": [
+      {
+        "name": "中國文學系",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "財務金融學系",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "未分類",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "大氣科學學系",
+        "count": 1,
+        "pct": 25.0
+      }
+    ],
+    "college_distribution": [
+      {
+        "name": "文學院",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "管理學院",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "其他",
+        "count": 1,
+        "pct": 25.0
+      },
+      {
+        "name": "地球科學學院",
+        "count": 1,
+        "pct": 25.0
+      }
+    ],
+    "depth_distribution": [
+      {
+        "range": "1–2 輪",
+        "count": 4
+      },
+      {
+        "range": "3–5 輪",
+        "count": 0
+      },
+      {
+        "range": "6+ 輪",
+        "count": 0
+      }
+    ],
+    "exploration_type": {
+      "type": "跨域探索型",
+      "desc": "你涉獵了來自 3 個學院的研究計畫，具備廣泛的跨領域研究視野。"
+    },
+    "document_list": [
+      {
+        "document_id": 44,
+        "title": "論《詩經》中水意象的脈絡與運用",
+        "department": "中國文學系",
+        "college": "文學院",
+        "year": "109",
+        "conversation_count": 1,
+        "question_count": 2,
+        "avg_depth": 2.0,
+        "last_viewed_at": "2026-11-16T18:29:08+00:00"
+      },
+      {
+        "document_id": 361,
+        "title": "以下行風險建構新技術分析的有效性研究---台灣市場實證",
+        "department": "財務金融學系",
+        "college": "管理學院",
+        "year": "104",
+        "conversation_count": 1,
+        "question_count": 2,
+        "avg_depth": 2.0,
+        "last_viewed_at": "2026-11-16T18:28:38+00:00"
+      },
+      {
+        "document_id": 202,
+        "title": "虛擬超市結合多重生理感測器訊號使用機器學習分析之認知功能障礙與阿茲海默症評估與訓練系統設計",
+        "department": "未分類",
+        "college": "其他",
+        "year": "108",
+        "conversation_count": 1,
+        "question_count": 2,
+        "avg_depth": 2.0,
+        "last_viewed_at": "2026-11-16T18:25:57+00:00"
+      },
+      {
+        "document_id": 164,
+        "title": "利用群集分析討論高屏地區空氣汙染與天氣型態間的關聯",
+        "department": "大氣科學學系",
+        "college": "地球科學學院",
+        "year": "107",
+        "conversation_count": 1,
+        "question_count": 2,
+        "avg_depth": 2.0,
+        "last_viewed_at": "2026-11-16T18:25:36+00:00"
+      }
+    ],
+    "recent_questions": [
+      {
+        "question": "作者後來有沒有繼續發表相關研究？",
+        "document_title": "論《詩經》中水意象的脈絡與運用",
+        "created_at": "2026-11-16T18:29:09+00:00"
+      },
+      {
+        "question": "這篇研究把《詩經》中的水意象分成哪幾類？",
+        "document_title": "論《詩經》中水意象的脈絡與運用",
+        "created_at": "2026-11-16T18:29:08+00:00"
+      },
+      {
+        "question": "最後的實證結果是什麼？這個方法真的比較有效嗎？",
+        "document_title": "以下行風險建構新技術分析的有效性研究---台灣市場實證",
+        "created_at": "2026-11-16T18:28:39+00:00"
+      },
+      {
+        "question": "這份研究想解決什麼問題？可以用高中生聽得懂的方式說明「下行風險」嗎？",
+        "document_title": "以下行風險建構新技術分析的有效性研究---台灣市場實證",
+        "created_at": "2026-11-16T18:28:38+00:00"
+      },
+      {
+        "question": "它用了哪些生理感測器？各自在系統裡扮演什麼角色？",
+        "document_title": "虛擬超市結合多重生理感測器訊號使用機器學習分析之認知功能障礙與阿茲海默症評估與訓練系統設計",
+        "created_at": "2026-11-16T18:25:58+00:00"
+      },
+      {
+        "question": "這個系統是怎麼評估認知功能障礙的？",
+        "document_title": "虛擬超市結合多重生理感測器訊號使用機器學習分析之認知功能障礙與阿茲海默症評估與訓練系統設計",
+        "created_at": "2026-11-16T18:25:57+00:00"
+      },
+      {
+        "question": "它用的是哪些資料？研究期間大概多長？",
+        "document_title": "利用群集分析討論高屏地區空氣汙染與天氣型態間的關聯",
+        "created_at": "2026-11-16T18:25:37+00:00"
+      },
+      {
+        "question": "這份研究用了什麼方法分析空氣汙染和天氣型態的關係？主要發現是什麼？",
+        "document_title": "利用群集分析討論高屏地區空氣汙染與天氣型態間的關聯",
+        "created_at": "2026-11-16T18:25:36+00:00"
+      }
+    ]
+  }
+}

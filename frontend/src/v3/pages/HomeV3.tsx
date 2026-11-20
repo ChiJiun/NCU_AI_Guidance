@@ -2,7 +2,6 @@ import { lazy, Suspense, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { HiArrowRight, HiExternalLink, HiLockClosed } from 'react-icons/hi';
 import { useAuth } from '../../auth/AuthContext';
-import { DEMO_CASES } from '../../demo/cases';
 import LoadErrorBoundary from '../../components/LoadErrorBoundary';
 import { v3Link } from '../paths';
 
@@ -49,7 +48,6 @@ const STEPS: { no: string; title: string; stops: Stop[] }[] = [
     stops: [
       { to: '/projects', label: '研究計畫' },
       { to: '/resources', label: '資源連結' },
-      ...(DEMO_CASES.length > 0 ? [{ to: '/demo', label: 'AI 示範案例' }] : []),
     ],
   },
 ];

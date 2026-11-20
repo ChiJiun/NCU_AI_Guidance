@@ -1,4 +1,4 @@
-"""Demo 錄製、案例驗證、30 題評估題組與評分統計腳本的測試（離線執行：不需網路、不呼叫模型）。"""
+"""評估用的後端執行器、示範對話驗證、30 題評估題組與評分統計腳本的測試（離線執行：不需網路、不呼叫模型）。"""
 import csv
 import importlib.util
 import json
@@ -21,8 +21,7 @@ def _load(name: str, rel: str):
 
 
 runner = _load("assistant_runner", "scripts/demo/assistant_runner.py")
-record = _load("record_demo_cases", "scripts/demo/record_demo_cases.py")
-validate = _load("validate_demo_cases", "scripts/demo/validate_demo_cases.py")
+validate = _load("validate_demos", "scripts/demo/validate_demos.py")
 build_ts = _load("build_test_set", "scripts/evaluation/build_test_set.py")
 sheet = _load("make_score_sheet", "scripts/evaluation/make_score_sheet.py")
 analyze = _load("analyze_scores", "scripts/evaluation/analyze_scores.py")
@@ -103,67 +102,36 @@ def test_build_research_turn_error_and_cancel():
     assert runner.build_research_turn("q", [{"token": "x"}], 1)["error"]
 
 
-# ── Demo 案例 ───────────────────────────────────────────────────────────────
+# ── 示範對話（frontend/public/demo/*.json）────────────────────────────────
 
-SCENARIO = {"id": "research-09", "assistant": "research", "category": "general", "title": "t",
-            "scenario": "s", "project_id": "p1", "messages": ["a", "b"]}
-PROJECT = {"id": "p1", "title": "研究", "department": "某系", "year": "112", "type": "E", "studentName": "王小明"}
+PROJECTS = {"p1": {"id": "p1", "title": "研究", "studentName": "王小明"}}
 
 
-def _turn(text="回答"):
-    return {"user": "a", "assistant": text, "thread_id": "t1", "session_id": None, "latency_ms": 10,
-            "model": "m", "input_tokens": 1, "output_tokens": 2, "error": None}
-
-
-def test_build_case_strips_internal_fields_and_student_name():
-    case = record.build_case(SCENARIO, [_turn(), _turn()], project=PROJECT, commit="abc", generated_at="now")
-    assert "studentName" not in case["input"]["project"]
-    assert all("thread_id" not in t and "session_id" not in t for t in case["turns"])
-    assert case["review"]["status"] == "pending"
-    assert case["meta"]["total_latency_ms"] == 20 and case["meta"]["models"] == ["m"]
-
-
-def test_should_skip_protects_existing_cases(tmp_path):
-    path = tmp_path / "x.json"
-    assert record.should_skip(path, force=False) is None
-    path.write_text(json.dumps({"review": {"status": "approved"}}), encoding="utf-8")
-    assert "approved" in record.should_skip(path, force=False)
-    assert record.should_skip(path, force=True) is None
-
-
-def _approved_case(**over):
-    case = record.build_case(SCENARIO, [_turn()], project=PROJECT, commit="abc", generated_at="now")
-    case["review"].update(status="approved", reviewer="R")
+def _case(text="回答", **over):
+    case = {"id": "demo-1", "title": "t", "category": "一般", "summary": "s", "reviewed": True,
+            "recorded_at": "2026-11-17T00:00:00+00:00", "project_id": "p1",
+            "turns": [{"user": "問", "assistant": text, "sources": [], "agents": [], "stages": []}]}
     case.update(over)
     return case
 
 
 def test_validate_flags_pii_and_student_name():
-    case = _approved_case()
-    case["turns"][0]["assistant"] = "請聯絡 0912-345-678 或 a@b.com，作者王小明"
-    errs = validate.check_case(case, student_names={"p1": "王小明"}, require_approved=True)
+    errs = validate.check_case(_case("請聯絡 0912-345-678 或 a@b.com，作者王小明"), "research",
+                               projects=PROJECTS, require_reviewed=True)
     joined = " ".join(errs)
     assert "手機號碼" in joined and "email" in joined and "學生姓名" in joined
 
 
-def test_content_hash_detects_manual_edit_but_allows_review():
-    case = _approved_case()
-    assert case["meta"]["content_sha256"] == validate.content_digest(case)
-    case["review"].update(conclusion="人工填寫的結論", notes="ok")
-    assert validate.check_case(case, student_names={}, require_approved=True) == []
-    case["turns"][0]["assistant"] = "被手動改過的回答"
-    errs = validate.check_case(case, student_names={}, require_approved=True)
-    assert any("content_sha256" in e for e in errs)
-    del case["meta"]["content_sha256"]
-    assert any("缺少 content_sha256" in e for e in validate.check_case(case, student_names={}, require_approved=False))
+def test_validate_flags_leftover_redaction_marker():
+    errs = validate.check_case(_case("聯絡人是 <PRIVATE_PERSON>"), "research", projects=PROJECTS, require_reviewed=False)
+    assert any("去識別化標記" in e for e in errs), errs
 
 
 def test_pii_check_covers_whole_turn():
-    turn = _turn()
-    turn["course_cards"] = [{"name": "課", "teacher": "聯絡 teacher@example.com"}]
-    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
-    errs = validate.check_case(case, student_names={}, require_approved=False)
-    assert any("email" in e for e in errs)
+    case = _case()
+    case["turns"][0]["course_cards"] = [{"name": "課", "teacher": "聯絡 teacher@example.com"}]
+    errs = validate.check_case(case, "course", projects=PROJECTS, require_reviewed=False)
+    assert any("course_cards[0].teacher" in e and "email" in e for e in errs), errs
 
 
 @pytest.mark.parametrize("text", [
@@ -172,24 +140,27 @@ def test_pii_check_covers_whole_turn():
     "A123456789",            # 整段只有號碼
 ])
 def test_pii_detects_id_at_line_start(text):
-    turn = _turn(text)
-    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
-    errs = validate.check_case(case, student_names={}, require_approved=False)
+    errs = validate.check_case(_case(text), "course", projects=PROJECTS, require_reviewed=False)
     assert any("身分證字號" in e for e in errs), errs
 
 
-def test_pii_no_cross_field_false_positive_and_reports_field():
-    turn = _turn("代碼 0912")
-    turn["steps"] = [{"kind": "tool", "tool": "x", "args": {"a": "345678"}}]
-    turn["course_cards"] = [{"code": "0912345", "name": "678"}]
-    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
-    assert validate.check_case(case, student_names={}, require_approved=False) == []
+def test_pii_no_cross_field_false_positive():
+    case = _case("代碼 0912")
+    case["turns"][0]["course_cards"] = [{"code": "0912345", "name": "678"}]
+    assert validate.check_case(case, "course", projects=PROJECTS, require_reviewed=False) == []
 
-    turn = _turn()
-    turn["steps"] = [{"kind": "tool", "tool": "x", "args": {"phone": "0912-345-678"}}]
-    case = record.build_case(SCENARIO, [turn], project=PROJECT, commit="abc", generated_at="now")
-    errs = validate.check_case(case, student_names={}, require_approved=False)
-    assert any("steps[0].args.phone" in e and "手機號碼" in e for e in errs), errs
+
+def test_validate_require_reviewed_and_unknown_project():
+    assert validate.check_case(_case(reviewed=False), "course", projects=PROJECTS, require_reviewed=False) == []
+    assert validate.check_case(_case(reviewed=False), "course", projects=PROJECTS, require_reviewed=True)
+    errs = validate.check_case(_case(project_id="nope"), "research", projects=PROJECTS, require_reviewed=False)
+    assert any("找不到研究計畫" in e for e in errs)
+
+
+def test_committed_demos_pass_validation():
+    course, research, errors = validate.validate(ROOT / "frontend" / "public" / "demo", require_reviewed=True)
+    assert errors == []
+    assert len(course) >= validate.MIN_COURSE and len(research) >= validate.MIN_RESEARCH
 
 
 def test_graduation_reference_always_contains_min_credits():
@@ -256,34 +227,13 @@ def _run_script(rel: str, *args: str):
 
 
 def test_offline_cli_entrypoints():
-    """不需後端、不呼叫模型的 CLI 路徑：參數解析、列出情境、題組一致性檢查。"""
-    listed = _run_script("scripts/demo/record_demo_cases.py", "--list")
-    assert listed.returncode == 0, listed.stderr
-    assert "course-01" in listed.stdout and "research-03" in listed.stdout
-    unknown = _run_script("scripts/demo/record_demo_cases.py", "--only", "no-such-id", "--list")
-    assert unknown.returncode != 0 and "no-such-id" in unknown.stderr
+    """不需後端、不呼叫模型的 CLI 路徑：參數解析、題組一致性檢查。"""
     check = _run_script("scripts/evaluation/build_test_set.py", "--check")
     assert check.returncode == 0, check.stdout + check.stderr
-    for rel in ("scripts/demo/validate_demo_cases.py", "scripts/evaluation/run_eval.py",
+    for rel in ("scripts/demo/validate_demos.py", "scripts/evaluation/run_eval.py",
                 "scripts/evaluation/make_score_sheet.py", "scripts/evaluation/analyze_scores.py"):
         helped = _run_script(rel, "--help")
         assert helped.returncode == 0, f"{rel}: {helped.stderr}"
-
-
-def test_validate_require_approved():
-    case = _approved_case()
-    case["review"]["status"] = "pending"
-    assert validate.check_case(case, student_names={}, require_approved=False) == []
-    assert validate.check_case(case, student_names={}, require_approved=True)
-
-
-def test_scenarios_cover_competition_requirements():
-    scenarios = record.load_scenarios()
-    fake_cases = [{"id": s["id"], "assistant": s["assistant"], "category": s["category"]} for s in scenarios]
-    assert validate.check_coverage(fake_cases) == []
-    for s in scenarios:
-        if s["assistant"] == "research":
-            assert s.get("project_id"), s["id"]
 
 
 # ── 評估題組 ─────────────────────────────────────────────────────────────────
@@ -299,9 +249,11 @@ def test_test_set_is_independent_from_demo():
     items = build_ts.build()["items"]
     assert 20 <= len(items) <= 30
     assert len({i["id"] for i in items}) == len(items)
-    demo = json.loads((ROOT / "data" / "demo" / "scenarios.json").read_text(encoding="utf-8"))["scenarios"]
-    demo_questions = {m for s in demo for m in s["messages"]}
-    demo_projects = {s.get("project_id") for s in demo if s.get("project_id")}
+    # 展示版的示範對話（scripts/demo/demo_questions.json）不可與評估題重複，研究計畫也不可重疊
+    demo = json.loads((ROOT / "scripts" / "demo" / "demo_questions.json").read_text(encoding="utf-8"))
+    demo_cases = demo["course"] + demo["research"]
+    demo_questions = {t for c in demo_cases for t in c["turns"]}
+    demo_projects = {c["project_id"] for c in demo["research"]}
     assert not demo_questions & {i["question"] for i in items}
     assert not demo_projects & {i["project_id"] for i in items if i["project_id"]}
     for i in items:

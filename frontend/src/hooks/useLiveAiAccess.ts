@@ -2,13 +2,15 @@ import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { liveAiAPI } from '../api/services';
 import { createLiveAiAccessStore, deriveLiveAiStatus, liveAiUserKey } from '../api/liveAi';
-import type { LiveAiStatus } from '../api/liveAi';
+import type { LiveAiMode, LiveAiStatus } from '../api/liveAi';
 
 export interface LiveAiAccessState {
   status: LiveAiStatus;
   /** 只有可以顯示輸入框時才是 true（包含 /ai-access 失敗時的 fail-open）；載入中、不開放都是 false */
   allowed: boolean;
   loading: boolean;
+  /** 後端的 LIVE_AI_ACCESS 模式（developers＝展示版）；還不知道時是 null */
+  mode: LiveAiMode | null;
   /** 收到 403 LIVE_AI_RESTRICTED 時後端給的訊息 */
   message?: string;
   /** 請求被後端以 LIVE_AI_RESTRICTED 拒絕時呼叫，讓輸入區立刻換成說明（同一位使用者的各頁面都會套用） */
@@ -48,6 +50,7 @@ export function useLiveAiAccess(): LiveAiAccessState {
     allowed: status === 'allowed',
     loading: status === 'loading',
     message: status === 'restricted' ? entry?.message : undefined,
+    mode: entry?.mode ?? lastKnownMode,
     markRestricted,
   };
 }

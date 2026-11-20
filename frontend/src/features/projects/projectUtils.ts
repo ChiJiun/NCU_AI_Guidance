@@ -115,7 +115,13 @@ export function buildProjectPdfUrl(project: Project, apiUrl: string): string {
   return `${baseUrl}/pdfs/${encodedPath}`;
 }
 
-export function createWelcomeMessage(project: Project): ChatMessage {
+export function createWelcomeMessage(project: Project, demo = false): ChatMessage {
+  if (demo) {
+    return {
+      role: 'assistant',
+      content: `你現在正在查看「${project.title}」。展示版不開放即時提問，可以從下方選擇已經錄好的示範問答。`,
+    };
+  }
   return {
     role: 'assistant',
     content: `你現在正在查看「${project.title}」這份研究計畫。如果你想了解研究方向、內容重點或延伸問題，可以直接在這裡提問。`,

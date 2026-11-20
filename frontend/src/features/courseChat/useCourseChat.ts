@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { chatAPI, chatStreamAPI } from '../../api/services';
 import { useAuth } from '../../auth/AuthContext';
 import { useLiveAiAccess } from '../../hooks/useLiveAiAccess';
+import { demoAPI, type CourseDemoCase, type DemoCategory } from '../../demo/demoCases';
 import type { CourseCard, DebugTrace, StreamEvent, ToolTraceItem } from '../../types';
 
 export interface ToolIndicator {
@@ -28,6 +29,8 @@ export interface Conversation {
   createdAt: Date;
   updatedAt: Date;
   isStub?:   boolean; // true = metadata only, full turns not yet loaded
+  /** 展示版的預先錄製對話 */
+  demo?:     { category: DemoCategory; summary: string; field: string; reviewed: boolean; recordedAt: string };
 }
 
 export const GREETING = '你好，我是課程推薦助理。你可以直接問我課程方向、學分安排，或想比較的學院特色。';
@@ -71,6 +74,34 @@ export function makeConvFromSession(detail: {
   };
 }
 
+/** 把一組預先錄製的示範轉成對話（展示版、不能即時提問時顯示）。 */
+export function makeConvFromDemo(c: CourseDemoCase): Conversation {
+  const ts = new Date(c.recorded_at);
+  const messages: Message[] = [{ role: 'assistant', content: GREETING, timestamp: ts }];
+  for (const t of c.turns) {
+    messages.push({ role: 'user', content: t.user, timestamp: ts });
+    messages.push({
+      role: 'assistant', content: t.assistant, timestamp: ts,
+      courseCards: t.course_cards ?? [],
+      toolsUsed:   t.tools_used ?? [],
+      debugTrace:  t.debug_trace?.toolCalls?.length
+        ? { toolCalls: t.debug_trace.toolCalls, verify: t.debug_trace.verify ?? null }
+        : undefined,
+    });
+  }
+  return {
+    id: c.id, title: c.title, messages, createdAt: ts, updatedAt: ts,
+    demo: { category: c.category, summary: c.summary, field: c.field ?? '', reviewed: c.reviewed, recordedAt: c.recorded_at },
+  };
+}
+
+function lastCourseCards(conv: Conversation): CourseCard[] {
+  const last = [...conv.messages].reverse().find(
+    (m) => m.role === 'assistant' && !m.isStreaming && (m.courseCards?.length ?? 0) > 0,
+  );
+  return last?.courseCards ?? [];
+}
+
 export function formatTime(date: Date): string {
   const diff = Date.now() - date.getTime();
   const days = Math.floor(diff / 86400000);
@@ -84,9 +115,13 @@ export function formatTime(date: Date): string {
  * 課程助理（AI 對話）的資料邏輯：歷史對話載入、對話管理、串流送出與中止、原地編輯、
  * 推薦課程面板，以及即時 AI 權限（LIVE_AI_RESTRICTED）處理。新舊版頁面共用這個 hook。
  */
-export function useCourseChat() {
+export function useCourseChat({ demo = false }: { demo?: boolean } = {}) {
   const { user, loading: authLoading } = useAuth();
   const liveAi = useLiveAiAccess();
+  // 已經載入這位使用者的真實對話：之後才被擋（對話端點回 403）時保留原本的對話，不換成示範
+  const [realLoadedFor, setRealLoadedFor] = useState<string | null>(null);
+  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範對話（只有傳入 demo 的頁面才會顯示）
+  const showDemo = demo && liveAi.status === 'restricted' && !(user && realLoadedFor === user.id);
   const [conversations, setConversations]       = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [inputMessage, setInputMessage]         = useState('');
@@ -114,6 +149,21 @@ export function useCourseChat() {
     [conversations, selectedConversationId],
   );
 
+  const demoListItems = useMemo(
+    () => conversations.flatMap((c) => c.demo ? [{
+      id: c.id, title: c.title, category: c.demo.category, summary: c.demo.summary, reviewed: c.demo.reviewed,
+      meta: [c.demo.field, `${c.messages.filter((m) => m.role === 'user').length} 輪`].filter(Boolean).join('｜'),
+    }] : []),
+    [conversations],
+  );
+  const demoQuestions = useMemo(
+    () => conversations.flatMap((c) => {
+      const q = c.demo ? c.messages.find((m) => m.role === 'user')?.content : undefined;
+      return q ? [{ id: c.id, question: q }] : [];
+    }),
+    [conversations],
+  );
+
   const createDefaultConversation = useCallback(() => {
     const nc: Conversation = {
       id: Date.now().toString(), title: '新對話',
@@ -126,11 +176,30 @@ export function useCourseChat() {
 
   // ── 載入歷史對話（先拿 metadata，選到才 fetch 詳情）─────────────────────
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || liveAi.loading) return;
     let cancelled = false;
 
     void (async () => {
       await Promise.resolve();
+      if (showDemo) {
+        setSessionsLoaded(false);
+        sessionIds.current = {};
+        const cases = await demoAPI.courseCases();
+        if (cancelled) return;
+        const convs = cases.map(makeConvFromDemo);
+        if (convs.length === 0) {
+          createDefaultConversation();
+        } else {
+          // 首頁可以用 ?demo=<id> 直接開某一組示範
+          const wanted = new URLSearchParams(window.location.search).get('demo');
+          const first = convs.find((c) => c.id === wanted) ?? convs[0];
+          setConversations(convs);
+          setSelectedConversationId(first.id);
+          setPanelCourses(lastCourseCards(first));
+        }
+        setSessionsLoaded(true);
+        return;
+      }
       if (!user) {
         createDefaultConversation();
         setSessionsLoaded(true);
@@ -144,6 +213,7 @@ export function useCourseChat() {
       try {
         const sessions = await chatAPI.getSessions();
         if (cancelled) return;
+        setRealLoadedFor(user.id);
         if (sessions.length === 0) {
           createDefaultConversation();
           setSessionsLoaded(true);
@@ -179,7 +249,7 @@ export function useCourseChat() {
     })();
 
     return () => { cancelled = true; };
-  }, [authLoading, user, createDefaultConversation]);
+  }, [authLoading, liveAi.loading, user, showDemo, createDefaultConversation]);
 
   const updateConv = useCallback((id: string, updater: (c: Conversation) => Conversation) => {
     setConversations((prev) => prev.map((c) => (c.id === id ? updater(c) : c)));
@@ -266,14 +336,14 @@ export function useCourseChat() {
   // Ctrl+K / ⌘K 開新對話
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if (!showDemo && (e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
         handleNewConversation();
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleNewConversation]);
+  }, [handleNewConversation, showDemo]);
 
   // ── 送出訊息（串流） ─────────────────────────────────────────────────────
   // sendText: 覆蓋 inputMessage；fromIdx: 從此索引截斷再送（編輯用）
@@ -451,6 +521,7 @@ export function useCourseChat() {
 
   return {
     liveAi,
+    showDemo, demoListItems, demoQuestions,
     conversations, selectedConversationId, selectedConversation,
     inputMessage, setInputMessage,
     isMobileConversationOpen, setIsMobileConversationOpen,

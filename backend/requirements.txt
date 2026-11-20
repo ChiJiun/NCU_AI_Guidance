@@ -12,7 +12,7 @@ langchain-aws==1.9.1
 langsmith>=0.1.0
 python-igraph>=0.11.0
 leidenalg>=0.10.0
-qdrant-client>=1.9.0
+qdrant-client==1.20.0
 fastembed>=0.3.6
 grpcio>=1.72.0
 psycopg[binary]>=3.2.0

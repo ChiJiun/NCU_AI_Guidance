@@ -107,9 +107,9 @@ test('switchVersionHref：目標版沒有這一頁時回到該版首頁，不帶
   assert.equal(switchVersionHref('/unknown-page', '?x=1', 'v3'), '/v3');
 });
 
-test('switchVersionHref：v2 有、v3 沒有的頁面（研究計畫、資源、個人分析、示範案例、系統監控）', () => {
+test('switchVersionHref：v2 有、v3 沒有的頁面（研究計畫、資源、個人分析、系統監控）', () => {
   const search = '?q=1';
-  for (const page of ['/projects', '/resources', '/profile', '/demo', '/monitor']) {
+  for (const page of ['/projects', '/resources', '/profile', '/monitor']) {
     // v1 → v2 到 v2 的同一頁；v1 → v3 回 v3 首頁
     assert.equal(switchVersionHref(page, search, 'v2'), `/v2${page}${search}`);
     assert.equal(switchVersionHref(page, search, 'v3'), '/v3');
@@ -121,8 +121,4 @@ test('switchVersionHref：v2 有、v3 沒有的頁面（研究計畫、資源、
     assert.equal(switchVersionHref(`/v3${page}`, search, 'v2'), `/v2${page}${search}`);
     assert.equal(v3Link(page), page);
   }
-  // 示範案例內頁：id 保留大小寫
-  assert.equal(switchVersionHref('/demo/CaseA', '', 'v2'), '/v2/demo/CaseA');
-  assert.equal(switchVersionHref('/v2/demo/CaseA', '', 'v1'), '/demo/CaseA');
-  assert.equal(switchVersionHref('/v2/demo/CaseA', '', 'v3'), '/v3');
 });

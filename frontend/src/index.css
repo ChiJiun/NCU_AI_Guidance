@@ -16,6 +16,10 @@
     :root {
       --legacy-nav-strip: 29px;
     }
+    /* 展示版隱藏版本切換時（Navbar 設定 data-hide-version-switch），細橫條不顯示 */
+    :root[data-hide-version-switch] {
+      --legacy-nav-strip: 0px;
+    }
   }
 
   body {

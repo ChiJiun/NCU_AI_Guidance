@@ -38,6 +38,8 @@ import {
   usagePreferenceText,
 } from '../features/analytics/analysis';
 import { useAnalytics, type TabId } from '../features/analytics/useAnalytics';
+import { formatRecordedAt } from '../demo/demoCases';
+import { DemoBadge } from '../demo/DemoUI';
 
 // ── 探索型態診斷 ─────────────────────────────────────────────────
 const EXPLORE_TYPES = [
@@ -892,12 +894,13 @@ function TabError({ msg }: { msg: string }) {
 export default function AnalyticsPage() {
   const { user, loading: authLoading } = useAuth();
   const {
+    showDemo, demoViewLoading, demoInfo,
     activeTab, setActiveTab,
     courseData, courseLoading, courseError,
     projectData, projectLoading, projectError,
-  } = useAnalytics();
+  } = useAnalytics({ demo: true });
 
-  if (authLoading) {
+  if (authLoading || demoViewLoading) {
     return (
       <div className="page-container py-12">
         <Skeleton className="mb-8 h-16 w-64" />
@@ -911,12 +914,26 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!user) return <div className="page-container py-12 page-animate"><NotLoggedIn /></div>;
+  if (!user && !showDemo) return <div className="page-container py-12 page-animate"><NotLoggedIn /></div>;
 
   return (
     <div className="page-container py-10 page-animate">
       {/* 頁首 */}
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        {showDemo || !user ? (
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-100 text-xl font-bold text-amber-700 ring-4 ring-amber-50">
+              示
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-primary-900">示範學生</h1>
+                <DemoBadge />
+              </div>
+              <p className="mt-0.5 text-xs text-slate-400">學習傾向分析</p>
+            </div>
+          </div>
+        ) : (
         <div className="flex items-center gap-4">
           {user.picture ? (
             <img src={user.picture} alt=""
@@ -932,8 +949,22 @@ export default function AnalyticsPage() {
             <p className="mt-0.5 text-xs text-slate-400">學習傾向分析</p>
           </div>
         </div>
+        )}
         <TabSwitcher active={activeTab} onChange={setActiveTab} />
       </div>
+
+      {showDemo && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
+          <p className="font-semibold">這是示範學生的個人分析</p>
+          <p className="mt-0.5 text-amber-800">
+            展示版不開放即時提問，所以把
+            {demoInfo ? ` ${demoInfo.course} 組課程助理與 ${demoInfo.research} 組研究計畫助理` : '所有'}
+            的示範對話當成同一位學生的探索紀錄，用和正式版相同的方式計算
+            {demoInfo && formatRecordedAt(demoInfo.generatedAt) && `（${formatRecordedAt(demoInfo.generatedAt)} 產生）`}。
+            正式版中，每位學生登入後看到的是自己的對話所累積的分析。
+          </p>
+        </div>
+      )}
 
       {activeTab === 'all' && (
         <AllTab courseData={courseData} projectData={projectData} loading={courseLoading || projectLoading} />

@@ -7,7 +7,8 @@ import asyncio
 import hashlib
 import logging
 import re
-import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
 from langchain_community.document_compressors.flashrank_rerank import FlashrankRerank
@@ -27,6 +28,7 @@ from qdrant_client.models import (
 )
 
 from app.pdf_config import pdf_settings
+from app.services.qdrant_conn import qdrant_connection_kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +48,15 @@ SPARSE_NAME = "sparse"
 RETRIEVAL_K = 10
 RERANK_TOP_N = 4
 RERANK_MAX = 12
-RERANK_CANDIDATE_MAX = RERANK_MAX * 3
+# Cross-encoder cost is linear in candidate count (~0.2s per passage at 384 tokens on CPU).
+RERANK_CANDIDATE_MAX = 20
+# ms-marco-MultiBERT-L-12 is the only FlashRank model with Chinese support. Its default
+# max_length=512 costs ~0.3s per passage; 384 keeps top-4 agreement with 512 while
+# cutting latency ~30% (256 truncates ~1000-char Chinese chunks too aggressively).
+RERANK_MODEL = "ms-marco-MultiBERT-L-12"
+RERANK_MAX_LENGTH = 384
+# Upper bound for queue wait + inference of one search; a 20-passage rerank takes ~4s.
+RERANK_TIMEOUT = 12.0
 
 # ── Singletons ─────────────────────────────────────────────────────────────────
 
@@ -67,17 +77,15 @@ def _collection() -> str:
 
 
 def _build_client() -> QdrantClient:
-    kwargs: dict = {"url": pdf_settings.qdrant_url, "timeout": 15}
-    if pdf_settings.qdrant_api_key.get_secret_value():
-        kwargs["api_key"] = pdf_settings.qdrant_api_key.get_secret_value()
-    return QdrantClient(**kwargs)
+    return QdrantClient(**qdrant_connection_kwargs(
+        pdf_settings.qdrant_url, pdf_settings.qdrant_api_key.get_secret_value(), timeout=15,
+    ))
 
 
 def _build_async_client() -> AsyncQdrantClient:
-    kwargs: dict = {"url": pdf_settings.qdrant_url, "timeout": 15}
-    if pdf_settings.qdrant_api_key.get_secret_value():
-        kwargs["api_key"] = pdf_settings.qdrant_api_key.get_secret_value()
-    return AsyncQdrantClient(**kwargs)
+    return AsyncQdrantClient(**qdrant_connection_kwargs(
+        pdf_settings.qdrant_url, pdf_settings.qdrant_api_key.get_secret_value(), timeout=15,
+    ))
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -151,7 +159,10 @@ def get_dense_vectorstore() -> QdrantVectorStore:
 def get_reranker() -> FlashrankRerank:
     global _reranker
     if _reranker is None:
-        _reranker = FlashrankRerank(top_n=RERANK_MAX)
+        from flashrank import Ranker
+
+        client = Ranker(model_name=RERANK_MODEL, max_length=RERANK_MAX_LENGTH)
+        _reranker = FlashrankRerank(client=client, model=RERANK_MODEL, top_n=RERANK_MAX)
     return _reranker
 
 
@@ -287,6 +298,9 @@ async def warmup() -> bool:
     ok = True
     try:
         await asyncio.to_thread(get_reranker)
+        # First ONNX run pays one-off graph/allocator setup; do it before the first request.
+        from langchain_core.documents import Document
+        await _rerank_in_worker(get_reranker(), [Document(page_content="warmup")], "warmup")
         logger.info("RAG warmup: reranker ready")
     except Exception as exc:
         logger.warning("RAG warmup: reranker failed: %s", exc)
@@ -439,12 +453,33 @@ def _chunk_key(content: str) -> str:
     return hashlib.md5(content.encode("utf-8", errors="replace")).hexdigest()
 
 
-_RERANK_THREAD_SEM = threading.BoundedSemaphore(6)
+# ONNX Runtime already uses every physical core for one inference, so concurrent reranks
+# only slow each other down (3 parallel queries: 13s vs 5.6s for one). A single dedicated
+# worker serialises them, and keeps rerank work out of the default executor that
+# asyncio.to_thread() shares with DB calls: a timed-out rerank can no longer pile up
+# threads that starve unrelated requests. Pending (not yet started) jobs are dropped
+# when the caller times out, so at most one orphaned inference can still be running.
+_RERANK_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="rerank")
 
 
-def _rerank_bounded(reranker, docs, q):
-    with _RERANK_THREAD_SEM:
-        return reranker.compress_documents(docs, q)
+async def _rerank_in_worker(reranker, docs, query: str):
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(_RERANK_EXECUTOR, reranker.compress_documents, docs, query)
+
+
+def _rerank_query(queries: list[str]) -> str:
+    """Merge the leading queries into one cross-encoder query.
+
+    Scoring the same candidates once per query multiplied cost by 3 for no gain: on real
+    report chunks, one merged query matched the top-4 agreement of three separate passes
+    (vs. a 512-token reference) at a third of the latency.
+    """
+    merged: list[str] = []
+    for q in queries[:3]:
+        q = " ".join(str(q or "").split())
+        if q and q not in merged:
+            merged.append(q)
+    return " ".join(merged)
 
 
 async def search_documents(
@@ -512,20 +547,18 @@ async def search_documents(
     reranker = get_reranker()
     best_score: dict[str, float] = {}
     best_doc: dict[str, object] = {}
-    # Run reranking queries in parallel with per-query timeout to avoid blocking on large chunks
-    _RERANK_TIMEOUT = 8.0
     rerank_results = []
-    for coro in asyncio.as_completed([
-        asyncio.wait_for(
-            asyncio.to_thread(_rerank_bounded, reranker, all_results, q),
-            timeout=_RERANK_TIMEOUT,
-        )
-        for q in queries[:3]
-    ]):
-        try:
-            rerank_results.append(await coro)
-        except asyncio.TimeoutError:
-            logger.warning("rerank: timed out for one query, skipping")
+    _t0 = time.perf_counter()
+    try:
+        rerank_results.append(await asyncio.wait_for(
+            _rerank_in_worker(reranker, all_results, _rerank_query(queries)),
+            timeout=RERANK_TIMEOUT,
+        ))
+        logger.info("rerank: %d candidates in %.2fs", len(all_results), time.perf_counter() - _t0)
+    except asyncio.TimeoutError:
+        logger.warning("rerank: timed out after %.1fs (%d candidates)", RERANK_TIMEOUT, len(all_results))
+    except Exception as exc:
+        logger.warning("rerank: failed (%s), falling back to vector order", exc)
     for docs in rerank_results:
         for doc in docs:
             key = _chunk_key(doc.page_content)
@@ -546,7 +579,7 @@ async def search_documents(
     ranked = sorted(best_doc.values(), key=_rank_key)
     all_results = ranked[:effective_top_n]
     if not all_results:
-        logger.warning("rerank: all queries timed out, falling back to vector candidates")
+        logger.warning("rerank: no reranked results, falling back to vector candidates")
         all_results = _pre_rerank[:effective_top_n]
         for doc in all_results:
             doc.metadata["is_low_quality"] = is_table_or_formula_heavy(doc.page_content)

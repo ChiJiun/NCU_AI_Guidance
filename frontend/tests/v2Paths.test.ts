@@ -19,21 +19,18 @@ test('toV2Path：新版有的頁面對應到同一頁', () => {
   assert.equal(toV2Path('/courses/'), '/v2/courses');
 });
 
-test('toV2Path：研究計畫、資源、個人分析、示範案例、系統監控也有新版', () => {
+test('toV2Path：研究計畫、資源、個人分析、系統監控也有新版', () => {
   assert.equal(toV2Path('/projects'), '/v2/projects');
   assert.equal(toV2Path('/resources'), '/v2/resources');
   assert.equal(toV2Path('/profile'), '/v2/profile');
-  assert.equal(toV2Path('/demo'), '/v2/demo');
   assert.equal(toV2Path('/monitor'), '/v2/monitor');
 });
 
-test('toV2Path：示範案例內頁保留 id 的大小寫', () => {
-  assert.equal(toV2Path('/demo/some-case'), '/v2/demo/some-case');
-  assert.equal(toV2Path('/Demo/CaseA'), '/v2/demo/CaseA');
-  assert.equal(toV2Path('/demo/CaseA/'), '/v2/demo/CaseA');
-  // V2App 用這個組合把網址導到標準寫法
-  assert.equal(toV2Path(toLegacyPath('/V2/DEMO/CaseA')), '/v2/demo/CaseA');
-  assert.equal(hasV2Page('/demo/CaseA'), true);
+test('舊的示範案例網址（/demo）新版沒有對應頁面，會連回舊版再轉到助理頁', () => {
+  assert.equal(hasV2Page('/demo'), false);
+  assert.equal(hasV2Page('/demo/CaseA'), false);
+  assert.equal(toV2Path('/demo'), '/v2');
+  assert.equal(v2Link('/demo'), '/demo');
 });
 
 test('toV2Path：新版沒有的頁面回到新版首頁', () => {
@@ -59,7 +56,7 @@ test('toLegacyPath：去掉 /v2 前綴', () => {
 test('新舊版互轉可以來回', () => {
   for (const path of [
     '/', '/assessment', '/curriculum', '/courses', '/course-search',
-    '/projects', '/resources', '/profile', '/demo', '/demo/CaseA', '/monitor',
+    '/projects', '/resources', '/profile', '/monitor',
   ]) {
     assert.equal(toLegacyPath(toV2Path(path)), path);
   }
@@ -75,8 +72,6 @@ test('v2Link：新版有的頁面連到 /v2，其餘連回舊版', () => {
   assert.equal(v2Link('/resources'), '/v2/resources');
   assert.equal(v2Link('/profile'), '/v2/profile');
   assert.equal(v2Link('/monitor'), '/v2/monitor');
-  assert.equal(v2Link('/demo'), '/v2/demo');
-  assert.equal(v2Link('/demo/case-1'), '/v2/demo/case-1');
   assert.equal(v2Link('/unknown'), '/unknown');
 });
 

@@ -53,7 +53,7 @@ export default function ProjectsPage() {
     handleSendMessage, handleSendEditedMessage, handleCancelStream,
     handleNewPdfConversation, handleSwitchPdfConversation, handleDeletePdfConversation,
     handleSelectFromRecentChat, handleContinueRecentChat,
-  } = useProjects();
+  } = useProjects({ demo: true });
 
   const getCollegeLabel = getDeptCollege;
 

@@ -15,10 +15,13 @@ export type TabId = 'all' | 'course' | 'project';
  * 個人分析頁的資料載入：依目前分頁懶載入課程助理分析（/chat/analytics）與研究計畫分析
  * （/projects/analytics），每種只抓一次。新舊版頁面共用這個 hook。
  */
-export function useAnalytics() {
+export function useAnalytics({ demo = false }: { demo?: boolean } = {}) {
   const { user, loading: authLoading } = useAuth();
   // 展示版：不能即時提問的人沒有自己的紀錄，改看由示範對話算出的「示範學生」分析
-  const { showDemo, loading: demoViewLoading } = useDemoView();
+  // （只有傳入 demo 的頁面才會顯示）
+  const demoView = useDemoView();
+  const showDemo = demo && demoView.showDemo;
+  const demoViewLoading = demo && demoView.loading;
   const [demoInfo, setDemoInfo] = useState<{ generatedAt: string; course: number; research: number } | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('all');
 
@@ -31,6 +34,20 @@ export function useAnalytics() {
   const [projectLoading, setProjectLoading] = useState(false);
   const [projectError, setProjectError] = useState('');
   const [projectFetched, setProjectFetched] = useState(false);
+
+  // 換使用者、或在示範與真實分析之間切換時（例如訪客以開發團隊帳號登入），清掉已載入的資料重新抓
+  const viewKey = `${showDemo ? 'demo' : 'real'}:${user?.id ?? ''}`;
+  const [prevViewKey, setPrevViewKey] = useState(viewKey);
+  if (prevViewKey !== viewKey) {
+    setPrevViewKey(viewKey);
+    setDemoInfo(null);
+    setCourseData(null);
+    setCourseError('');
+    setCourseFetched(false);
+    setProjectData(null);
+    setProjectError('');
+    setProjectFetched(false);
+  }
 
   const fetchCourse = async () => {
     if (courseFetched) return;

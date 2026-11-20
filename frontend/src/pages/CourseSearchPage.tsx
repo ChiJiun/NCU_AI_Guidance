@@ -133,8 +133,8 @@ export default function CourseSearchPage() {
     handleNewConversation, handleRenameConversation, handleDeleteConversation,
     handleSelectConversation, handleShowMsgCourses,
     doSend, handleSendMessage, handleAbort, handleSendEdit, handleCancelEdit,
-  } = useCourseChat();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  } = useCourseChat({ demo: true });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(!showDemo);
   // 展示版：示範對話清單預設展開，讓訪客一眼看到有哪些示範
   const [prevShowDemo, setPrevShowDemo] = useState(showDemo);
   if (prevShowDemo !== showDemo) {

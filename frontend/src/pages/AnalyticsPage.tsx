@@ -898,7 +898,7 @@ export default function AnalyticsPage() {
     activeTab, setActiveTab,
     courseData, courseLoading, courseError,
     projectData, projectLoading, projectError,
-  } = useAnalytics();
+  } = useAnalytics({ demo: true });
 
   if (authLoading || demoViewLoading) {
     return (

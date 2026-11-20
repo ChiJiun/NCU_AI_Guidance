@@ -28,11 +28,11 @@ export function getPdfUrl(project: Project): string {
  * 研究計畫頁的資料邏輯：計畫清單與篩選、最近對話、PDF 問答（串流、中止、編輯重送、
  * 對話切換與刪除），以及即時 AI 權限（LIVE_AI_RESTRICTED）處理。新舊版頁面共用這個 hook。
  */
-export function useProjects() {
+export function useProjects({ demo = false }: { demo?: boolean } = {}) {
   const { user } = useAuth();
   const liveAi = useLiveAiAccess();
-  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範問答
-  const showDemo = liveAi.status === 'restricted';
+  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範問答（只有傳入 demo 的頁面才會顯示）
+  const showDemo = demo && liveAi.status === 'restricted';
   const [demoCases, setDemoCases] = useState<ResearchDemoCase[]>([]);
   const [activeDemoId, setActiveDemoId] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
@@ -75,7 +75,8 @@ export function useProjects() {
       const cases = showDemo ? await demoAPI.researchCases() : [];
       if (cancelled) return;
       setDemoCases(cases);
-      if (cases.length > 0) setLeftPanelTab('demo');
+      // 有示範就預設停在示範分頁；示範結束（例如開發團隊登入）時回到專題列表
+      setLeftPanelTab((tab) => (cases.length > 0 ? 'demo' : tab === 'demo' ? 'projects' : tab));
     })();
     return () => { cancelled = true; };
   }, [showDemo]);
@@ -164,7 +165,7 @@ export function useProjects() {
     handleSelectProject(project);
     setActiveDemoId(demo.id);
     setChatMessages([
-      createWelcomeMessage(project),
+      createWelcomeMessage(project, true),
       ...demo.turns.flatMap((t): ChatMessage[] => [
         { role: 'user', content: t.user },
         { role: 'assistant', content: t.assistant, sources: t.sources?.length ? t.sources : undefined },

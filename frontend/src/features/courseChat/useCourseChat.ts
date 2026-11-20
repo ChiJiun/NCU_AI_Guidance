@@ -115,11 +115,13 @@ export function formatTime(date: Date): string {
  * 課程助理（AI 對話）的資料邏輯：歷史對話載入、對話管理、串流送出與中止、原地編輯、
  * 推薦課程面板，以及即時 AI 權限（LIVE_AI_RESTRICTED）處理。新舊版頁面共用這個 hook。
  */
-export function useCourseChat() {
+export function useCourseChat({ demo = false }: { demo?: boolean } = {}) {
   const { user, loading: authLoading } = useAuth();
   const liveAi = useLiveAiAccess();
-  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範對話
-  const showDemo = liveAi.status === 'restricted';
+  // 已經載入這位使用者的真實對話：之後才被擋（對話端點回 403）時保留原本的對話，不換成示範
+  const [realLoadedFor, setRealLoadedFor] = useState<string | null>(null);
+  // 展示版：後端明確不開放即時 AI 時，改看預先錄製的示範對話（只有傳入 demo 的頁面才會顯示）
+  const showDemo = demo && liveAi.status === 'restricted' && !(user && realLoadedFor === user.id);
   const [conversations, setConversations]       = useState<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState('');
   const [inputMessage, setInputMessage]         = useState('');
@@ -211,6 +213,7 @@ export function useCourseChat() {
       try {
         const sessions = await chatAPI.getSessions();
         if (cancelled) return;
+        setRealLoadedFor(user.id);
         if (sessions.length === 0) {
           createDefaultConversation();
           setSessionsLoaded(true);

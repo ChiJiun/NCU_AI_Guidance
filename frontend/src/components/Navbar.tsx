@@ -263,7 +263,8 @@ export default function Navbar() {
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center space-x-3 transition duration-200 hover:-translate-y-0.5">
               <img src={logo} alt="國立中央大學科系探索平台" className="h-10 w-10 object-contain" />
-              <div className="hidden sm:block">
+              {/* 768–1023px 只留校徽，把寬度讓給導覽項目，避免換行 */}
+              <div className="hidden sm:block md:hidden lg:block">
                 <div className="text-sm font-bold text-primary-900">國立中央大學</div>
                 <div className="text-xs text-slate-500">科系探索平台</div>
               </div>

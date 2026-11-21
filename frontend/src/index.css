@@ -64,7 +64,8 @@
   }
 
   .nav-chip {
-    @apply rounded-full px-4 py-2 text-sm font-medium text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 hover:shadow-soft;
+    /* 768–1023px 導覽列很擠：不換行、縮小左右留白 */
+    @apply whitespace-nowrap rounded-full px-3 py-2 text-sm lg:px-4 font-medium text-slate-600 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:text-slate-900 hover:shadow-soft;
   }
 
   .nav-chip-active {
@@ -192,6 +193,8 @@
 
   .feature-coverflow {
     @apply px-2 pt-8;
+    /* 兩側的卡片會超出畫面；裁掉水平溢出，手機上才不會整頁可以左右滑（clip 不影響卡片的陰影與上下空間） */
+    overflow-x: clip;
   }
 
   .feature-coverflow-stage {

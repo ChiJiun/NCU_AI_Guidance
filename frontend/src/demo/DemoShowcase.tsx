@@ -52,7 +52,7 @@ export default function DemoShowcase({ onNavigate }: { onNavigate: (path: string
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {groups.map((g) => (
-            <div key={g.key} className="flex flex-col rounded-2xl bg-white/85 p-5 shadow-soft ring-1 ring-slate-200/80">
+            <div key={g.key} className="flex min-w-0 flex-col rounded-2xl bg-white/85 p-5 shadow-soft ring-1 ring-slate-200/80">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-700">
                   <g.icon className="h-5 w-5" />

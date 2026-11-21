@@ -90,7 +90,7 @@ export default function GoogleLoginButton() {
           }`}
         >
           <DemoAvatar />
-          <span className="whitespace-nowrap">示範學生</span>
+          <span className="hidden whitespace-nowrap lg:inline">示範學生</span>
           <HiChevronDown
             className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
           />
@@ -149,7 +149,7 @@ export default function GoogleLoginButton() {
         title={error || undefined}
       >
         <GoogleMark />
-        <span>使用 Google 登入</span>
+        <span className="whitespace-nowrap"><span className="hidden lg:inline">使用 Google </span>登入</span>
       </button>
     );
   }

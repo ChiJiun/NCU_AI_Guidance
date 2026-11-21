@@ -178,15 +178,16 @@ export default function CourseSearchPage() {
   return (
     <div className="page-container-wide flex h-full flex-col py-3">
       {/* 頁頭 */}
-      <div className="mb-3 flex flex-shrink-0 items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mb-3 flex flex-shrink-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
           <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary-900">課程助理</h1>
           {showDemo && <DemoBadge />}
-          <span className="text-sm text-gray-400">/</span>
-          <span className="text-sm text-gray-500">用 AI 對話方式快速整理課程方向與學習線索</span>
+          {/* 手機寬度放不下副標題，擠成三行反而難讀 */}
+          <span className="hidden text-sm text-gray-400 sm:inline">/</span>
+          <span className="hidden text-sm text-gray-500 sm:inline">用 AI 對話方式快速整理課程方向與學習線索</span>
         </div>
         {!showDemo && (
-          <button onClick={handleNewConversation} className="btn-primary flex items-center gap-2 px-3 py-1.5 text-sm">
+          <button onClick={handleNewConversation} className="btn-primary flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-1.5 text-sm">
             <HiPlus className="h-4 w-4" />
             新對話
           </button>
@@ -196,7 +197,7 @@ export default function CourseSearchPage() {
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Mobile 對話列表 */}
         {isMobileConversationOpen && (
-          <div className="fixed bottom-0 left-0 top-[var(--legacy-nav-strip)] z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
+          <div className="fixed bottom-0 left-0 top-[calc(4rem+var(--legacy-nav-strip))] z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
             <div className="flex h-full">
               <div className="card flex min-w-0 flex-1 flex-col overflow-hidden rounded-l-none rounded-r-2xl border-l-0 shadow-xl">
                 <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-3">
@@ -311,19 +312,22 @@ export default function CourseSearchPage() {
         </aside>
 
         {/* 主聊天區（中） */}
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {selectedConversation ? (
             <div className="relative h-full">
-              <button type="button" onClick={() => setIsMobileConversationOpen(true)}
-                className="fixed left-2 top-1/2 z-10 flex h-28 w-10 -translate-y-1/2 flex-col items-center justify-center gap-2 rounded-r-2xl bg-primary-900 px-2 text-white shadow-lg transition hover:bg-primary-800 lg:hidden">
-                <HiChevronRight className="h-5 w-5" />
-                <span className="[writing-mode:vertical-rl] text-xs tracking-[0.2em]">對話列表</span>
-              </button>
-
               <div className="card flex h-full flex-col">
-                {/* 標題列 */}
-                <div className="flex flex-shrink-0 items-center border-b border-gray-200 px-4 py-3">
-                  <h2 className="truncate text-sm font-semibold text-gray-800">{selectedConversation.title}</h2>
+                {/* 標題列（手機版的對話列表按鈕放在這裡，不再浮在回答上面擋住文字） */}
+                <div className="flex flex-shrink-0 items-center gap-2 border-b border-gray-200 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileConversationOpen(true)}
+                    className="-ml-1 inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary-900 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-primary-800 lg:hidden"
+                    aria-label={showDemo ? '開啟示範對話列表' : '開啟對話列表'}
+                  >
+                    <HiMenu className="h-4 w-4" />
+                    {showDemo ? '示範' : '列表'}
+                  </button>
+                  <h2 className="min-w-0 truncate text-sm font-semibold text-gray-800">{selectedConversation.title}</h2>
                 </div>
 
                 {/* 訊息列表 */}

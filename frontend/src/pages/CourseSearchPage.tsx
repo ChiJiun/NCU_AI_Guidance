@@ -197,7 +197,7 @@ export default function CourseSearchPage() {
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Mobile 對話列表 */}
         {isMobileConversationOpen && (
-          <div className="fixed bottom-0 left-0 top-[calc(4rem+var(--legacy-nav-strip))] z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
+          <div className="fixed bottom-0 left-0 top-[calc(4rem+1px+var(--legacy-nav-strip))] z-40 w-[min(20rem,calc(100vw-3rem))] lg:hidden">
             <div className="flex h-full">
               <div className="card flex min-w-0 flex-1 flex-col overflow-hidden rounded-l-none rounded-r-2xl border-l-0 shadow-xl">
                 <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-3">
@@ -206,6 +206,7 @@ export default function CourseSearchPage() {
                     <span className="text-sm font-semibold text-slate-800">{showDemo ? '示範對話' : '對話列表'}</span>
                   </div>
                   <button type="button" onClick={() => setIsMobileConversationOpen(false)}
+                    aria-label="關閉對話列表"
                     className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100">
                     <HiChevronLeft className="h-5 w-5" />
                   </button>
@@ -322,7 +323,7 @@ export default function CourseSearchPage() {
                     type="button"
                     onClick={() => setIsMobileConversationOpen(true)}
                     className="-ml-1 inline-flex shrink-0 items-center gap-1 rounded-lg bg-primary-900 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-primary-800 lg:hidden"
-                    aria-label={showDemo ? '開啟示範對話列表' : '開啟對話列表'}
+                    aria-label={showDemo ? '示範對話列表' : '對話列表'}
                   >
                     <HiMenu className="h-4 w-4" />
                     {showDemo ? '示範' : '列表'}

@@ -83,6 +83,7 @@ export default function GoogleLoginButton() {
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
+          aria-label="示範學生選單"
           className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium transition-all ${
             open
               ? 'border-amber-300 bg-amber-50 text-amber-900 shadow-sm'
@@ -159,6 +160,8 @@ export default function GoogleLoginButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={`${user.name} 的帳號選單`}
         className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm font-medium transition-all ${
           open
             ? 'border-primary-300 bg-primary-50 text-primary-800 shadow-sm'
@@ -166,7 +169,8 @@ export default function GoogleLoginButton() {
         }`}
       >
         <Avatar picture={user.picture} name={user.name} />
-        <span className="max-w-[96px] truncate">{user.name}</span>
+        {/* 768–1023px 導覽列放不下名字，只留頭像 */}
+        <span className="hidden max-w-[96px] truncate lg:inline">{user.name}</span>
         <HiChevronDown
           className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 ${
             open ? 'rotate-180' : ''
